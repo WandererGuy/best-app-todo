@@ -1,0 +1,5 @@
+node_modules/
+# output trung gian của build, sinh lại bằng: node build/build.js
+build/bundle.js
+# ghi chú riêng, Claude bị chặn đọc (.claude/settings.json) nên không đưa vào git
+backlog-human.md

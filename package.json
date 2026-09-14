@@ -1,0 +1,22 @@
+{
+  "name": "llol",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@tiptap/core": "^3.31.3",
+    "@tiptap/extensions": "^3.31.3",
+    "@tiptap/pm": "^3.31.3",
+    "@tiptap/starter-kit": "^3.31.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
