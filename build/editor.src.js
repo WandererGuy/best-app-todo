@@ -32,7 +32,7 @@ const Img = Node.create({
 
 /* file đính kèm: như ảnh, nội dung chỉ lưu mã + tên + cỡ; file thật do app cất.
    Hiện thành thẻ có nút tải về, bấm thì hỏi app qua options.src(mã) -> URL.
-   Nút Xem chỉ có khi app bảo xem được (options.canView(tên)); bấm thì app mở qua options.view(attrs). */
+   Nút Xem chỉ có khi app bảo xem được (options.canView(tên)); bấm (hoặc bấm đúp vào thẻ) thì app mở qua options.view(attrs). */
 const kb = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB';
 const FileBlock = Node.create({
   name: 'file',
@@ -61,6 +61,10 @@ const FileBlock = Node.create({
       const miss = () => { dom.classList.add('miss'); btn.textContent = 'Không tìm thấy file'; };
       const vb = dom.querySelector('.fv');
       if(vb) vb.onclick = async () => { if(!await this.options.view(node.attrs)){ vb.remove(); miss(); } };
+      dom.ondblclick = e => {                                  // bấm đúp thẻ = bấm Xem (nếu xem được)
+        if(e.target.closest('.fd') || !dom.querySelector('.fv')) return;
+        e.preventDefault(); vb.onclick();
+      };
       btn.onclick = async () => {
         const u = await this.options.src(node.attrs.file);
         if(!u) return miss();
