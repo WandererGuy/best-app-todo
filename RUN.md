@@ -4,19 +4,18 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 ## 0. Điều cần biết trước
 
-- App là **một file HTML tĩnh duy nhất**: `index.html` (~460 KB). Không có server, không có backend, không có bước build cho phần app.
-- Toàn bộ code app nằm inline trong `index.html`:
-  - CSS: dòng 7–332
-  - HTML: dòng 334–381
-  - Bundle trình soạn thảo TipTap (đã minify, do build sinh ra): giữa `<!--TIPTAP-START-->` và `<!--TIPTAP-END-->` (dòng 382–522)
-  - Code app: `<script>` ở dòng 524 đến hết
+- App là **trang web tĩnh**, không có backend, không có bước build cho phần app. Gồm 4 file:
+  - `index.html` — chỉ khung HTML, nạp 3 file dưới bằng `<link>` / `<script src>`
+  - `style.css` — toàn bộ CSS
+  - `app.js` — toàn bộ code app (JavaScript thuần, sửa thẳng)
+  - `vendor/tiptap.js` — bundle trình soạn thảo TipTap đã minify, **do build sinh ra, không sửa tay**
 - `node_modules/` và `build/` **chỉ dùng khi cần build lại trình soạn thảo**. Chạy app thì không cần.
 
 ## 1. Chạy app (thường xuyên nhất)
 
 ### Bấm đúp `run.bat`
 
-Đó là tất cả. File này `cd` vào thư mục dự án, bật `python -m http.server 8000`, rồi tự mở `http://localhost:8000` sau vài giây.
+Đó là tất cả. File này `cd` vào thư mục dự án, bật `python serve.py` (server tĩnh cổng 8000), rồi tự mở `http://localhost:8000` sau vài giây.
 
 - **Đóng cửa sổ đen** = tắt server. Không cần làm gì thêm.
 - Nếu máy không có Python, file tự chuyển sang mở trực tiếp `index.html` (vẫn dùng được, nhưng mất tính năng liên kết file).
@@ -29,12 +28,14 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 Nếu trước đây đã dùng `file://` và có dữ liệu thật ở đó: mở lại bằng đúng cách cũ, bấm **Xuất file**, rồi chạy `run.bat` và bấm **Nạp file** để chuyển dữ liệu sang origin localhost.
 
-### Chạy tay (khi cần cổng khác)
+### Chạy tay
 
 ```powershell
-python -m http.server 8000
+python serve.py
 # rồi mở http://localhost:8000
 ```
+
+`serve.py` giống `python -m http.server 8000` nhưng gửi `Cache-Control: no-cache`. Không có header này, Chrome có thể giữ bản `app.js` / `style.css` cũ trong cache, sửa code xong F5 không thấy thay đổi.
 
 ## 2. Build lại trình soạn thảo (chỉ khi sửa `build/editor.src.js`)
 
@@ -43,13 +44,9 @@ npm install          # lần đầu, hoặc sau khi đổi dependency
 node build/build.js
 ```
 
-`build/build.js` làm 2 việc:
-1. esbuild bundle `build/editor.src.js` → `build/bundle.js` (iife, minify, target es2019)
-2. Ghi thẳng `<script>…</script>` đó vào `index.html`, **thay thế** phần giữa `<!--TIPTAP-START-->` và `<!--TIPTAP-END-->`
+`build/build.js` dùng esbuild bundle `build/editor.src.js` → `vendor/tiptap.js` (iife, minify, target es2019), rồi in ra kích thước. Build chỉ ghi đè `vendor/tiptap.js`, không đụng file nào khác.
 
-Script in ra kích thước bundle và kích thước `index.html` sau khi nhúng. Nếu báo `Không tìm thấy mốc TIPTAP trong index.html` thì hai dòng mốc đã bị xoá — phải thêm lại trước khi build.
-
-**Cảnh báo:** build **sửa trực tiếp `index.html`**. Đừng chạy build khi đang có sửa đổi chưa lưu ở vùng TIPTAP.
+`vendor/tiptap.js` **được commit vào git** để chạy app không cần Node.
 
 Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windows 11.
 
@@ -108,8 +105,8 @@ location.reload();
 
 ## 5. Lưu ý khi sửa code
 
-- Sửa app → sửa `<script>` trong `index.html`. Không cần build.
-- Sửa trình soạn thảo → sửa `build/editor.src.js`, rồi `node build/build.js`. **Đừng sửa tay phần giữa hai mốc TIPTAP**, build sẽ ghi đè.
+- Sửa app → sửa `app.js` (logic), `style.css` (giao diện), `index.html` (khung HTML). Không cần build.
+- Sửa trình soạn thảo → sửa `build/editor.src.js`, rồi `node build/build.js`. **Đừng sửa tay `vendor/tiptap.js`**, build sẽ ghi đè.
+- `app.js` là script thường (không phải ES module) để mở thẳng `file://` vẫn chạy — đừng đổi sang `type="module"` / `import`.
 - App chỉ gọi trình soạn thảo qua `window.TT`, không chạm trực tiếp ProseMirror. Giữ nguyên ranh giới này.
-- `build/bundle.js` là output trung gian, không phải nguồn.
 - `backlog-human.md` là ghi chú riêng của chủ dự án, dòng đầu ghi rõ AI không được đọc — **bỏ qua file này**.

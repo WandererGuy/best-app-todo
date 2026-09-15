@@ -1,6 +1,6 @@
 # Trung tâm điều khiển
 
-App quản lý công việc và nhật ký cá nhân, gói trong **một file HTML duy nhất**. Không server, không tài khoản, không đưa dữ liệu ra internet — mở file là dùng được, dữ liệu nằm trên máy.
+App quản lý công việc và nhật ký cá nhân, là một trang web tĩnh (HTML + CSS + JS thuần, không framework). Không backend, không tài khoản, không đưa dữ liệu ra internet — mở file là dùng được, dữ liệu nằm trên máy.
 
 **Chạy:** bấm đúp `run.bat`. Đóng cửa sổ đen là tắt.
 
@@ -10,7 +10,7 @@ App quản lý công việc và nhật ký cá nhân, gói trong **một file HT
 
 Một chỗ duy nhất cho việc cần làm và cho suy nghĩ về việc đó. Task không chỉ là một dòng tiêu đề — mỗi task có một ô ghi chú viết được như trang Notion, để mọi thứ vụn vặt liên quan đến nó có nơi để ném vào thay vì tản mác ở chỗ khác.
 
-Ràng buộc tự đặt: **một file, chạy offline, dữ liệu là của người dùng**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới.
+Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là của người dùng**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới.
 
 ## Có gì
 
@@ -72,10 +72,13 @@ Có sẵn đường nâng cấp cho dữ liệu cũ: nhật ký định dạng c
 
 ```
 run.bat                Bấm đúp là chạy: bật server tĩnh rồi mở trình duyệt
-index.html             App hoàn chỉnh: CSS + HTML + bundle TipTap + code app
+serve.py               Server tĩnh cổng 8000, tắt cache
+index.html             Khung HTML, nạp các file dưới
+style.css              Toàn bộ CSS
+app.js                 Toàn bộ code app
+vendor/tiptap.js       Bundle TipTap đã minify (build sinh ra, không sửa tay)
 build/editor.src.js    Nguồn lớp bọc trình soạn thảo, xuất ra window.TT
-build/build.js         esbuild bundle rồi nhúng thẳng vào index.html
-build/bundle.js        Output trung gian của bước build
+build/build.js         esbuild bundle ra vendor/tiptap.js
 package.json           Chỉ phục vụ bước build (TipTap + esbuild)
 RUN.md                 Cách chạy, build, và xử lý dữ liệu
 ```

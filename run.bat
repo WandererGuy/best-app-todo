@@ -16,7 +16,7 @@ echo     index.html, vi hai cach do luu du lieu o hai noi khac nhau.
 echo.
 
 start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
-python -m http.server 8000
+python serve.py
 echo.
 echo   Server da dung. Neu bao loi "address already in use" thi cong 8000
 echo   dang bi mot cua so run.bat khac chiem - dong cua so do roi chay lai.
