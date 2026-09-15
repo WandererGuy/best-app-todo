@@ -90,6 +90,7 @@ button{background:none;border:none;cursor:pointer}
 .card.drag{opacity:.35}
 .card .t{font-weight:520;line-height:1.45;margin-bottom:8px;word-break:break-word}
 .card.done .t{color:var(--tx2);text-decoration:line-through}
+.card.zen .t:last-child{margin-bottom:0}
 .crow{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .pill{font-size:10.5px;padding:2px 7px;border-radius:5px;font-weight:600;letter-spacing:.2px}
 .tg{font-size:10.5px;padding:2px 7px;border-radius:5px;background:rgba(99,102,241,.14);color:var(--acc2)}

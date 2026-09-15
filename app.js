@@ -865,6 +865,7 @@ function renderBoard(){
       <div class="scope">${Object.entries(SORTS).map(([k,n]) =>
         `<button class="${sort===k?'on':''}" data-sort="${k}">${n}</button>`).join('')}</div>
       <span class="hint">${hidden ? `Đang ẩn ${hidden} task ngoài khoảng này` : 'Đang hiện toàn bộ task khớp bộ lọc'}</span>
+      <div class="scope"><button class="${S.settings.zen?'on':''}" data-zen title="Thẻ chỉ còn tên task và hạn khi sắp/trễ hạn">Zen</button></div>
     </div>`
     + '<div id="board">' + Object.entries(COLS).map(([k,c]) => {
     let items = byPrio(list.filter(t => t.status === k));
@@ -892,11 +893,16 @@ function renderBoard(){
 
   $$('[data-sort]').forEach(b => b.onclick = () => { S.settings.sort = b.dataset.sort; save(); renderBoard(); });
   $$('[data-more]').forEach(b => b.onclick = () => { ui.doneAll = !ui.doneAll; renderBoard(); });
+  $$('[data-zen]').forEach(b => b.onclick = () => { S.settings.zen = !S.settings.zen; save(); renderBoard(); });
   wireDnD();
 }
 function card(t){
   const a = AREAS[t.area], p = PRIOS[t.prio], dc = dueClass(t);
   const nSub = (t.subs||[]).length, dSub = (t.subs||[]).filter(s => s.d).length;
+  // zen: chỉ tên task, hạn chỉ hiện khi hôm nay hoặc đã trễ
+  if(S.settings.zen) return `<article class="card zen${t.status==='done'?' done':''}" draggable="true" data-id="${t.id}" style="border-left-color:${a.c}">
+    <div class="t">${t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>'}</div>
+    ${dc ? `<div class="crow"><span class="meta ${dc}">◷ ${dueLabel(t)}${t.time ? ' ' + t.time : ''}</span></div>` : ''}</article>`;
   return `<article class="card${t.status==='done'?' done':''}" draggable="true" data-id="${t.id}" style="border-left-color:${a.c}">
     <div class="t">${t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>'}</div>
     ${t.pg > 0 ? `<div class="pg"><i style="width:${t.pg}%"></i></div>` : ''}
