@@ -1388,6 +1388,7 @@ function renderForm(){
       <button class="btn" id="nGo">Tạo task</button>
       <button class="btn ghost" id="nClr">Xoá form</button>
       <span class="hint" id="nErr"></span>
+      <span class="meta" style="margin-left:auto">Ngày tạo ${fmtVN(today())}</span>
     </div>
   </div></div>`;
 
