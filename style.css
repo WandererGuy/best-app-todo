@@ -36,6 +36,7 @@ button{background:none;border:none;cursor:pointer}
 .nav .ic{width:16px;text-align:center;font-size:14px}
 .nav .ct{margin-left:auto;font-size:11px;color:var(--tx3);background:var(--panel2);padding:1px 7px;border-radius:20px}
 .nav.on .ct{background:rgba(255,255,255,.2);color:#fff}
+.nav.over{outline:1.5px dashed var(--acc);outline-offset:-1.5px;color:var(--tx)}
 .fil{display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:8px;color:var(--tx2);width:100%;text-align:left;font-size:13px}
 .fil:hover{background:var(--panel2);color:var(--tx)}
 .fil.on{background:var(--panel2);color:var(--tx);font-weight:600}
@@ -174,6 +175,8 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .tagsug .tgx:hover{opacity:1}
 .tgrow{display:flex;align-items:center;gap:10px;padding:5px 2px;border-bottom:1px solid var(--line)}
 .tgrow:last-child{border:none}
+.bkrow{cursor:pointer;border-radius:6px}
+.bkrow:hover{background:var(--panel2)}
 .tgsw{width:20px;height:20px;flex:0 0 20px;border-radius:6px;border:1px solid rgba(255,255,255,.15)}
 .tgsw:hover{outline:2px solid var(--tx3);outline-offset:1px}
 /* bảng chọn màu tag */

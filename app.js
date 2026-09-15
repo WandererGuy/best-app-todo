@@ -2,6 +2,8 @@
 const AREAS = {work:{n:'Công việc',c:'#3b82f6'}, life:{n:'Cuộc sống',c:'#a855f7'}, other:{n:'Khác',c:'#64748b'}};
 const PRIOS = {low:{n:'Thấp',c:'#22c55e'}, med:{n:'Trung bình',c:'#f59e0b'}, high:{n:'Cao',c:'#f43f5e'}};
 const COLS  = {todo:{n:'Cần làm',c:'#64748b'}, doing:{n:'Đang làm',c:'#6366f1'}, done:{n:'Xong',c:'#22c55e'}};
+// "Để sau": việc chưa cam kết làm — không lên bảng, lịch, nhắc việc, thống kê
+const STATUSES = {backlog:{n:'Để sau',c:'#94a3b8'}, ...COLS};
 const SCOPES = {today:'Hôm nay', week:'7 ngày', month:'Tháng này', all:'Tất cả'};
 const DONE_MAX = 10;   // số task hiện sẵn ở cột Xong
 const SORTS  = {manual:'Thủ công', prio:'Theo ưu tiên', group:'Chia nhóm ưu tiên'};
@@ -675,7 +677,7 @@ function renderSideCal(){
   if(!ui.sDate) ui.sDate = today();
   const d = new Date(ui.sDate + 'T00:00:00');
   $('#sdDay').textContent = ui.sDate === today() ? 'Hôm nay' : `${DOW[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
-  const evs = dayLayout(S.tasks, ui.sDate);
+  const evs = dayLayout(S.tasks.filter(t => t.status !== 'backlog'), ui.sDate);
 
   const box = $('#sdCal'), keep = box.scrollTop;
   box.innerHTML = `<div class="sdgrid">
@@ -710,7 +712,7 @@ function pickSlot(date, time){
 function checkReminders(){
   const now = Date.now(); let hit = 0;
   S.tasks.forEach(t => {
-    if(!t.due || !t.time || !t.remind || t.status === 'done') return;
+    if(!t.due || !t.time || !t.remind || t.status === 'done' || t.status === 'backlog') return;
     const key = `${t.due}T${t.time}|${t.remind}`;   // đổi giờ hoặc mốc nhắc thì nhắc lại
     if(t.rmd === key) return;
     const start = new Date(`${t.due}T${t.time}:00`).getTime();
@@ -766,9 +768,11 @@ function toggleBell(){
 function closeBell(){ $('#bellP').hidden = true; $('#bellBtn').classList.remove('on'); }
 
 /* ============ lọc ============ */
-function visible(){
+// backlog = true: chỉ lấy task "Để sau"; mặc định bỏ chúng ra
+function visible(backlog = false){
   const q = ui.q.trim().toLowerCase();
   return S.tasks.filter(t => {
+    if((t.status === 'backlog') !== backlog) return false;
     if(ui.area !== 'all' && t.area !== ui.area) return false;
     if(ui.tag && !(t.tags||[]).includes(ui.tag)) return false;
     if(ui.quick === 'high' && t.prio !== 'high') return false;
@@ -821,8 +825,10 @@ function render(){
     if(b.dataset.f === 'area') b.hidden = ui.view === 'life' || (ui.view === 'board' && b.dataset.k === 'life');
   });
   $('#areaLbl').hidden = ui.view === 'life';
-  $('#ctB').textContent = S.tasks.filter(t => t.status !== 'done' && t.area !== 'life').length;
-  $('#ctL').textContent = S.tasks.filter(t => t.status !== 'done' && t.area === 'life').length;
+  const onBoard = S.tasks.filter(t => t.status !== 'done' && t.status !== 'backlog');
+  $('#ctB').textContent = onBoard.filter(t => t.area !== 'life').length;
+  $('#ctL').textContent = onBoard.filter(t => t.area === 'life').length;
+  $('#ctK').textContent = S.tasks.filter(t => t.status === 'backlog').length;
   $('#ctT').textContent = S.trash.length + S.ntrash.filter(n => n.trashed).length;
 
   const tags = tagNames();
@@ -833,9 +839,9 @@ function render(){
   renderSideCal();
 
   killEds(); closePal();
-  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
+  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
   $('#vTitle').textContent = titles[ui.view];
-  ({board:renderBoard, life:renderBoard, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
+  ({board:renderBoard, life:renderBoard, backlog:renderBacklog, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. ' +
     'Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.</div>');
@@ -1019,7 +1025,7 @@ function drawTask(){
   $('#drawer').innerHTML = `
     <div class="dhd">
       <span class="pill" style="background:${AREAS[t.area].c}22;color:${AREAS[t.area].c}">${AREAS[t.area].n}</span>
-      <span class="meta">${COLS[t.status].n}</span>
+      <span class="meta">${STATUSES[t.status].n}</span>
       <button class="x" id="dX">✕</button>
     </div>
     <div class="dbody">
@@ -1027,7 +1033,7 @@ function drawTask(){
 
       <div class="fld"><label>Mảng</label><div class="seg">${segs(AREAS, t.area, 'area')}</div></div>
       <div class="fld"><label>Ưu tiên</label><div class="seg">${segs(PRIOS, t.prio, 'prio')}</div></div>
-      <div class="fld"><label>Trạng thái</label><div class="seg">${segs(COLS, t.status, 'st')}</div></div>
+      <div class="fld"><label>Trạng thái</label><div class="seg">${segs(STATUSES, t.status, 'st')}</div></div>
 
       <div class="fld"><label>Tiến độ — ${t.pg}%</label>
         <div class="seg">${[0,25,50,75,100].map(p =>
@@ -1231,7 +1237,7 @@ function renderJournal(){
   const days = Object.keys(S.journal).filter(dayHas).length;
   $('#vSub').textContent = `${days} ngày đã viết`;
 
-  const due = S.tasks.filter(t => t.due === ui.jDate);
+  const due = S.tasks.filter(t => t.due === ui.jDate && t.status !== 'backlog');
   $('#view').innerHTML = `<div class="jwrap">
     <div class="jbar">
       <button class="nvb" id="pd">‹</button><button class="nvb" id="nd">›</button>
@@ -1534,7 +1540,7 @@ function renderForm(){
       <div class="fld"><label>Ưu tiên</label><div class="seg">${segs(PRIOS, nf.prio, 'nfprio')}</div></div>
     </div>
     <div class="frow">
-      <div class="fld"><label>Bắt đầu ở cột</label><div class="seg">${segs(COLS, nf.status, 'nfst')}</div></div>
+      <div class="fld"><label>Bắt đầu ở cột</label><div class="seg">${segs(STATUSES, nf.status, 'nfst')}</div></div>
       <div class="fld"><label>Hạn chót</label>
         ${dateBtn('nDue', nf.due, 'Chưa đặt hạn')}
         <div class="hint" style="margin:0">Bấm để mở lịch chọn ngày</div></div>
@@ -1597,7 +1603,7 @@ function createFromForm(){
   ui.q = ''; $('#q').value = ''; ui.quick = null;
   if(ui.tag && !t.tags.includes(ui.tag)) ui.tag = null;
   if(ui.area !== 'all' && ui.area !== t.area) ui.area = 'all';
-  nf = blankForm(nf.status); ui.view = t.area === 'life' ? 'life' : 'board'; render();
+  nf = blankForm(nf.status); ui.view = t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'); render();
   toast(`Đã tạo: ${t.title}`);
 }
 /* ============ quản lý tag ============ */
@@ -1637,6 +1643,44 @@ function renderTags(){
   $$('[data-rentag]').forEach(b => b.onclick = () => renameTag(b.dataset.rentag));
 }
 
+/* ============ để sau ============ */
+// on = true: gác task xuống Để sau; false: đưa lên cuối cột Cần làm
+function setBacklog(id, on){
+  const t = S.tasks.find(x => x.id === id); if(!t) return;
+  S.tasks = S.tasks.filter(x => x !== t);
+  t.status = on ? 'backlog' : 'todo'; t.done = null;
+  if(t.pg === 100) t.pg = 75;
+  S.tasks.splice(S.tasks.map(x => x.status).lastIndexOf(t.status) + 1, 0, t);
+  save(); toast(on ? `Đã gác lại: ${t.title}` : `Đã đưa lên Cần làm: ${t.title}`);
+}
+function renderBacklog(){
+  // mới ghi lên đầu; tuổi tính từ ngày tạo để lúc xem lại dễ mạnh tay xoá bớt
+  const list = visible(true).sort((a, b) => (b.cr || '').localeCompare(a.cr || ''));
+  const age = t => { if(!t.cr) return ''; const n = Math.round((new Date(today()) - new Date(t.cr)) / 864e5); return n ? `${n} ngày` : 'hôm nay'; };
+  $('#vSub').textContent = `${list.length} việc chưa cam kết làm · không lên bảng, lịch, nhắc việc`;
+  $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
+    <input class="fttl" id="bkIn" placeholder="Ghi nhanh việc để sau rồi Enter" autocomplete="off">
+    ${list.length ? `<div>${list.map(t => `<div class="tgrow bkrow" data-bk="${t.id}">
+        <span class="sw" style="width:8px;height:8px;border-radius:50%;flex:0 0 8px;background:${AREAS[t.area].c}"></span>
+        <span style="word-break:break-word">${t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>'}</span>
+        ${(t.tags||[]).slice(0,2).map(x => `<span class="tg" style="${tagStyle(x)}">#${esc(x)}</span>`).join('')}
+        <span class="meta" style="margin-left:auto;white-space:nowrap" title="Tạo ${fmtVN(t.cr)}">${age(t)}</span>
+        <button class="btn ghost" data-todo="${t.id}" style="padding:5px 10px;font-size:12px;font-weight:500;white-space:nowrap">→ Cần làm</button></div>`).join('')}</div>`
+      : '<div class="empty">Chưa có việc nào để sau. Ghi nhanh ở ô trên, hoặc kéo card trên bảng thả vào mục Để sau ở sidebar.</div>'}
+  </div></div>`;
+
+  $('#bkIn').onkeydown = e => {
+    const title = e.target.value.trim();
+    if(e.key !== 'Enter' || !title) return;
+    S.tasks.unshift({id:uid(), title, area: ui.area === 'all' ? 'work' : ui.area, prio:'med', status:'backlog', pg:0, tags:[],
+      due:'', time:'', dur:60, remind:30, note:'', cr:today(), subs:[], done:null});
+    ui.q = ''; $('#q').value = ''; ui.quick = null; ui.tag = null;   // bỏ bộ lọc có thể che mất việc vừa ghi
+    save(); render(); $('#bkIn').focus();
+  };
+  $$('[data-todo]').forEach(b => b.onclick = e => { e.stopPropagation(); setBacklog(b.dataset.todo, false); render(); });
+  $$('[data-bk]').forEach(r => r.onclick = () => openTask(r.dataset.bk));
+}
+
 /* ============ thùng rác ============ */
 // task bị bỏ nằm riêng trong S.trash nên bảng, lịch, thống kê, nhắc việc tự không thấy
 function trashTask(id){
@@ -1655,7 +1699,7 @@ function renderTrash(){
       ${S.trash.length ? `<div>${S.trash.map(t => `<div class="tgrow">
           <span class="sw" style="width:8px;height:8px;border-radius:50%;flex:0 0 8px;background:${AREAS[t.area].c}"></span>
           <span style="word-break:break-word">${t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>'}</span>
-          <span class="meta" style="white-space:nowrap">${COLS[t.status].n} · bỏ ngày ${fmt(t.trashed)}</span>
+          <span class="meta" style="white-space:nowrap">${STATUSES[t.status].n} · bỏ ngày ${fmt(t.trashed)}</span>
           <button class="btn ghost" data-restore="${t.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Khôi phục</button>
           <button class="danger" data-purge="${t.id}" style="white-space:nowrap">Xoá vĩnh viễn</button></div>`).join('')}</div>`
         : '<div class="empty">Thùng rác trống. Kéo card trên bảng xuống đáy màn hình để bỏ.</div>'}</div>
@@ -1817,10 +1861,23 @@ tz.addEventListener('drop', e => {
   e.preventDefault(); tz.classList.remove('on', 'over');
   trashTask(dragId); render();
 });
+// thả card vào mục "Để sau" ở sidebar để gác lại
+const bkNav = $('.nav[data-v="backlog"]');
+bkNav.addEventListener('dragover', e => {
+  if(!dragId) return;
+  e.preventDefault(); bkNav.classList.add('over');
+  if(ph){ ph.remove(); ph = null; }
+});
+bkNav.addEventListener('dragleave', () => bkNav.classList.remove('over'));
+bkNav.addEventListener('drop', e => {
+  e.preventDefault(); bkNav.classList.remove('over');
+  $('#trashZone').classList.remove('on', 'over');
+  setBacklog(dragId, true); dragId = null; render();
+});
 $('#fsBtn').onclick = () => fh ? linkFile() : reconnectFile();
 $('#q').oninput = e => {
   ui.q = e.target.value;
-  if(['dash', 'board', 'life', 'cal'].includes(ui.view)) render();
+  if(['dash', 'board', 'life', 'backlog', 'cal'].includes(ui.view)) render();
   if(ui.view === 'notes') drawNoteList();   // chỉ vẽ lại cột trái, trang đang mở giữ nguyên
 };
 $('#expBtn').onclick = exportJSON;

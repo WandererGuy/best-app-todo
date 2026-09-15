@@ -18,6 +18,8 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Bảng cuộc sống** — bảng kanban riêng cho task mảng Cuộc sống, cùng kiểu với Bảng việc. Bảng việc chỉ còn mảng Công việc và Khác. Hai bảng dùng chung lịch, nhắc việc và tổng quan.
 
+**Để sau** — chỗ cho việc chưa cam kết làm, dùng chung cho mọi mảng (lọc bằng mục Mảng ở sidebar). Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. Gõ vào ô trên cùng rồi Enter để ghi nhanh; mỗi dòng hiện tuổi tính từ ngày tạo và nút **→ Cần làm** để đưa lên cuối cột Cần làm. Chiều ngược lại: kéo card trên bảng thả vào mục **Để sau** ở sidebar, hoặc chọn trạng thái **Để sau** trong panel task / form tạo task.
+
 **Tag** — danh sách tag dùng chung, mỗi tag một màu riêng. Bấm **Quản lý** cạnh mục Tag ở sidebar để thêm, đổi tên, xoá tag và đổi màu — chọn từ bảng 72 màu hoặc màu bất kỳ (bộ chọn màu / mã hex). Đổi tên trùng một tag có sẵn thì app hỏi gộp hai tag. Khi gắn tag cho task, các tag đã có hiện sẵn để bấm chọn lại; gõ tên mới rồi Enter sẽ tạo tag mới.
 
 **Panel task** — bấm vào task để mở drawer bên phải: sửa mọi trường, tick việc con, viết ghi chú.
