@@ -18,7 +18,7 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Bảng cuộc sống** — bảng kanban riêng cho task mảng Cuộc sống, cùng kiểu với Bảng việc. Bảng việc chỉ còn mảng Công việc và Khác. Hai bảng dùng chung lịch, nhắc việc và tổng quan.
 
-**Để sau** — chỗ cho việc chưa cam kết làm, dùng chung cho mọi mảng (lọc bằng mục Mảng ở sidebar). Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. Gõ vào ô trên cùng rồi Enter để ghi nhanh; mỗi dòng hiện tuổi tính từ ngày tạo và nút **→ Cần làm** để đưa lên cuối cột Cần làm. Chiều ngược lại: kéo card trên bảng thả vào mục **Để sau** ở sidebar, hoặc chọn trạng thái **Để sau** trong panel task / form tạo task.
+**Để sau** — chỗ cho việc chưa cam kết làm, dùng chung cho mọi mảng. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. Gõ vào ô trên cùng rồi Enter để ghi nhanh; mỗi dòng hiện tuổi tính từ ngày tạo và nút **→ Cần làm** để đưa lên cuối cột Cần làm. Chiều ngược lại: kéo card trên bảng thả vào mục **Để sau** ở sidebar, hoặc chọn trạng thái **Để sau** trong panel task / form tạo task.
 
 **Tag** — danh sách tag dùng chung, mỗi tag một màu riêng. Bấm **Quản lý** cạnh mục Tag ở sidebar để thêm, đổi tên, xoá tag và đổi màu — chọn từ bảng 72 màu hoặc màu bất kỳ (bộ chọn màu / mã hex). Đổi tên trùng một tag có sẵn thì app hỏi gộp hai tag. Khi gắn tag cho task, các tag đã có hiện sẵn để bấm chọn lại; gõ tên mới rồi Enter sẽ tạo tag mới.
 
@@ -36,7 +36,7 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký.
 
-**Lọc và tìm** — theo mảng, theo lọc nhanh (hôm nay & trễ hạn, ưu tiên cao), theo tag, và tìm toàn văn trên tiêu đề / tag / ghi chú.
+**Lọc và tìm** — theo tag (sidebar) và tìm toàn văn trên tiêu đề / tag / ghi chú. Riêng Bảng việc và Bảng cuộc sống có thêm nút **Lọc** trên thanh công cụ (hiện số bộ lọc đang bật), bấm vào mở bảng chọn: khoảng thời gian (hôm nay / 7 ngày / tháng này / tất cả), ưu tiên (chọn được nhiều mức), hạn (trễ hạn / hạn hôm nay / chưa có hạn), mảng Công việc / Khác (chỉ ở Bảng việc), và cách sắp xếp thẻ (thủ công / theo ưu tiên / chia nhóm ưu tiên).
 
 ## Trình soạn thảo
 

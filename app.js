@@ -5,6 +5,7 @@ const COLS  = {todo:{n:'Cần làm',c:'#64748b'}, doing:{n:'Đang làm',c:'#6366
 // "Để sau": việc chưa cam kết làm — không lên bảng, lịch, nhắc việc, thống kê
 const STATUSES = {backlog:{n:'Để sau',c:'#94a3b8'}, ...COLS};
 const SCOPES = {today:'Hôm nay', week:'7 ngày', month:'Tháng này', all:'Tất cả'};
+const DUES   = {over:'Trễ hạn', today:'Hạn hôm nay', none:'Chưa có hạn'};
 const DONE_MAX = 10;   // số task hiện sẵn ở cột Xong
 const SORTS  = {manual:'Thủ công', prio:'Theo ưu tiên', group:'Chia nhóm ưu tiên'};
 const PRIO_ORDER = ['high', 'med', 'low'];
@@ -24,7 +25,8 @@ const TAG_PAL = [
 
 /* ============ trạng thái ============ */
 let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], settings:{jH:560}, notis:[]};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ
-let ui = {view:'board', area:'all', quick:null, tag:null, q:'', scope:'today',
+// bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
+let ui = {view:'board', bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
           open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null};
 let nf = null;                 // dữ liệu form tạo task
 let lastSave = null;           // thời điểm lưu gần nhất
@@ -773,16 +775,23 @@ function visible(backlog = false){
   const q = ui.q.trim().toLowerCase();
   return S.tasks.filter(t => {
     if((t.status === 'backlog') !== backlog) return false;
-    if(ui.area !== 'all' && t.area !== ui.area) return false;
     if(ui.tag && !(t.tags||[]).includes(ui.tag)) return false;
-    if(ui.quick === 'high' && t.prio !== 'high') return false;
-    if(ui.quick === 'today'){ if(!t.due || t.due > today() || t.status === 'done') return false; }
     if(q){
       const hay = [t.title, plain(t.note), (t.tags||[]).join(' '), (t.subs||[]).map(s=>s.t+' '+(s.n||'')).join(' ')].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
   });
+}
+// bộ lọc trên thanh của bảng; life = đang ở bảng cuộc sống (bảng này không lọc mảng)
+function boardMatch(t, life){
+  const f = ui.bf;
+  if(f.prio.length && !f.prio.includes(t.prio)) return false;
+  if(f.area && !life && t.area !== f.area) return false;
+  if(f.due === 'over'  && dueClass(t) !== 'over') return false;
+  if(f.due === 'today' && t.due !== today()) return false;
+  if(f.due === 'none'  && t.due) return false;
+  return true;
 }
 /* Khoảng thời gian của bảng. Quy tắc:
    - việc CHƯA xong: hiện nếu không có hạn, hoặc hạn nằm trong khoảng (gồm cả việc trễ hạn)
@@ -818,13 +827,6 @@ function dueLabel(t){
 /* ============ render khung ============ */
 function render(){
   $$('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === ui.view));
-  $$('.fil').forEach(b => {
-    const on = b.dataset.f === 'area' ? ui.area === b.dataset.k : ui.quick === b.dataset.k;
-    b.classList.toggle('on', on);
-    // bảng cuộc sống không cần lọc mảng; bảng việc không có mảng cuộc sống
-    if(b.dataset.f === 'area') b.hidden = ui.view === 'life' || (ui.view === 'board' && b.dataset.k === 'life');
-  });
-  $('#areaLbl').hidden = ui.view === 'life';
   const onBoard = S.tasks.filter(t => t.status !== 'done' && t.status !== 'backlog');
   $('#ctB').textContent = onBoard.filter(t => t.area !== 'life').length;
   $('#ctL').textContent = onBoard.filter(t => t.area === 'life').length;
@@ -852,8 +854,11 @@ function render(){
 function renderBoard(){
   // hai bảng dùng chung khung: bảng cuộc sống chỉ lấy mảng cuộc sống, bảng việc lấy phần còn lại
   const life = ui.view === 'life';
-  const all = visible().filter(t => (t.area === 'life') === life);
+  const all = visible().filter(t => (t.area === 'life') === life && boardMatch(t, life));
   const list = all.filter(inScope);
+  const f = ui.bf, nFil = f.prio.length + !!f.due + !!(f.area && !life);   // số bộ lọc đang bật, hiện trên nút Lọc
+  const chip = (key, val, on, label, c) =>
+    `<button class="${on ? 'on' : ''}" data-bf="${key}|${val}">${c ? `<span class="sw" style="background:${c}"></span>` : ''}${label}</button>`;
   const open = list.filter(t => t.status !== 'done').length;
   const late = list.filter(t => dueClass(t) === 'over').length;
   const hidden = all.length - list.length;
@@ -866,11 +871,25 @@ function renderBoard(){
         ${items.length ? items.map(card).join('') : `<div class="empty">${emptyTxt}</div>`}</div>`;
 
   $('#view').innerHTML = `<div class="tb">
-      <div class="scope">${Object.entries(SCOPES).map(([k,n]) =>
-        `<button class="${ui.scope===k?'on':''}" data-scope="${k}">${n}</button>`).join('')}</div>
-      <div class="scope">${Object.entries(SORTS).map(([k,n]) =>
-        `<button class="${sort===k?'on':''}" data-sort="${k}">${n}</button>`).join('')}</div>
       <span class="hint">${hidden ? `Đang ẩn ${hidden} task ngoài khoảng này` : 'Đang hiện toàn bộ task khớp bộ lọc'}</span>
+      <div class="bfw">
+        <div class="scope"><button class="${nFil ? 'on' : ''}" data-bfbtn>Lọc${nFil ? ` · ${nFil}` : ''}</button></div>
+        <div class="bfp"${ui.bfOpen ? '' : ' hidden'}>
+          <div class="flbl">Khoảng thời gian</div>
+          <div class="chips">${Object.entries(SCOPES).map(([k,n]) =>
+            `<button class="${ui.scope===k?'on':''}" data-scope="${k}">${n}</button>`).join('')}</div>
+          <div class="flbl">Ưu tiên</div>
+          <div class="chips">${PRIO_ORDER.map(p => chip('prio', p, f.prio.includes(p), PRIOS[p].n, PRIOS[p].c)).join('')}</div>
+          <div class="flbl">Hạn</div>
+          <div class="chips">${Object.entries(DUES).map(([k,n]) => chip('due', k, f.due === k, n)).join('')}</div>
+          ${life ? '' : `<div class="flbl">Mảng</div>
+          <div class="chips">${['work','other'].map(k => chip('area', k, f.area === k, AREAS[k].n, AREAS[k].c)).join('')}</div>`}
+          <div class="flbl">Sắp xếp</div>
+          <div class="chips">${Object.entries(SORTS).map(([k,n]) =>
+            `<button class="${sort===k?'on':''}" data-sort="${k}">${n}</button>`).join('')}</div>
+          ${nFil ? '<button class="bfclr" data-bfclr>✕ Bỏ lọc</button>' : ''}
+        </div>
+      </div>
       <div class="scope"><button class="${S.settings.zen?'on':''}" data-zen title="Thẻ chỉ còn tên task và hạn khi sắp/trễ hạn">Zen</button></div>
     </div>`
     + '<div id="board">' + Object.entries(COLS).map(([k,c]) => {
@@ -900,6 +919,15 @@ function renderBoard(){
   $$('[data-sort]').forEach(b => b.onclick = () => { S.settings.sort = b.dataset.sort; save(); renderBoard(); });
   $$('[data-more]').forEach(b => b.onclick = () => { ui.doneAll = !ui.doneAll; renderBoard(); });
   $$('[data-zen]').forEach(b => b.onclick = () => { S.settings.zen = !S.settings.zen; save(); renderBoard(); });
+  $$('[data-bfbtn]').forEach(b => b.onclick = () => { ui.bfOpen = !ui.bfOpen; renderBoard(); });
+  // ưu tiên chọn được nhiều mức; hạn và mảng chỉ một, bấm lại để bỏ
+  $$('[data-bf]').forEach(b => b.onclick = () => {
+    const [k, v] = b.dataset.bf.split('|');
+    if(k === 'prio') f.prio = f.prio.includes(v) ? f.prio.filter(x => x !== v) : [...f.prio, v];
+    else f[k] = f[k] === v ? null : v;
+    renderBoard();
+  });
+  $$('[data-bfclr]').forEach(b => b.onclick = () => { ui.bf = {prio:[], due:null, area:null}; renderBoard(); });
   wireDnD();
 }
 function card(t){
@@ -1515,7 +1543,7 @@ function renderDash(){
 
 /* ============ tạo task / xuất nhập ============ */
 function blankForm(status = 'todo'){
-  return {title:'', area: ui.view === 'life' ? 'life' : (ui.area === 'all' ? 'work' : ui.area), prio:'med', status,
+  return {title:'', area: ui.view === 'life' ? 'life' : (ui.bf.area || 'work'), prio:'med', status,
           pg: status === 'done' ? 100 : 0, due:'', time:'', dur:60, remind:30,
           tags: ui.tag ? [ui.tag] : [], note:'', subs:[]};
 }
@@ -1600,9 +1628,9 @@ function createFromForm(){
     subs: nf.subs.filter(s => s.t.trim()).map(s => ({...s, t:s.t.trim()})), done: nf.status === 'done' ? today() : null};
   S.tasks.unshift(t); save();
   // xoá các bộ lọc có thể che mất task vừa tạo
-  ui.q = ''; $('#q').value = ''; ui.quick = null;
+  ui.q = ''; $('#q').value = '';
   if(ui.tag && !t.tags.includes(ui.tag)) ui.tag = null;
-  if(ui.area !== 'all' && ui.area !== t.area) ui.area = 'all';
+  if(!boardMatch(t, t.area === 'life')) ui.bf = {prio:[], due:null, area:null};
   nf = blankForm(nf.status); ui.view = t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'); render();
   toast(`Đã tạo: ${t.title}`);
 }
@@ -1672,9 +1700,9 @@ function renderBacklog(){
   $('#bkIn').onkeydown = e => {
     const title = e.target.value.trim();
     if(e.key !== 'Enter' || !title) return;
-    S.tasks.unshift({id:uid(), title, area: ui.area === 'all' ? 'work' : ui.area, prio:'med', status:'backlog', pg:0, tags:[],
+    S.tasks.unshift({id:uid(), title, area:'work', prio:'med', status:'backlog', pg:0, tags:[],
       due:'', time:'', dur:60, remind:30, note:'', cr:today(), subs:[], done:null});
-    ui.q = ''; $('#q').value = ''; ui.quick = null; ui.tag = null;   // bỏ bộ lọc có thể che mất việc vừa ghi
+    ui.q = ''; $('#q').value = ''; ui.tag = null;   // bỏ bộ lọc có thể che mất việc vừa ghi
     save(); render(); $('#bkIn').focus();
   };
   $$('[data-todo]').forEach(b => b.onclick = e => { e.stopPropagation(); setBacklog(b.dataset.todo, false); render(); });
@@ -1783,15 +1811,6 @@ document.addEventListener('click', e => {
   const nav = e.target.closest('.nav');
   if(nav){
     ui.view = nav.dataset.v;
-    // bộ lọc mảng đang chọn không khớp bảng vừa mở thì bỏ, tránh bảng trống
-    if(ui.view === 'life' || (ui.view === 'board' && ui.area === 'life')) ui.area = 'all';
-    return render();
-  }
-
-  const fil = e.target.closest('.fil');
-  if(fil){
-    if(fil.dataset.f === 'area') ui.area = fil.dataset.k;
-    else ui.quick = ui.quick === fil.dataset.k ? null : fil.dataset.k;
     return render();
   }
 
@@ -1830,6 +1849,12 @@ document.addEventListener('mousedown', e => {
   if(e.target.closest('.ed, .ProseMirror')) return;
   if(!e.target.closest('#slashEl')) closeSlash();
   if(!e.target.closest('#ftbEl')) hideFtb();
+});
+// đóng bảng lọc khi bấm ra ngoài (bấm trong bảng lọc thì bảng vẽ lại, phần tử cũ đã rời DOM)
+const closeBf = () => { ui.bfOpen = false; $('.bfp')?.setAttribute('hidden', ''); };
+document.addEventListener('click', e => {
+  if(!ui.bfOpen || !e.target.isConnected || e.target.closest('.bfw')) return;
+  closeBf();
 });
 // đóng chuông khi bấm ra ngoài
 document.addEventListener('click', e => {
@@ -1889,6 +1914,7 @@ document.addEventListener('keydown', e => {
   if(dp) return closeDP();
   if($('#palEl')) return closePal();
   if(!$('#bellP').hidden) return closeBell();
+  if(ui.bfOpen) return closeBf();
   if(ui.open){ hideFtb(); closeDrawer(); }
 });
 
