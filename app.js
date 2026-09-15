@@ -21,9 +21,9 @@ const TAG_PAL = [
 ];
 
 /* ============ trạng thái ============ */
-let S = {tasks:[], trash:[], tags:{}, journal:{}, settings:{jH:560}, notis:[]};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed)
+let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], settings:{jH:560}, notis:[]};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ
 let ui = {view:'board', area:'all', quick:null, tag:null, q:'', scope:'today',
-          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false};
+          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null};
 let nf = null;                 // dữ liệu form tạo task
 let lastSave = null;           // thời điểm lưu gần nhất
 let storageOK = true;          // trình duyệt có cho lưu không
@@ -41,6 +41,7 @@ function load(){
     if(raw){
       const d = JSON.parse(raw);
       S.tasks = d.tasks || []; S.trash = d.trash || []; S.journal = d.journal || {};
+      S.notes = d.notes || []; S.ntrash = d.ntrash || [];
       S.settings = Object.assign({jH:560}, d.settings || {});
       S.tags = d.tags || {}; syncTags();
       S.notis = d.notis || [];
@@ -294,12 +295,14 @@ function ensureTag(name){
   return name;
 }
 // dữ liệu cũ: tag chỉ nằm trong task -> đưa vào danh sách chung
-function syncTags(){ S.tasks.forEach(t => (t.tags || []).forEach(n => { if(!S.tags[n]) ensureTag(n); })); }
+function syncTags(){ [...S.tasks, ...S.notes].forEach(t => (t.tags || []).forEach(n => { if(!S.tags[n]) ensureTag(n); })); }
 function delTag(name){
   const n = S.tasks.filter(t => (t.tags || []).includes(name)).length;
-  if(!confirm(n ? `Xoá tag "#${name}"? Tag sẽ bị gỡ khỏi ${n} task.` : `Xoá tag "#${name}"?`)) return;
+  const m = S.notes.filter(t => (t.tags || []).includes(name)).length;
+  const used = [n && `${n} task`, m && `${m} trang ghi chú`].filter(Boolean).join(' và ');
+  if(!confirm(used ? `Xoá tag "#${name}"? Tag sẽ bị gỡ khỏi ${used}.` : `Xoá tag "#${name}"?`)) return;
   delete S.tags[name];
-  [...S.tasks, ...S.trash].forEach(t => { if(t.tags) t.tags = t.tags.filter(x => x !== name); });
+  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash].forEach(t => { if(t.tags) t.tags = t.tags.filter(x => x !== name); });
   if(nf) nf.tags = nf.tags.filter(x => x !== name);
   if(ui.tag === name) ui.tag = null;
   save(); render();
@@ -314,7 +317,7 @@ function renameTag(old){
   if(!hit) S.tags[to] = S.tags[old];
   delete S.tags[old];
   const swap = arr => [...new Set(arr.map(x => x === old ? to : x))];
-  [...S.tasks, ...S.trash].forEach(t => { if(t.tags) t.tags = swap(t.tags); });
+  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash].forEach(t => { if(t.tags) t.tags = swap(t.tags); });
   if(nf) nf.tags = swap(nf.tags);
   if(ui.tag === old) ui.tag = to;
   save(); render();
@@ -820,7 +823,7 @@ function render(){
   $('#areaLbl').hidden = ui.view === 'life';
   $('#ctB').textContent = S.tasks.filter(t => t.status !== 'done' && t.area !== 'life').length;
   $('#ctL').textContent = S.tasks.filter(t => t.status !== 'done' && t.area === 'life').length;
-  $('#ctT').textContent = S.trash.length;
+  $('#ctT').textContent = S.trash.length + S.ntrash.filter(n => n.trashed).length;
 
   const tags = tagNames();
   $('#tagFil').innerHTML = tags.length
@@ -830,9 +833,9 @@ function render(){
   renderSideCal();
 
   killEds(); closePal();
-  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', cal:'Lịch', journal:'Nhật ký', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
+  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
   $('#vTitle').textContent = titles[ui.view];
-  ({board:renderBoard, life:renderBoard, cal:renderCal, journal:renderJournal, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
+  ({board:renderBoard, life:renderBoard, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. ' +
     'Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.</div>');
@@ -1269,6 +1272,162 @@ function renderJournal(){
   }).observe(host);
 }
 
+/* ============ ghi chú: trang không theo ngày, lồng nhau như Notion ============ */
+// S.notes: {id, title, html, parent (id trang cha, null = cấp gốc), tags, pin, open (đang mở trang con ở cây), cr, mod}
+// cr / mod = thời điểm tạo / sửa lần cuối (ISO). Thứ tự các trang cùng cha = thứ tự trong mảng.
+// Bỏ một trang thì cả cây con sang S.ntrash; chỉ trang được bấm bỏ có trường trashed.
+const nKids  = id => S.notes.filter(n => n.parent === id);
+const nTitle = n => n.title.trim() ? esc(n.title) : '<span class="ph">Không có tiêu đề</span>';
+const nName  = n => esc(n.title.trim() || 'Không có tiêu đề');
+// trang root và mọi trang con cháu của nó trong list (dừng ở trang con đã bị bỏ riêng từ trước)
+function nTree(list, root){
+  const out = [root];
+  for(let i = 0; i < out.length; i++) out.push(...list.filter(n => n.parent === out[i].id && !n.trashed));
+  return out;
+}
+// các trang cha từ gốc xuống
+function nPath(n){
+  const out = [];
+  for(let p = S.notes.find(x => x.id === n.parent); p; p = S.notes.find(x => x.id === p.parent)) out.unshift(p);
+  return out;
+}
+// mọi trang theo thứ tự cây, bỏ qua các trang trong skip (và con cháu của chúng)
+function nFlat(skip){
+  const out = [];
+  const walk = (pid, depth) => S.notes.filter(n => n.parent === pid && !skip.has(n.id))
+    .forEach(n => { out.push({n, depth}); walk(n.id, depth + 1); });
+  walk(null, 0);
+  return out;
+}
+const fmtStamp = s => { const d = new Date(s); return `${fmtVN(iso(d))} ${d.toTimeString().slice(0,5)}`; };
+function fmtAgo(s){
+  const d = new Date(s), m = Math.floor((Date.now() - d) / 6e4), hm = d.toTimeString().slice(0,5);
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if(m < 1) return 'vừa xong';
+  if(m < 60) return `${m} phút trước`;
+  if(iso(d) === today()) return `hôm nay ${hm}`;
+  if(iso(d) === iso(y)) return `hôm qua ${hm}`;
+  return fmtStamp(s);
+}
+
+function newNote(parent = null){
+  const now = new Date().toISOString();
+  const n = {id:uid(), title:'', html:'', parent, tags: ui.tag ? [ui.tag] : [], pin:false, open:false, cr:now, mod:now};
+  S.notes.push(n);
+  if(parent) S.notes.find(x => x.id === parent).open = true;
+  ui.nOpen = n.id; ui.q = ''; $('#q').value = '';   // bỏ ô tìm để trang mới hiện ở cây
+  save(); renderNotes();
+  setTimeout(() => $('#ntTitle')?.focus(), 0);
+}
+function trashNote(id){
+  const n = S.notes.find(x => x.id === id); if(!n) return;
+  const tree = nTree(S.notes, n);
+  S.notes = S.notes.filter(x => !tree.includes(x));
+  n.trashed = today(); S.ntrash.unshift(...tree);
+  ui.nOpen = n.parent;
+  save(); render();
+  toast(tree.length > 1 ? `Đã chuyển trang và ${tree.length - 1} trang con vào thùng rác` : 'Đã chuyển vào thùng rác');
+}
+
+function renderNotes(){
+  if(!S.notes.some(n => n.id === ui.nOpen)) ui.nOpen = (S.notes.find(n => n.pin) || S.notes.find(n => !n.parent) || {}).id || null;
+  const n = S.notes.find(x => x.id === ui.nOpen);
+  $('#vSub').textContent = `${S.notes.length} trang`;
+
+  const moveTo = n && nFlat(new Set([n.id])).filter(x => x.n.id !== n.parent);
+  $('#view').innerHTML = `<div class="nwrap">
+    <div class="nside">
+      <button class="btn" id="ntNew">+ Trang mới</button>
+      <div id="ntList"></div>
+    </div>
+    <div class="npage">${n ? `
+      <div class="ncrumb">${nPath(n).map(p => `<button data-nid="${p.id}">${nName(p)}</button><span>/</span>`).join('')}</div>
+      <input class="nttl" id="ntTitle" value="${esc(n.title)}" placeholder="Không có tiêu đề" autocomplete="off">
+      <div class="nmeta">
+        <span class="meta" title="Ngày tạo">Tạo ${fmtStamp(n.cr)}</span><span class="meta">·</span>
+        <span class="meta" id="ntMod" data-ago="${n.mod}" title="${fmtStamp(n.mod)}">Sửa lần cuối ${fmtAgo(n.mod)}</span>
+        <div class="nacts">
+          <button class="btn ghost" id="ntPin">${n.pin ? '★ Bỏ ghim' : '☆ Ghim'}</button>
+          <button class="btn ghost" id="ntKid">+ Trang con</button>
+          ${n.parent || moveTo.length ? `<select class="inp nmove" id="ntMove" title="Chuyển trang này vào trong trang khác">
+            <option value="" selected disabled>Chuyển vào…</option>
+            ${n.parent ? '<option value="/">Cấp gốc</option>' : ''}
+            ${moveTo.map(x => `<option value="${x.n.id}">${'   '.repeat(x.depth)}${nName(x.n)}</option>`).join('')}
+          </select>` : ''}
+          <button class="danger" id="ntDel">Chuyển vào thùng rác</button>
+        </div>
+      </div>
+      <div class="fld">${tagFieldHTML('ntTag', n.tags, 'Gắn tag: chọn bên dưới hoặc gõ tag mới rồi Enter')}</div>
+      <div class="ned" id="ntHost"></div>`
+    : '<div class="empty">Chưa có trang nào. Bấm <b>+ Trang mới</b> để bắt đầu.</div>'}</div>
+  </div>`;
+
+  drawNoteList();
+  $('#ntNew').onclick = () => newNote();
+  $('.nwrap').onclick = e => {   // cây trang, kết quả tìm, đường dẫn phía trên tiêu đề
+    const tog = e.target.closest('[data-ntog]');
+    if(tog){ const x = S.notes.find(v => v.id === tog.dataset.ntog); x.open = !x.open; save(); return drawNoteList(); }
+    const kid = e.target.closest('[data-nkid]');
+    if(kid) return newNote(kid.dataset.nkid);
+    const go = e.target.closest('[data-nid]');
+    if(go && go.dataset.nid !== ui.nOpen){ ui.nOpen = go.dataset.nid; renderNotes(); }
+  };
+  if(!n) return;
+
+  const touch = () => {
+    n.mod = new Date().toISOString(); save();
+    const m = $('#ntMod'); m.dataset.ago = n.mod; m.title = fmtStamp(n.mod); m.textContent = 'Sửa lần cuối ' + fmtAgo(n.mod);
+  };
+  $('#ntTitle').oninput = e => {
+    n.title = e.target.value; touch();
+    $$(`#ntList [data-nid="${n.id}"] .nname`).forEach(el => el.innerHTML = nTitle(n));
+  };
+  $('#ntTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost')?.commands.focus('start'); } };
+  mountEd('ntHost', n.html, 'Viết gì đó… Gõ / để chèn khối', v => { n.html = v; touch(); });
+  $('#ntPin').onclick = () => { n.pin = !n.pin; save(); renderNotes(); };
+  $('#ntKid').onclick = () => newNote(n.id);
+  if($('#ntMove')) $('#ntMove').onchange = e => {
+    const to = e.target.value === '/' ? null : e.target.value;
+    S.notes = S.notes.filter(x => x !== n); S.notes.push(n);   // xuống cuối danh sách con của cha mới
+    n.parent = to;
+    if(to) S.notes.find(x => x.id === to).open = true;
+    save(); renderNotes();
+  };
+  $('#ntDel').onclick = () => trashNote(n.id);
+  bindTagField($('.npage'), 'ntTag', n.tags,
+    t => { if(!n.tags.includes(t)) n.tags.push(t); touch(); render(); setTimeout(() => $('#ntTag')?.focus(), 0); },
+    t => { n.tags = n.tags.filter(x => x !== t); touch(); render(); });
+}
+// cột trái: bình thường là cây trang; đang tìm hoặc lọc tag thì thành danh sách phẳng, mới sửa lên đầu
+function drawNoteList(){
+  const box = $('#ntList'); if(!box) return;
+  const q = ui.q.trim().toLowerCase();
+  if(q || ui.tag){
+    const hit = S.notes.filter(n => (!ui.tag || n.tags.includes(ui.tag))
+        && (!q || [n.title, plain(n.html), n.tags.join(' ')].join(' ').toLowerCase().includes(q)))
+      .sort((a, b) => b.mod.localeCompare(a.mod));
+    box.innerHTML = `<div class="nlbl">${hit.length} trang khớp${ui.tag ? ` tag #${esc(ui.tag)}` : ''}</div>`
+      + (hit.length ? hit.map(n => `<button class="nhit${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}">
+          <span class="nname">${nTitle(n)}</span>
+          <span class="nsub">${nPath(n).map(p => nName(p) + ' / ').join('')}sửa ${fmtAgo(n.mod)}</span></button>`).join('')
+        : '<div class="nofil" style="padding:4px 8px">Không có trang nào khớp</div>');
+    return;
+  }
+  const row = (n, depth, tree) => {
+    const kids = tree ? nKids(n.id) : [];
+    return `<div class="nrow${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}" style="padding-left:${2 + depth * 14}px">
+        ${!tree ? '<span class="ncar">★</span>'
+          : kids.length ? `<button class="ncar" data-ntog="${n.id}">${n.open ? '▾' : '▸'}</button>` : '<span class="ncar">·</span>'}
+        <span class="nname">${nTitle(n)}</span>
+        ${tree ? `<button class="nadd" data-nkid="${n.id}" title="Thêm trang con">+</button>` : ''}</div>
+      ${kids.length && n.open ? kids.map(k => row(k, depth + 1, true)).join('') : ''}`;
+  };
+  const pins = S.notes.filter(n => n.pin), roots = nKids(null);
+  box.innerHTML = (pins.length ? `<div class="nlbl">Đã ghim</div>${pins.map(n => row(n, 0, false)).join('')}` : '')
+    + `<div class="nlbl">Tất cả trang</div>`
+    + (roots.length ? roots.map(n => row(n, 0, true)).join('') : '<div class="nofil" style="padding:4px 8px">Chưa có trang nào</div>');
+}
+
 /* ============ tổng quan ============ */
 function renderDash(){
   const list = visible();
@@ -1438,6 +1597,7 @@ function createFromForm(){
 function renderTags(){
   const names = tagNames();
   const count = n => S.tasks.filter(t => (t.tags || []).includes(n)).length;
+  const nCount = n => S.notes.filter(t => (t.tags || []).includes(n)).length;
   $('#vSub').textContent = `${names.length} tag · bấm ô màu để đổi màu, bấm tên để đổi tên`;
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
     <div class="fld"><label>Thêm tag mới</label>
@@ -1449,7 +1609,7 @@ function renderTags(){
       ${names.length ? `<div>${names.map(n => `<div class="tgrow">
           <button class="tgsw" data-pal="${esc(n)}" style="background:${S.tags[n]}" title="Đổi màu"></button>
           <button class="tgx" data-rentag="${esc(n)}" style="${tagStyle(n)};padding:2px 8px" title="Đổi tên">#${esc(n)}</button>
-          <span class="meta">${count(n)} task</span>
+          <span class="meta">${count(n)} task${nCount(n) ? ` · ${nCount(n)} trang` : ''}</span>
           <button class="btn ghost" data-rentag="${esc(n)}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Đổi tên</button>
           <button class="danger" data-deltag="${esc(n)}">Xoá</button></div>`).join('')}</div>`
         : '<div class="empty">Chưa có tag nào</div>'}</div>
@@ -1480,7 +1640,8 @@ function trashTask(id){
 }
 function renderTrash(){
   const fmt = d => d ? d.split('-').reverse().join('/') : '';
-  $('#vSub').textContent = `${S.trash.length} task · xoá vĩnh viễn thì không lấy lại được`;
+  const nroots = S.ntrash.filter(n => n.trashed);
+  $('#vSub').textContent = `${S.trash.length} task · ${nroots.length} trang ghi chú · xoá vĩnh viễn thì không lấy lại được`;
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
     <div class="fld"><label style="display:flex;align-items:center">Task đã bỏ
       ${S.trash.length ? '<button class="danger" id="trClr" style="margin-left:auto">Xoá vĩnh viễn tất cả</button>' : ''}</label>
@@ -1491,6 +1652,15 @@ function renderTrash(){
           <button class="btn ghost" data-restore="${t.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Khôi phục</button>
           <button class="danger" data-purge="${t.id}" style="white-space:nowrap">Xoá vĩnh viễn</button></div>`).join('')}</div>`
         : '<div class="empty">Thùng rác trống. Kéo card trên bảng xuống đáy màn hình để bỏ.</div>'}</div>
+  </div><div class="fcard">
+    <div class="fld"><label style="display:flex;align-items:center">Ghi chú đã bỏ
+      ${nroots.length ? '<button class="danger" id="ntrClr" style="margin-left:auto">Xoá vĩnh viễn tất cả</button>' : ''}</label>
+      ${nroots.length ? `<div>${nroots.map(n => { const k = nTree(S.ntrash, n).length - 1; return `<div class="tgrow">
+          <span style="word-break:break-word">${nTitle(n)}</span>
+          <span class="meta" style="white-space:nowrap">${k ? `kèm ${k} trang con · ` : ''}bỏ ngày ${fmt(n.trashed)}</span>
+          <button class="btn ghost" data-nrestore="${n.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Khôi phục</button>
+          <button class="danger" data-npurge="${n.id}" style="white-space:nowrap">Xoá vĩnh viễn</button></div>`; }).join('')}</div>`
+        : '<div class="empty">Chưa có trang ghi chú nào bị bỏ.</div>'}</div>
   </div></div>`;
 
   $$('[data-restore]').forEach(b => b.onclick = () => {
@@ -1507,6 +1677,25 @@ function renderTrash(){
   if(S.trash.length) $('#trClr').onclick = () => {
     if(!confirm(`Xoá vĩnh viễn ${S.trash.length} task trong thùng rác? Không lấy lại được.`)) return;
     S.trash = []; save(); render();
+  };
+
+  // khôi phục / xoá một trang ghi chú là khôi phục / xoá cả các trang con bị bỏ cùng lúc với nó
+  $$('[data-nrestore]').forEach(b => b.onclick = () => {
+    const n = S.ntrash.find(x => x.id === b.dataset.nrestore), tree = nTree(S.ntrash, n);
+    S.ntrash = S.ntrash.filter(x => !tree.includes(x));
+    delete n.trashed;
+    if(n.parent && !S.notes.some(p => p.id === n.parent)) n.parent = null;   // trang cha đã bị bỏ / xoá thì về cấp gốc
+    S.notes.push(...tree); syncTags();
+    save(); render(); toast('Đã khôi phục trang ghi chú');
+  });
+  $$('[data-npurge]').forEach(b => b.onclick = () => {
+    const n = S.ntrash.find(x => x.id === b.dataset.npurge), tree = nTree(S.ntrash, n);
+    if(!confirm(`Xoá vĩnh viễn "${n.title.trim() || 'Không có tiêu đề'}"${tree.length > 1 ? ` và ${tree.length - 1} trang con` : ''}? Không lấy lại được.`)) return;
+    S.ntrash = S.ntrash.filter(x => !tree.includes(x)); save(); render();
+  });
+  if(nroots.length) $('#ntrClr').onclick = () => {
+    if(!confirm(`Xoá vĩnh viễn ${nroots.length} trang ghi chú trong thùng rác? Không lấy lại được.`)) return;
+    S.ntrash = []; save(); render();
   };
 }
 
@@ -1525,7 +1714,8 @@ function importJSON(file){
       if(!Array.isArray(d.tasks)) throw new Error('File không đúng định dạng');
       if(!confirm(`Nạp ${d.tasks.length} task và ghi đè toàn bộ dữ liệu hiện tại?`)) return;
       for(const [id, url] of Object.entries(d.images || {})) await imgPut(id, await (await fetch(url)).blob());
-      S = {tasks: d.tasks, trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {}, settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
+      S = {tasks: d.tasks, trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
+           notes: d.notes || [], ntrash: d.ntrash || [], settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
       syncTags();
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
       Object.keys(S.journal).forEach(k => {
@@ -1621,7 +1811,11 @@ tz.addEventListener('drop', e => {
   trashTask(dragId); render();
 });
 $('#fsBtn').onclick = () => fh ? linkFile() : reconnectFile();
-$('#q').oninput = e => { ui.q = e.target.value; if(['dash', 'board', 'life', 'cal'].includes(ui.view)) render(); };
+$('#q').oninput = e => {
+  ui.q = e.target.value;
+  if(['dash', 'board', 'life', 'cal'].includes(ui.view)) render();
+  if(ui.view === 'notes') drawNoteList();   // chỉ vẽ lại cột trái, trang đang mở giữ nguyên
+};
 $('#expBtn').onclick = exportJSON;
 $('#impBtn').onclick = () => $('#impFile').click();
 $('#impFile').onchange = e => { if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; };
@@ -1639,5 +1833,8 @@ load(); ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
 if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;
 render(); restoreFile();
 checkReminders();
-setInterval(() => { checkReminders(); paintNow(); }, 30000);
+setInterval(() => {
+  checkReminders(); paintNow();
+  $$('[data-ago]').forEach(el => el.textContent = 'Sửa lần cuối ' + fmtAgo(el.dataset.ago));
+}, 30000);
 document.addEventListener('visibilitychange', () => { if(!document.hidden) checkReminders(); });

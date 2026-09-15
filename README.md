@@ -30,6 +30,8 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do bằng trình soạn thảo giàu định dạng.
 
+**Ghi chú** — trang không gắn với ngày, lồng nhau như Notion. Cột trái là cây trang: bấm ▸ để mở trang con, rê chuột vào một trang rồi bấm **+** để thêm trang con. Mỗi trang có tiêu đề, tag (dùng chung với task), nội dung soạn bằng cùng trình soạn thảo, **ngày tạo** và **sửa lần cuối** (cập nhật khi đổi tiêu đề, nội dung hoặc tag). Ghim trang để nó hiện ở mục **Đã ghim** trên đầu cây; **Chuyển vào…** để đưa trang (kèm trang con) vào trang khác hoặc về cấp gốc. Gõ vào ô tìm kiếm hoặc bấm một tag ở sidebar thì cây thành danh sách trang khớp, mới sửa lên đầu. Bỏ một trang thì cả các trang con cùng vào **Thùng rác**, khôi phục cũng khôi phục cả cây.
+
 **Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký.
 
 **Lọc và tìm** — theo mảng, theo lọc nhanh (hôm nay & trễ hạn, ưu tiên cao), theo tag, và tìm toàn văn trên tiêu đề / tag / ghi chú.
@@ -62,7 +64,7 @@ Ngoài ra:
 - **Liên kết file trên ổ đĩa** (Chrome/Edge): chọn một file `.json`, từ đó mọi thay đổi tự ghi ra file thật. Handle được giữ trong IndexedDB nên lần mở sau chỉ cần bấm một nút để kết nối lại.
 - **Xuất / Nạp file** JSON thủ công, dùng để backup hoặc chuyển sang máy khác.
 
-Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
+Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, notes: [], settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
 
 Ảnh và file đính kèm không nằm trong `localStorage` (giới hạn ~5MB) mà trong IndexedDB; ghi chú chỉ giữ `<img data-img="mã">` / `<div data-file="mã" data-name data-size>`. File xuất ra và file liên kết có thêm trường `images: {mã: data URL}` chứa các ảnh và file đang được dùng (tên trường giữ nguyên để backup cũ vẫn nạp được), nên backup có đủ ảnh; nạp file sẽ đưa ảnh trở lại IndexedDB.
 

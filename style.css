@@ -231,6 +231,40 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 }
 .jed:focus-within{border-color:#3a4254}
 
+/* ---------- ghi chú ---------- */
+.nwrap{display:flex;gap:16px;height:100%;max-width:1400px;margin:0 auto}
+.nside{width:260px;flex:0 0 260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nside > .btn{margin:0 4px 6px}
+.nlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);padding:12px 8px 5px;font-weight:600}
+.nrow{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:7px;color:var(--tx2);cursor:pointer;font-size:13px}
+.nrow:hover{background:var(--panel2);color:var(--tx)}
+.nrow.on{background:var(--panel2);color:var(--tx);font-weight:600;box-shadow:inset 2px 0 0 var(--acc)}
+.ncar{width:18px;height:18px;flex:0 0 18px;display:grid;place-items:center;border-radius:4px;color:var(--tx3);font-size:11px}
+button.ncar{font-size:16px;color:var(--tx2)}
+button.ncar:hover{background:var(--line);color:var(--tx)}
+.nname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nadd{width:20px;height:20px;border-radius:4px;color:var(--tx3);font-size:15px;line-height:1;visibility:hidden}
+.nrow:hover .nadd{visibility:visible}
+.nadd:hover{background:var(--line);color:var(--tx)}
+.nhit{display:flex;flex-direction:column;align-items:stretch;gap:1px;width:100%;text-align:left;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--tx2)}
+.nhit:hover,.nhit.on{background:var(--panel2);color:var(--tx)}
+.nhit .nsub{font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.npage{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:22px 40px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.ncrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12px;color:var(--tx3);min-height:18px}
+.ncrumb button{color:var(--tx3);padding:1px 5px;border-radius:5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ncrumb button:hover{background:var(--panel2);color:var(--tx)}
+.nttl{font-size:30px;font-weight:700;letter-spacing:-.4px;background:none;border:none;outline:none;width:100%}
+.nttl::placeholder{color:var(--tx3)}
+.nmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.nacts{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}
+.nacts .btn{padding:5px 10px;font-size:12px;font-weight:500}
+.nacts .danger{padding:5px 10px;font-size:12px}
+.nacts .nmove{width:auto;max-width:190px;padding:5px 6px;font-size:12px;background:var(--panel2);color:var(--tx2)}   /* .nacts để thắng select.inp */
+.ned{flex:1;min-height:320px;padding-top:4px}
+.ned .ed{font-size:14.5px;line-height:1.8;min-height:320px}
+
 /* nội dung có định dạng (ProseMirror gắn class .ed vào chính vùng soạn thảo) */
 .ed{line-height:1.72;word-break:break-word;outline:none}
 .ed:focus{outline:none}
@@ -454,4 +488,7 @@ select.inp:disabled{opacity:.45;cursor:default}
   #side.on{transform:none}
   #board{grid-template-columns:1fr}
   .jedit{flex-direction:column}
+  .nwrap{flex-direction:column;height:auto}
+  .nside{width:auto;flex:none;max-height:40vh}
+  .npage{padding:18px}
 }
