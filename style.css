@@ -397,6 +397,9 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .fttl{font-size:19px;font-weight:660;background:none;border:none;outline:none;width:100%;border-bottom:1px solid var(--line);padding-bottom:11px}
 .fttl::placeholder{color:var(--tx3);font-weight:500}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fed{padding:12px 14px}
+.fed:focus-within{border-color:var(--acc)}
+.fed .ed{font-size:14px;min-height:130px}
 .err{color:var(--high);font-size:12.5px}
 .fbtns{display:flex;gap:9px;align-items:center}
 .savebar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx3);padding:2px}

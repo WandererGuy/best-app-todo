@@ -1513,7 +1513,7 @@ function openForm(status = 'todo'){
 }
 function grabForm(){
   if(!$('#nTitle')) return;
-  nf.title = $('#nTitle').value; nf.note = $('#nNote').value;   // nf.due do bộ chọn ngày ghi thẳng
+  nf.title = $('#nTitle').value;   // nf.due do bộ chọn ngày ghi thẳng, nf.note do trình soạn thảo ghi thẳng
 }
 function renderForm(){
   if(!nf) nf = blankForm();
@@ -1542,7 +1542,7 @@ function renderForm(){
       <div id="nSubs">${subsHTML(nf.subs, false)}</div>
       <button class="addsub" id="nAddSub">+ Thêm việc con</button></div>
     <div class="fld"><label>Ghi chú</label>
-      <textarea class="inp" id="nNote" placeholder="Suy nghĩ, link, bối cảnh… (hỗ trợ markdown)">${esc(nf.note)}</textarea></div>
+      <div class="inp fed" id="nNote"></div></div>
     <div class="fbtns">
       <button class="btn" id="nGo">Tạo task</button>
       <button class="btn ghost" id="nClr">Xoá form</button>
@@ -1571,6 +1571,7 @@ function renderForm(){
     if(k === 'time' && v && !nf.due) nf.due = today();   // đặt giờ khi chưa có hạn thì lấy hôm nay
     renderForm();
   });
+  mountEd('nNote', nf.note, 'Suy nghĩ, link, bối cảnh… Gõ / để chèn khối', v => { nf.note = v; });
   $('#nTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); createFromForm(); } };
   $('#nGo').onclick = createFromForm;
   $('#nClr').onclick = () => { nf = blankForm(nf.status); renderForm(); };
