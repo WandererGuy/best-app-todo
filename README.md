@@ -50,6 +50,10 @@ Ghi chú task và trang nhật ký dùng TipTap (ProseMirror). Gõ `/` để m�
 
 Bôi đen chữ để hiện thanh định dạng nổi (đậm, nghiêng, gạch ngang, code, link). Link tự nhận dạng khi gõ, mở ở tab mới.
 
+**Ảnh** — dán (Ctrl+V), kéo thả file ảnh vào, hoặc gõ `/` chọn **Ảnh**. Ảnh có cạnh dài quá 2560px (hoặc nặng quá 800KB) được thu nhỏ về 2560px WebP; ảnh nhỏ giữ nguyên file gốc. Bấm đúp vào ảnh để mở cỡ thật ở tab mới.
+
+**File đính kèm** — kéo thả hoặc dán file bất kỳ (PDF, Word, Excel, zip…) vào ghi chú, hoặc gõ `/` chọn **File đính kèm**. File hiện thành một thẻ có tên, dung lượng và nút **Tải về**. PDF, ảnh, audio, video và file chữ/code (txt, md, csv, json…) có thêm nút **Xem** để mở ở tab mới; Word/Excel/PowerPoint thì chỉ tải về được. File `.html` / `.svg` luôn được xem dưới dạng chữ thuần, không chạy. Mỗi file tối đa 25MB. Chọn thẻ rồi bấm Backspace để gỡ.
+
 ## Dữ liệu
 
 Lưu vào `localStorage` mỗi lần thay đổi. Sidebar có chỉ báo thời điểm lưu gần nhất — nếu trình duyệt chặn ghi, chỉ báo chuyển đỏ và nhắc xuất file.
@@ -59,6 +63,8 @@ Ngoài ra:
 - **Xuất / Nạp file** JSON thủ công, dùng để backup hoặc chuyển sang máy khác.
 
 Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
+
+Ảnh và file đính kèm không nằm trong `localStorage` (giới hạn ~5MB) mà trong IndexedDB; ghi chú chỉ giữ `<img data-img="mã">` / `<div data-file="mã" data-name data-size>`. File xuất ra và file liên kết có thêm trường `images: {mã: data URL}` chứa các ảnh và file đang được dùng (tên trường giữ nguyên để backup cũ vẫn nạp được), nên backup có đủ ảnh; nạp file sẽ đưa ảnh trở lại IndexedDB.
 
 Có sẵn đường nâng cấp cho dữ liệu cũ: nhật ký định dạng cũ (một chuỗi mỗi ngày) tự chuyển thành dạng nhiều trang khi nạp; ghi chú viết bằng markdown hoặc HTML bản cũ được chuyển sang định dạng TipTap hiểu.
 

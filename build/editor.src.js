@@ -1,11 +1,76 @@
 /* Nguồn để build bundle trình soạn thảo (TipTap/ProseMirror).
    Build:  node build/build.js   -> nhúng thẳng vào index.html
    App chỉ gọi qua window.TT, không đụng trực tiếp vào ProseMirror. */
-import { Editor } from '@tiptap/core';
+import { Editor, Node } from '@tiptap/core';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Link } from '@tiptap/extension-link';
 import { Placeholder, TrailingNode } from '@tiptap/extensions';
+
+/* ảnh: nội dung chỉ lưu mã ảnh (data-img), còn file ảnh do app cất ở chỗ khác.
+   Lúc hiển thị hỏi app qua options.src(mã) -> URL. */
+const Img = Node.create({
+  name: 'image',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  addOptions(){ return {src: () => Promise.resolve('')}; },
+  addAttributes(){
+    return {id: {default: null, parseHTML: el => el.getAttribute('data-img'), renderHTML: a => ({'data-img': a.id})}};
+  },
+  parseHTML(){ return [{tag: 'img[data-img]'}]; },
+  renderHTML({HTMLAttributes}){ return ['img', HTMLAttributes]; },
+  addNodeView(){
+    return ({node}) => {
+      const dom = document.createElement('img');
+      dom.className = 'eimg'; dom.alt = 'Không tìm thấy ảnh';
+      this.options.src(node.attrs.id).then(u => { if(u) dom.src = u; else dom.classList.add('miss'); });
+      return {dom};
+    };
+  },
+});
+
+/* file đính kèm: như ảnh, nội dung chỉ lưu mã + tên + cỡ; file thật do app cất.
+   Hiện thành thẻ có nút tải về, bấm thì hỏi app qua options.src(mã) -> URL.
+   Nút Xem chỉ có khi app bảo xem được (options.canView(tên)); bấm thì app mở qua options.view(attrs). */
+const kb = n => n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1024 / 1024).toFixed(1) + ' MB';
+const FileBlock = Node.create({
+  name: 'file',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  addOptions(){ return {src: () => Promise.resolve(''), canView: () => false, view: () => Promise.resolve(false)}; },
+  addAttributes(){
+    const a = (k, num) => ({default: null,
+      parseHTML: el => num ? +el.getAttribute('data-' + k) || 0 : el.getAttribute('data-' + k),
+      renderHTML: v => ({['data-' + k]: v[k]})});
+    return {file: a('file'), name: a('name'), size: a('size', true)};
+  },
+  parseHTML(){ return [{tag: 'div[data-file]'}]; },
+  renderHTML({node, HTMLAttributes}){ return ['div', HTMLAttributes, node.attrs.name || 'file']; },   // tên nằm trong chữ -> tìm kiếm được
+  addNodeView(){
+    return ({node}) => {
+      const dom = document.createElement('div');
+      dom.className = 'efile';
+      dom.innerHTML = '<span class="fi">📎</span><span class="fn"></span><span class="fs"></span>'
+        + (this.options.canView(node.attrs.name || '') ? '<button type="button" class="fd fv">Xem</button>' : '')
+        + '<button type="button" class="fd">Tải về</button>';
+      dom.querySelector('.fn').textContent = node.attrs.name || 'file';
+      dom.querySelector('.fs').textContent = node.attrs.size ? kb(node.attrs.size) : '';
+      const btn = dom.querySelector('.fd:not(.fv)');
+      const miss = () => { dom.classList.add('miss'); btn.textContent = 'Không tìm thấy file'; };
+      const vb = dom.querySelector('.fv');
+      if(vb) vb.onclick = async () => { if(!await this.options.view(node.attrs)){ vb.remove(); miss(); } };
+      btn.onclick = async () => {
+        const u = await this.options.src(node.attrs.file);
+        if(!u) return miss();
+        const a = document.createElement('a');           // <a> tạm ngoài editor, để Link không bắt lấy
+        a.href = u; a.download = node.attrs.name || 'file'; a.click();
+      };
+      return {dom, stopEvent: e => e.target.closest && !!e.target.closest('.fd')};
+    };
+  },
+});
 
 const CMD = {
   p:   c => c.setParagraph(),
@@ -18,6 +83,8 @@ const CMD = {
   q:   c => c.toggleBlockquote(),
   pre: c => c.toggleCodeBlock(),
   hr:  c => c.setHorizontalRule(),
+  img: c => c,                               // chỉ xoá "/lệnh"; app mở hộp chọn file rồi gọi TT.image
+  file: c => c,                              // như trên, rồi gọi TT.file
 };
 const MARK = {
   bold:   c => c.toggleBold(),
@@ -31,7 +98,10 @@ const ACTIVE = {
 };
 
 window.TT = {
-  create(el, {content = '', placeholder = '', onChange = () => {}} = {}){
+  /* imgSrc(mã) -> Promise<URL> (dùng cho cả ảnh lẫn file đính kèm);
+     fileCanView(tên) -> có nút Xem không; fileView(attrs) -> Promise<false nếu không tìm thấy file>;
+     onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ) */
+  create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}} = {}){
     return new Editor({
       element: el,
       content,
@@ -48,8 +118,26 @@ window.TT = {
         }),
         Placeholder.configure({placeholder}),
         TrailingNode,                        // luôn có 1 đoạn trống ở cuối để bấm vào
+        Img.configure(imgSrc ? {src: imgSrc} : {}),
+        FileBlock.configure({
+          ...(imgSrc ? {src: imgSrc} : {}),
+          ...(fileView ? {canView: fileCanView, view: fileView} : {}),
+        }),
       ],
-      editorProps:{ attributes:{ class:'ed' } },
+      editorProps:{
+        attributes:{ class:'ed' },
+        handlePaste(view, e){
+          const files = [...(e.clipboardData && e.clipboardData.files || [])];
+          if(!files.length) return false;
+          onFiles(files, null); return true;
+        },
+        handleDrop(view, e, slice, moved){
+          const files = moved ? [] : [...(e.dataTransfer && e.dataTransfer.files || [])];
+          if(!files.length) return false;
+          const p = view.posAtCoords({left:e.clientX, top:e.clientY});
+          onFiles(files, p ? p.pos : null); return true;
+        },
+      },
       onUpdate({editor}){ onChange(editor.getHTML()); },
     });
   },
@@ -59,6 +147,23 @@ window.TT = {
     let c = editor.chain().focus();
     if(range) c = c.deleteRange(range);
     (CMD[key] || CMD.p)(c).run();
+  },
+
+  /* chèn ảnh theo mã; pos = null thì chèn tại con trỏ */
+  image(editor, ids, pos){
+    if(editor.isDestroyed || !ids.length) return;
+    const nodes = ids.map(id => ({type:'image', attrs:{id}}));
+    const c = editor.chain().focus();
+    // xử lý ảnh mất một lúc, nội dung có thể đã ngắn đi -> kẹp vị trí lại
+    (pos == null ? c.insertContent(nodes) : c.insertContentAt(Math.min(pos, editor.state.doc.content.size), nodes)).run();
+  },
+
+  /* chèn file đính kèm; items = [{file: mã, name, size}] */
+  file(editor, items, pos){
+    if(editor.isDestroyed || !items.length) return;
+    const nodes = items.map(a => ({type:'file', attrs:a}));
+    const c = editor.chain().focus();
+    (pos == null ? c.insertContent(nodes) : c.insertContentAt(Math.min(pos, editor.state.doc.content.size), nodes)).run();
   },
 
   mark(editor, key){
