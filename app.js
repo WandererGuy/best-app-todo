@@ -1072,6 +1072,9 @@ function drawTask(){
       <div class="fld"><label>Hạn chót</label>
         ${dateBtn('dD', t.due, 'Chưa đặt hạn')}</div>
 
+      ${t.status === 'done' ? `<div class="fld"><label>Ngày xong</label>
+        ${dateBtn('dDone', t.done, 'Chưa ghi ngày xong')}</div>` : ''}
+
       <div class="fld"><label>Giờ · thời lượng · nhắc trước</label>
         ${slotFieldHTML('d', t)}</div>
 
@@ -1085,7 +1088,7 @@ function drawTask(){
       <div class="fld"><label>Ghi chú</label><div id="dN"></div></div>
     </div>
     <div class="dfoot">
-      <span class="meta">Tạo ${fmtVN(t.cr) || '—'}${t.done ? ` · Xong ${fmtVN(t.done)}` : ''}</span>
+      <span class="meta">Tạo ${fmtVN(t.cr) || '—'}</span>
       <button class="danger" id="dDel" style="margin-left:auto">Chuyển vào thùng rác</button>
     </div>`;
 
@@ -1095,6 +1098,7 @@ function drawTask(){
   $('#dX').onclick = closeDrawer;
   $('#dT').oninput = e => { t.title = e.target.value; save(); };
   $('#dD').onclick = e => openDP(e.currentTarget, t.due, v => patch(x => { x.due = v; if(!v) x.time = ''; }), true);
+  if($('#dDone')) $('#dDone').onclick = e => openDP(e.currentTarget, t.done, v => patch(x => x.done = v));
   // đặt giờ khi chưa có hạn thì lấy hôm nay làm ngày
   bindSlotField(D, 'd', (k, v) => patch(x => {
     x[k] = v;
