@@ -1,127 +1,290 @@
 # Trung tâm điều khiển
 
-App quản lý công việc và nhật ký cá nhân: HTML + CSS + JS thuần, không framework, cộng một server Python nhỏ chạy trên máy để giữ dữ liệu. Không tài khoản, không đưa dữ liệu ra internet — dữ liệu là một file JSON nằm trong thư mục app.
+**Một app duy nhất để quản lý việc cần làm, thói quen, giờ tập trung, lịch, nhật ký và ghi chú. Chạy ngay trên máy của bạn, không cần tài khoản, không cần internet.**
 
-**Chạy:** bấm đúp `run.bat`. Đóng cửa sổ đen là tắt.
+![Bảng việc](docs/images/board.png)
 
-> Chi tiết cách chạy, cách build, và chuyện dữ liệu có mất khi tắt máy: xem [RUN.md](RUN.md).
+- **Dữ liệu là của bạn.** Mọi thứ nằm trong một file `data/dieukhien.json` trên máy. Không gửi đi đâu, không có máy chủ đám mây.
+- **Không mất dữ liệu vì xoá cache.** Dữ liệu ghi ra file chứ không nhốt trong trình duyệt, và mỗi ngày app tự sao lưu một bản.
+- **Không cần cài gì phức tạp.** Chỉ cần Python và một trình duyệt. Bấm đúp `run.bat` là chạy.
+- **Tiếng Việt hoàn toàn.**
 
-## Ý tưởng
+---
 
-Một chỗ duy nhất cho việc cần làm và cho suy nghĩ về việc đó. Task không chỉ là một dòng tiêu đề — mỗi task có một ô ghi chú viết được như trang Notion, để mọi thứ vụn vặt liên quan đến nó có nơi để ném vào thay vì tản mác ở chỗ khác.
+## Mục lục
 
-Ràng buộc tự đặt: **chạy offline, dữ liệu là của người dùng, nằm ở một file cầm nắm được**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới. Ban đầu app không có backend và chỉ lưu trong `localStorage`, nhưng như vậy dữ liệu bị nhốt trong một profile trình duyệt: xoá cache là mất, đổi tài khoản Chrome là không thấy. Nên `serve.py` giờ giữ dữ liệu ra file — vẫn chỉ chạy trên máy, chỉ nghe `localhost`.
+- [Có những gì](#có-những-gì)
+- [Cài đặt và chạy](#cài-đặt-và-chạy)
+- [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu)
+- [Cập nhật lên bản mới](#cập-nhật-lên-bản-mới)
+- [Phím tắt và mẹo](#phím-tắt-và-mẹo)
+- [Câu hỏi thường gặp](#câu-hỏi-thường-gặp)
+- [Dành cho người muốn sửa code](#dành-cho-người-muốn-sửa-code)
 
-## Có gì
+---
 
-**Bảng việc** — 3 cột `Cần làm / Đang làm / Xong`, kéo thả giữa các cột. Mỗi task có: mảng (Công việc / Cuộc sống / Khác), ưu tiên (Thấp / Trung bình / Cao), phần trăm tiến độ, hạn chót, tag, danh sách việc con, và ghi chú.
+## Có những gì
 
-**Bảng cuộc sống** — bảng kanban riêng cho task mảng Cuộc sống, cùng kiểu với Bảng việc. Bảng việc chỉ còn mảng Công việc và Khác. Hai bảng dùng chung lịch, nhắc việc và tổng quan.
-
-**Để sau** — chỗ cho việc chưa cam kết làm, dùng chung cho mọi mảng. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. Gõ vào ô trên cùng rồi Enter để ghi nhanh; mỗi dòng hiện tuổi tính từ ngày tạo và nút **→ Cần làm** để đưa lên cuối cột Cần làm. Chiều ngược lại: kéo card trên bảng thả vào mục **Để sau** ở sidebar, hoặc chọn trạng thái **Để sau** trong panel task / form tạo task.
-
-**Thói quen** — việc lặp lại vào những thứ cố định trong tuần, theo dõi riêng chứ không nằm trên bảng: task là việc làm một lần rồi xong, thói quen là chuỗi không có điểm kết thúc, và nếu để chung thì bảng sẽ ngập còn Tổng quan sẽ bị nhiễu. Mỗi thói quen có tên, màu, loại (**Nên làm** / **Nên bỏ**), các thứ trong tuần phải làm, và một câu **ý định thực hiện** dạng "sau việc gì, ở đâu" — thứ có tác dụng mạnh nhất trong các nghiên cứu về hình thành thói quen. Thói quen muốn bỏ thì khai báo thêm **hành vi thay thế**: cơn thèm vẫn đến, cái đổi được là phản ứng, nên bạn tick những ngày dùng được hành vi thay thế.
-
-Mỗi thói quen có mục **Lý do** — vì sao nó đáng làm, thứ bạn sẽ cần đọc lại vào đúng hôm không muốn làm. Đây là một ô soạn thảo đầy đủ như ghi chú task (gõ `/` để chèn khối, dán được ảnh và file), có ở hai chỗ: trong form tạo / sửa, nằm cùng các trường khác và chỉ lưu khi bấm **Lưu**; và trên thẻ dưới dạng dòng **▸ Lý do** gập / mở được, sửa là lưu ngay. Gập lại thì chỉ còn một dòng xem trước, và app nhớ bạn đang để nó mở hay gập.
-
-Mỗi thẻ có lưới 12 tuần kiểu biểu đồ đóng góp — cột là tuần, hàng là thứ, nhìn dọc thấy ngay mình hay đứt vào thứ mấy. Bấm một ô để đánh dấu hoặc bỏ đánh dấu ngày đó. Thẻ hiện **chuỗi buổi liên tiếp** và **tỉ lệ làm được**; bỏ lỡ một buổi thì app không phạt, bỏ buổi thứ hai liên tiếp mới cảnh báo — vì bỏ một lần gần như không ảnh hưởng đến quá trình thành tự động, bỏ liên tiếp mới là lúc thói quen chết.
-
-Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhanh ở đầu Bảng việc và Bảng cuộc sống, kèm số buổi liên tiếp. Tick xong có một nhịp mừng ngắn: cảm xúc tích cực tức thì mới là thứ gắn hành vi thành thói quen, không phải số lần lặp.
-
-**Tập trung** — đồng hồ pomodoro để làm việc sâu, chống nhảy việc. Mặc định 40 phút làm, 10 phút nghỉ, nghỉ dài 15 phút sau mỗi 3 phiên; mọi thông số đều đổi được ở **⚙ Cài đặt** trong mục Tập trung, nhóm nào cũng có nút **Khôi phục mặc định**. Đổi thời lượng khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.
-
-- **Hàng đợi** tối đa 3 task (đổi được), **chỉ nhận task ở cột Đang làm**: kéo card Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn trong mục Tập trung — danh sách chọn chia nhóm theo ưu tiên, cao lên đầu, và mỗi task trong hàng đợi có nhãn ưu tiên. Task đầu hàng là task của phiên tới. Mỗi phiên gắn đúng một task — đổi task giữa phiên phải xác nhận và được ghi là một lần chuyển ngữ cảnh, trừ khi task cũ đã xong. Task rời cột Đang làm (xong, về Cần làm, bị gác lại hay bị bỏ) thì tự rời hàng đợi.
-- **Khối ở sidebar** hiện đồng hồ, task và nút bắt đầu / tạm dừng. Thấy vướng mắt thì bấm **Thu gọn** cạnh nhãn Tập trung: khối chỉ còn một dòng mảnh với pha và giờ còn lại, bấm vào dòng đó để mở lại.
-- **Trong phiên**: chợt nhớ việc khác thì gõ vào ô **Ghi để sau** (ở mục Tập trung hoặc màn hình toàn màn hình) rồi Enter — việc vào mục Để sau, mình quay lại việc đang làm. **⏸ Tạm dừng** khi phải rời việc; dừng quá 2 phút thì app hỏi làm tiếp hay huỷ phiên.
-- **Hết phiên**: chuông (tự tổng hợp, chỉnh âm lượng được), thông báo hệ thống nếu đã cho phép, rồi chấm độ tập trung 1–5 và ghi "lần sau bắt đầu từ…" — câu này hiện lại lần sau chuẩn bị làm task đó. Giờ nghỉ có gợi ý việc rời màn hình; bỏ nghỉ được nhưng app vẫn ghi lại.
-- **Chuỗi**: ngày thường đạt khi làm đủ 2 phiên. Được lỡ 1 ngày thường, lỡ 2 ngày liên tiếp mới về 0. Cuối tuần không làm thì chuỗi không gãy, có làm đủ thì vẫn cộng. Phiên huỷ giữa chừng được ghi lại (kèm số phút đã làm) nhưng không tính là phiên đạt.
-- **Phần thưởng**: app mừng mỗi phiên xong, báo khi đạt mục tiêu ngày; bạn tự đặt thêm mốc tuần và mốc tháng ("12 phiên thì được X") — đạt mốc thì app báo bạn đã xứng đáng được X. Tuần tính từ thứ Hai.
-- **Toàn màn hình** (nút **⤢**, Esc để thoát): giữa màn hình chỉ còn đồng hồ và nút; tên task và ô ghi để sau nằm trong ngăn nhỏ góc trên bên trái, mặc định gập lại, bấm **▸** để mở. Nền đổi theo **Tập trung / Nghỉ ngắn / Nghỉ dài**, mỗi pha có màu nền, ảnh nền (giữ phần trong suốt của PNG) với độ rõ chỉnh được, và lớp phủ tối hoặc sáng để chữ luôn dễ đọc.
-
-Đồng hồ tính theo mốc thời gian chứ không đếm nhịp, nên F5, chuyển tab hay tắt app giữa phiên đều không lệch; phiên hết giờ lúc app đang tắt được ghi nhận khi mở lại. Đồng hồ hiện cả trên tiêu đề tab. Mục Tập trung có tiến độ hôm nay, 7 ngày gần nhất, tuần, tháng, chuỗi dài nhất, và tổng kết trong ngày (phút tập trung, số task, số lần ghi để sau, số lần tạm dừng, điểm tập trung trung bình, danh sách phiên).
-
-**Tag** — danh sách tag dùng chung, mỗi tag một màu riêng. Bấm **Quản lý** cạnh mục Tag ở sidebar để thêm, đổi tên, xoá tag và đổi màu — chọn từ bảng 72 màu hoặc màu bất kỳ (bộ chọn màu / mã hex). Đổi tên trùng một tag có sẵn thì app hỏi gộp hai tag. Khi gắn tag cho task, các tag đã có hiện sẵn để bấm chọn lại; gõ tên mới rồi Enter sẽ tạo tag mới.
-
-**Panel task** — bấm vào task để mở drawer bên phải: sửa mọi trường, tick việc con, viết ghi chú.
-
-**Lịch** — ba chế độ **Ngày / Tuần / Tháng** (app nhớ chế độ chọn gần nhất). Ngày và Tuần là lưới giờ kiểu Google Calendar: task có giờ nằm đúng khung giờ, task chỉ có ngày hạn nằm ở hàng "Cả ngày". Bấm khung trống để tạo task vào giờ đó, bấm tên ngày để xem riêng ngày đó. Tháng là lưới tháng: task hiện ở đúng ngày hạn chót, ngày có nhật ký được đánh dấu.
-
-**Lịch ngày ở sidebar** — dòng thời gian 24 giờ kiểu Google Calendar, chia ô 30 phút. Bấm ô trống để mở form tạo task, ngày và giờ được điền sẵn. Bấm vào một block để mở task đó. Việc trùng giờ được xếp cạnh nhau. Nút **⤢** mở lịch lớn theo tuần.
-
-**Khung giờ & nhắc việc** — mỗi task đặt được giờ bắt đầu, thời lượng và mốc nhắc trước (mặc định 30 phút), cả trong form tạo lẫn panel chi tiết. Giờ gắn với ngày hạn chót. Đến mốc nhắc thì app hiện toast, thêm thông báo vào **chuông** ở thanh trên và bắn thông báo hệ thống nếu đã cho phép. Nhắc việc chỉ chạy khi app đang mở.
-
-**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do bằng trình soạn thảo giàu định dạng.
-
-**Ghi chú** — trang không gắn với ngày, lồng nhau như Notion. Cột trái là cây trang: bấm ▸ để mở trang con, rê chuột vào một trang rồi bấm **+** để thêm trang con. Mỗi trang có tiêu đề, tag (dùng chung với task), nội dung soạn bằng cùng trình soạn thảo, **ngày tạo** và **sửa lần cuối** (cập nhật khi đổi tiêu đề, nội dung hoặc tag). Ghim trang để nó hiện ở mục **Đã ghim** trên đầu cây; **Chuyển vào…** để đưa trang (kèm trang con) vào trang khác hoặc về cấp gốc. Gõ vào ô tìm kiếm hoặc bấm một tag ở sidebar thì cây thành danh sách trang khớp, mới sửa lên đầu. Bỏ một trang thì cả các trang con cùng vào **Thùng rác**, khôi phục cũng khôi phục cả cây.
-
-**Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký, và số thói quen đã tick hôm nay.
-
-**Lọc và tìm** — theo tag (sidebar) và tìm toàn văn trên tiêu đề / tag / ghi chú. Riêng Bảng việc và Bảng cuộc sống có thêm nút **Lọc** trên thanh công cụ (hiện số bộ lọc đang bật), bấm vào mở bảng chọn: khoảng thời gian (hôm nay / 7 ngày / tháng này / tất cả), ưu tiên (chọn được nhiều mức), hạn (trễ hạn / hạn hôm nay / chưa có hạn), mảng Công việc / Khác (chỉ ở Bảng việc), và cách sắp xếp thẻ (thủ công / theo ưu tiên / chia nhóm ưu tiên).
-
-## Trình soạn thảo
-
-Ghi chú task và trang nhật ký dùng TipTap (ProseMirror). Gõ `/` để mở menu chèn khối, hoặc dùng phím tắt markdown:
-
-| Gõ | Thành |
+| | |
 |---|---|
+| **Bảng việc & Bảng cuộc sống**<br>Kanban 3 cột kéo thả. Task có ưu tiên, hạn chót, giờ, tag, việc con và ghi chú kiểu Notion. | **Tập trung (pomodoro)**<br>Hàng đợi task, đồng hồ toàn màn hình, chuỗi ngày, thống kê. Mỗi phiên trồng một cây trong khu vườn. |
+| ![Panel task](docs/images/drawer.png) | ![Tập trung](docs/images/focus.png) |
+| **Thói quen**<br>Lưới theo dõi 12 tuần, chuỗi buổi liên tiếp, thói quen nên làm và nên bỏ. | **Lịch**<br>Xem theo ngày, tuần, tháng kiểu Google Calendar. Bấm khung trống để tạo task. |
+| ![Thói quen](docs/images/habits.png) | ![Lịch](docs/images/cal.png) |
+| **Ghi chú**<br>Trang lồng nhau như Notion, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
+| ![Ghi chú](docs/images/notes.png) | ![Tổng quan](docs/images/dash.png) |
+
+Ngoài ra còn có:
+
+- **Để sau:** chỗ ghi nhanh những việc chưa muốn làm ngay. Chúng không lên bảng, lịch hay thống kê.
+- **Nhật ký:** mỗi ngày một hoặc nhiều trang.
+- **Nhắc việc:** toast, chuông trong app và thông báo hệ thống.
+- **Tag có màu, tìm kiếm toàn văn, bộ lọc.**
+- **Thùng rác:** khôi phục được task và ghi chú đã xoá.
+
+Mô tả chi tiết từng tính năng: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
+
+> Ảnh chụp dùng dữ liệu minh hoạ, không phải dữ liệu thật.
+
+---
+
+## Cài đặt và chạy
+
+### Bước 1: Cài Python (chỉ làm một lần)
+
+App cần **Python 3.7 trở lên** (đã kiểm với 3.12). Nó chỉ dùng thư viện có sẵn của Python, không cần `pip install` gì thêm.
+
+- **Windows:** tải ở [python.org/downloads](https://www.python.org/downloads/). Khi cài, nhớ **tick ô "Add python.exe to PATH"** ở màn hình đầu tiên.
+- **macOS:** thường đã có sẵn `python3`. Nếu chưa, cài từ python.org hoặc `brew install python`.
+- **Linux:** hầu hết các bản đã có sẵn `python3`.
+
+Kiểm tra bằng cách mở Terminal / Command Prompt rồi gõ `python --version` (hoặc `python3 --version`).
+
+**Trình duyệt:** nên dùng Chrome hoặc Edge, là hai trình duyệt app được dùng và kiểm tra hằng ngày. Tính năng "Liên kết file trên ổ đĩa" chỉ có trên Chrome và Edge.
+
+**Hệ điều hành:** app được làm và dùng trên Windows. `serve.py` chỉ dùng thư viện chuẩn của Python nên chạy được trên macOS / Linux, nhưng chưa được kiểm kỹ trên hai hệ này.
+
+### Bước 2: Tải app về
+
+Chọn một trong hai cách:
+
+- **Không biết Git:** bấm nút xanh **Code → Download ZIP** trên trang GitHub, rồi giải nén.
+- **Dùng Git:**
+  ```bash
+  git clone https://github.com/WandererGuy/best-app-todo.git
+  ```
+
+> **Đặt thư mục app ở chỗ cố định**, ví dụ `D:\Apps\trung-tam-dieu-khien`. Dữ liệu của bạn sẽ nằm ngay trong thư mục này, nên đừng để nó trong `Downloads` rồi lỡ tay xoá.
+
+### Bước 3: Chạy
+
+**Windows:** bấm đúp **`run.bat`**.
+
+Một cửa sổ đen hiện ra, và sau vài giây trình duyệt tự mở `http://localhost:8000`.
+
+**macOS / Linux:** mở Terminal trong thư mục app rồi chạy:
+
+```bash
+python3 serve.py
+```
+
+Sau đó mở trình duyệt vào **http://localhost:8000**.
+
+### Tắt app
+
+- **Windows:** đóng cửa sổ đen.
+- **macOS / Linux:** bấm `Ctrl + C` trong Terminal.
+
+Nếu lỡ tắt server khi tab còn mở, app sẽ báo đỏ. Thay đổi vẫn được giữ tạm trong trình duyệt và tự gửi lên ở lần mở sau.
+
+### Lần đầu mở
+
+- App tạo sẵn vài task, thói quen và trang nhật ký mẫu để bạn xem thử. Xoá chúng đi khi đã quen.
+- Muốn nhận nhắc việc khi đang ở cửa sổ khác: vào **Tập trung → ⚙ Cài đặt** và bấm **Cho phép thông báo hệ thống**.
+- **Mẹo:** tạo shortcut của `run.bat` ra Desktop để mở nhanh mỗi ngày.
+
+> **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `run.bat` hoặc `serve.py`.
+
+---
+
+## Dữ liệu và sao lưu
+
+### Dữ liệu nằm ở đâu
+
+| Đường dẫn | Là gì |
+|---|---|
+| `data/dieukhien.json` | **Toàn bộ dữ liệu:** task, thói quen, nhật ký, ghi chú, lịch sử tập trung, ảnh đính kèm. |
+| `data/backups/` | Các bản sao lưu tự động. |
+
+Thư mục `data/` được tạo ở lần chạy đầu tiên. Nó **không được đưa lên Git**, nên dữ liệu của bạn không lọt lên GitHub.
+
+Mỗi lần bạn sửa gì, app ghi ra file sau khoảng 1 giây. Góc dưới sidebar hiện **Đã lưu vào máy** kèm giờ. Nếu dòng này chuyển đỏ nghĩa là chưa lưu được, xem [Câu hỏi thường gặp](#câu-hỏi-thường-gặp).
+
+### Sao lưu tự động (không cần làm gì)
+
+App tự cất bản sao vào `data/backups/`:
+
+| Tên file | Khi nào |
+|---|---|
+| `ngay-YYYY-MM-DD.json` | Lần lưu đầu tiên mỗi ngày. **Giữ 30 ngày gần nhất.** |
+| `truoc-khi-nap-*.json` | Ngay trước khi bạn dùng **Nạp file** ghi đè dữ liệu. |
+| `trinh-duyet-*.json` | Dữ liệu trong trình duyệt không được dùng, ví dụ khi hai cửa sổ cùng sửa. |
+
+### Sao lưu thủ công (nên làm thêm)
+
+Sao lưu tự động nằm cùng ổ đĩa với dữ liệu. Nếu hỏng ổ hay mất máy thì mất cả hai, nên hãy giữ thêm **một bản ở chỗ khác**:
+
+1. **Xuất file:** bấm **Xuất file** ở cuối sidebar. Bạn nhận được `dieukhien-<ngày>.json` gồm cả ảnh và file đính kèm. Cất nó vào USB, Google Drive, OneDrive…
+2. **Chép thư mục:** thỉnh thoảng chép cả thư mục `data/` sang chỗ khác.
+3. **Tự động ra đám mây (Chrome/Edge):** bấm **Liên kết file trên ổ đĩa** rồi chọn một file `.json` nằm trong thư mục OneDrive / Google Drive. Từ đó mọi thay đổi tự ghi thêm ra file đó, và dịch vụ đám mây giữ lịch sử phiên bản giúp bạn. Lần mở app sau chỉ cần bấm một nút để kết nối lại.
+
+### Khôi phục từ bản sao lưu
+
+1. Mở app như bình thường.
+2. Bấm **Nạp file** ở cuối sidebar.
+3. Chọn file muốn khôi phục: bản trong `data/backups/` hoặc bản bạn đã xuất.
+4. Xác nhận ghi đè.
+
+Không sợ chọn nhầm: dữ liệu hiện tại được tự cất thành `truoc-khi-nap-*.json` trước khi bị ghi đè.
+
+### Chuyển sang máy khác
+
+1. Cài app trên máy mới theo [Cài đặt và chạy](#cài-đặt-và-chạy).
+2. Chép thư mục `data/` từ máy cũ sang thư mục app ở máy mới, **khi app trên máy mới đang tắt**.
+   Hoặc: bấm **Xuất file** ở máy cũ, rồi **Nạp file** ở máy mới.
+
+### Những gì làm mất dữ liệu
+
+Khi chạy qua `run.bat` / `serve.py`, bạn **không** mất dữ liệu khi: xoá cache trình duyệt, dùng CCleaner, đổi tài khoản Chrome, đổi trình duyệt, tắt máy đột ngột (cùng lắm mất vài giây cuối).
+
+Bạn **sẽ** mất dữ liệu khi:
+
+- Xoá thư mục app hoặc thư mục `data/`.
+- Chạy `git clean -x` (lệnh này xoá cả những file không đưa lên Git, trong đó có `data/`).
+- Hỏng ổ đĩa hoặc mất máy mà không có bản sao lưu ở chỗ khác.
+
+---
+
+## Cập nhật lên bản mới
+
+Dữ liệu nằm riêng trong `data/`, nên cập nhật code không động tới dữ liệu.
+
+**Nếu tải bằng Git:**
+
+```bash
+git pull
+```
+
+**Nếu tải bằng ZIP:**
+
+1. Tắt app.
+2. Tải ZIP mới và giải nén ra một thư mục mới.
+3. **Chép thư mục `data/` từ thư mục cũ sang thư mục mới.**
+4. Chạy app từ thư mục mới. Kiểm tra dữ liệu đủ rồi mới xoá thư mục cũ.
+
+Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
+
+---
+
+## Phím tắt và mẹo
+
+**Trong ô ghi chú / nhật ký** (soạn thảo giống Notion):
+
+| Gõ | Kết quả |
+|---|---|
+| `/` | Menu chèn khối: tiêu đề, danh sách, trích dẫn, code, ảnh, file… |
 | `# ` `## ` `### ` | Tiêu đề lớn / vừa / nhỏ |
-| `[] ` | Danh sách việc (tick được) |
-| `- ` | Gạch đầu dòng |
-| `1. ` | Danh sách đánh số |
+| `[] ` | Danh sách việc có ô tick |
+| `- ` hoặc `1. ` | Gạch đầu dòng / danh sách đánh số |
 | `> ` | Trích dẫn |
 | ` ``` ` | Khối code |
 | `---` | Đường kẻ ngang |
+| `Ctrl + B` / `I` / `E` / `K` | Đậm / nghiêng / code / chèn link |
+| `Ctrl + V` hoặc kéo thả | Dán ảnh, đính kèm file (tối đa 25MB mỗi file) |
 
-Bôi đen chữ để hiện thanh định dạng nổi (đậm, nghiêng, gạch ngang, code, link). Link tự nhận dạng khi gõ, mở ở tab mới.
+**Khắp app:**
 
-**Ảnh** — dán (Ctrl+V), kéo thả file ảnh vào, hoặc gõ `/` chọn **Ảnh**. Ảnh có cạnh dài quá 2560px (hoặc nặng quá 800KB) được thu nhỏ về 2560px WebP; ảnh nhỏ giữ nguyên file gốc. Bấm đúp vào ảnh để mở cỡ thật ở tab mới.
+- `Esc`: đóng panel, menu, bảng chọn, thoát toàn màn hình.
+- Kéo card trên bảng thả **xuống đáy màn hình** để bỏ vào thùng rác, thả vào mục **Để sau** ở sidebar để gác lại, thả vào khối **Tập trung** để đưa vào hàng đợi.
+- Đang trong phiên tập trung mà chợt nhớ việc khác: gõ vào ô **Ghi để sau** rồi Enter. Việc đó vào mục Để sau, bạn quay lại việc đang làm.
+- Bấm khung giờ trống trên lịch (lịch lớn hoặc lịch nhỏ ở sidebar) để tạo task đúng giờ đó.
 
-**File đính kèm** — kéo thả hoặc dán file bất kỳ (PDF, Word, Excel, zip…) vào ghi chú, hoặc gõ `/` chọn **File đính kèm**. File hiện thành một thẻ có tên, dung lượng và nút **Tải về**. PDF, ảnh, audio, video và file chữ/code (txt, md, csv, json…) có thêm nút **Xem** để mở ở tab mới; Word/Excel/PowerPoint thì chỉ tải về được. File `.html` / `.svg` luôn được xem dưới dạng chữ thuần, không chạy. Mỗi file tối đa 25MB. Chọn thẻ rồi bấm Backspace để gỡ.
+---
 
-## Dữ liệu
+## Câu hỏi thường gặp
 
-Mỗi thay đổi được ghi ra **`data/dieukhien.json`** (qua `serve.py`, sau ~0.8 giây). `localStorage` chỉ còn là bản đệm, nên xoá cache hay mở bằng tài khoản Chrome khác vẫn thấy đủ dữ liệu. Sidebar báo **Đã lưu vào máy** kèm giờ; không ghi được thì chuyển đỏ và hiện banner.
+<details>
+<summary><b>Bấm <code>run.bat</code> báo "Khong tim thay Python"</b></summary>
 
-- **Sao lưu tự động** trong `data/backups/`: bản đầu mỗi ngày (`ngay-*.json`, giữ 30 ngày); bản ngay trước khi nạp file (`truoc-khi-nap-*`); dữ liệu trình duyệt không được dùng (`trinh-duyet-*`). Muốn khôi phục thì dùng **Nạp file** với file trong đó.
-- **Hai cửa sổ không đè nhau.** Mỗi lần ghi kèm mã phiên bản; cửa sổ / profile khác đã ghi trước thì server từ chối, bản của cửa sổ này được cất vào `data/backups`, app báo tải lại trang.
-- **Lần đầu mở bản này trên profile có dữ liệu cũ**, khi `data/dieukhien.json` chưa có: app hỏi có dùng dữ liệu trong trình duyệt làm dữ liệu chính không (có ghi số task). Profile khác có dữ liệu riêng chưa từng lên file thì không hỏi — dữ liệu đó được cất vào `data/backups`, app dùng dữ liệu trong file.
-- Server tắt giữa chừng: thay đổi vẫn giữ trong trình duyệt và được đánh dấu, lần mở sau khi server chạy lại sẽ tự gửi lên.
+Python chưa được cài, hoặc cài mà quên tick **Add python.exe to PATH**. Cài lại Python và tick ô đó, rồi chạy lại `run.bat`.
+</details>
 
-Ngoài ra:
-- **Liên kết file trên ổ đĩa** (Chrome/Edge): chọn một file `.json`, từ đó mọi thay đổi tự ghi ra file thật. Handle được giữ trong IndexedDB nên lần mở sau chỉ cần bấm một nút để kết nối lại.
-- **Xuất / Nạp file** JSON thủ công, dùng để backup hoặc chuyển sang máy khác.
+<details>
+<summary><b>Cổng 8000 đang bị chương trình khác dùng</b></summary>
 
-Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, notes: [], habits: [], focus: {}, settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
+`run.bat` sẽ báo tên chương trình đang chiếm cổng. Tắt chương trình đó, hoặc đổi sang cổng khác ở cả 3 chỗ:
 
-`focus.log` giữ mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích: `k` (`work` / `short` / `long`), `a` / `b` (mốc bắt đầu / kết thúc, ms), `plan` (phút dự kiến), `ms` (thời gian chạy thật), `done` (chạy đủ giờ). Phiên làm việc có thêm `tid`, `title`, `rate` (1–5), `next`, `pause` (số lần tạm dừng), `cap` (số lần ghi để sau), `sw` (số lần đổi task), `paused` (tổng thời gian dừng, ms). Ảnh nền màn hình tập trung cũng được gói vào trường `images`.
+- `serve.py`: dòng `PORT = 8000`
+- `run.bat`: hai chỗ `http://localhost:8000`
+- `tat-server-cu.ps1`: dòng `$Port = 8000`
 
-Ảnh và file đính kèm không nằm trong `localStorage` (giới hạn ~5MB) mà trong IndexedDB; ghi chú chỉ giữ `<img data-img="mã">` / `<div data-file="mã" data-name data-size>`. File xuất ra và file liên kết có thêm trường `images: {mã: data URL}` chứa các ảnh và file đang được dùng (tên trường giữ nguyên để backup cũ vẫn nạp được), nên backup có đủ ảnh; nạp file sẽ đưa ảnh trở lại IndexedDB.
+Lưu ý: dữ liệu vẫn nằm trong `data/` nên không bị ảnh hưởng. Chỉ những thiết lập nhỏ lưu trong trình duyệt (ví dụ liên kết file) cần làm lại.
+</details>
 
-Có sẵn đường nâng cấp cho dữ liệu cũ: nhật ký định dạng cũ (một chuỗi mỗi ngày) tự chuyển thành dạng nhiều trang khi nạp; ghi chú viết bằng markdown hoặc HTML bản cũ được chuyển sang định dạng TipTap hiểu.
+<details>
+<summary><b>Sidebar báo đỏ "Chưa lưu vào máy"</b></summary>
 
-## Cấu trúc
+App không nối được tới server. Kiểm tra cửa sổ đen của `run.bat` còn mở không, rồi chạy lại nếu cần. Thay đổi trong lúc mất kết nối vẫn được giữ trong trình duyệt và tự gửi lên khi server chạy lại.
+</details>
+
+<details>
+<summary><b>Báo "Đã sửa ở cửa sổ khác — tải lại trang"</b></summary>
+
+Bạn đang mở app ở hai tab / cửa sổ, và tab kia đã lưu trước. App không ghi đè để tránh mất thay đổi: bản của tab này được cất vào `data/backups/`. Bấm **F5** để lấy dữ liệu mới nhất.
+</details>
+
+<details>
+<summary><b>Dùng trên điện thoại hoặc máy khác trong mạng được không?</b></summary>
+
+Không. Server chỉ nghe trên chính máy đang chạy (`localhost`), để không ai trong cùng mạng Wi-Fi đọc hay sửa được dữ liệu của bạn.
+</details>
+
+<details>
+<summary><b>Nhắc việc không hiện</b></summary>
+
+Nhắc việc chỉ chạy khi app đang mở, trong một tab bất kỳ. Muốn được báo cả khi đang ở cửa sổ khác thì cho phép thông báo hệ thống trong **Tập trung → ⚙ Cài đặt**.
+</details>
+
+<details>
+<summary><b>Muốn xoá sạch để dùng lại từ đầu</b></summary>
+
+Tắt app, **đổi tên** thư mục `data/` (ví dụ thành `data-cu/`, đừng xoá, phòng khi cần lại), rồi chạy lại app. Chi tiết xem [RUN.md](RUN.md#xoá-sạch-để-test-từ-đầu).
+</details>
+
+---
+
+## Quyền riêng tư
+
+- Không tài khoản, không theo dõi, không gửi dữ liệu ra internet.
+- Server chỉ nghe `localhost` và chặn các trang web lạ gọi vào.
+- Dữ liệu là file JSON thuần, mở bằng bất kỳ trình soạn thảo nào cũng đọc được.
+
+---
+
+## Dành cho người muốn sửa code
+
+App viết bằng HTML + CSS + JavaScript thuần, không framework và **không có bước build**: sửa file rồi F5 là thấy. Trình soạn thảo dùng [TipTap](https://tiptap.dev/), đã đóng gói sẵn trong `vendor/tiptap.js`. Server là một file Python chỉ dùng thư viện chuẩn.
 
 ```
-run.bat                Bấm đúp là chạy: tắt server cũ còn sót, bật server rồi mở trình duyệt
-tat-server-cu.ps1      run.bat gọi: tắt cửa sổ run.bat cũ và python serve.py đang giữ cổng 8000
-serve.py               Server cổng 8000 (chỉ localhost): phát file tĩnh tắt cache + API /api/data giữ dữ liệu
-data/                  Dữ liệu thật (dieukhien.json) và backups/ — không đưa vào git
-index.html             Khung HTML, nạp các file dưới
-style.css              Toàn bộ CSS
-js/                    Code app, mỗi mục một file (core.js nạp đầu, main.js nạp cuối)
-vendor/tiptap.js       Bundle TipTap đã minify (build sinh ra, không sửa tay)
-build/editor.src.js    Nguồn lớp bọc trình soạn thảo, xuất ra window.TT
-build/build.js         esbuild bundle ra vendor/tiptap.js
-package.json           Chỉ phục vụ bước build (TipTap + esbuild)
-RUN.md                 Cách chạy, build, và xử lý dữ liệu
+run.bat, tat-server-cu.ps1   Bấm đúp để chạy (Windows); tắt server cũ còn sót
+serve.py                     Server localhost: phát file tĩnh + API /api/data giữ dữ liệu
+index.html                   Khung HTML
+style.css                    Toàn bộ giao diện
+js/                          Code app, mỗi mục một file (core.js nạp đầu, main.js nạp cuối)
+vendor/tiptap.js             Bundle trình soạn thảo (build sinh ra, không sửa tay)
+build/                       Nguồn và script build lại trình soạn thảo (cần Node)
+docs/                        Hướng dẫn chi tiết và ảnh chụp
+data/                        Dữ liệu của bạn (không đưa lên Git)
 ```
 
-Ranh giới quan trọng: code app chỉ gọi trình soạn thảo qua `window.TT`, không chạm trực tiếp vào ProseMirror. Nhờ vậy phần app vẫn là JavaScript thuần không cần build, và bundle TipTap là thứ duy nhất phải qua esbuild.
-
-## Yêu cầu
-
-Chạy app: một trình duyệt hiện đại. Không cần Node.
-
-Build lại trình soạn thảo: Node (đã kiểm với v24) và `npm install`.
-
-Giao diện và toàn bộ chú thích trong code viết bằng tiếng Việt.
+Chi tiết kỹ thuật (cách server lưu và chống ghi đè, quy trình khởi động, build lại trình soạn thảo, lưu ý khi sửa code): xem [RUN.md](RUN.md). Định dạng dữ liệu: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.md#định-dạng-dữ-liệu).
