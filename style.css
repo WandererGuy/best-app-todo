@@ -665,6 +665,20 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fz.full .fzrev,.fz.full .fzcheer{width:100%;background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.2);color:inherit}
 .fz.full .fzrate{color:inherit}
 .fz.full .fzrate button{border-color:rgba(255,255,255,.3);color:inherit}
+/* ngăn task + ghi để sau bên trái màn hình toàn màn hình, mặc định gập lại */
+.fzleft{position:absolute;left:16px;top:16px;z-index:2;color:#fff}
+.fzltab{display:flex;align-items:center;gap:6px;max-width:260px;padding:7px 12px;border-radius:9px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.18);color:inherit;font-size:12.5px;opacity:.7}
+.fzltab:hover{opacity:1}
+.fzltab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fzleft.on{width:300px;max-width:calc(100% - 32px);display:flex;flex-direction:column;gap:8px;padding:11px 13px 13px;border-radius:11px;background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(6px)}
+.fzlhd{display:flex;align-items:center;font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;font-weight:650;opacity:.8}
+.fzlhd .fzic{margin-left:auto;color:inherit}
+.fzleft .fztask{font-size:14px}
+.fzleft .fznext{color:inherit;opacity:.75}
+.fzleft .fzempty{color:inherit;border-color:rgba(255,255,255,.3)}
+.fzleft .fzin{background:rgba(0,0,0,.25);border-color:rgba(255,255,255,.22);color:inherit}
+.fzleft .fzin::placeholder{color:inherit;opacity:.6}
+.fzleft .btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.22);color:inherit}
 #fzFull.lt .fz.full{color:#0e1014}
 #fzFull.lt .fz.full .fzin,#fzFull.lt .fz.full .fzrev,#fzFull.lt .fz.full .fzcheer{background:rgba(255,255,255,.4);border-color:rgba(0,0,0,.18)}
 #fzFull.lt .fz.full .btn.ghost{background:rgba(0,0,0,.08);border-color:rgba(0,0,0,.18)}

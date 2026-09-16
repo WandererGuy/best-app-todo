@@ -25,7 +25,7 @@ const FCFG = {work:40, short:10, long:15, every:3, auto:false,
   qmax:3, confirmSw:true, toDoing:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
   wN:10, wWhat:'', mN:40, mWhat:'',
-  askGoal:true, askRate:true, askNext:true,
+  askRate:true, askNext:true,
   look:{work:{c:'#1e1b4b', img:null, op:70, dim:35}, short:{c:'#064e3b', img:null, op:70, dim:35},
         long:{c:'#172554', img:null, op:70, dim:35}},
   sound:true, vol:60, notify:true, tabTitle:true};
@@ -48,9 +48,9 @@ let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[]
 let ui = {view:'board', bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
           open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,
           hEdit:null, hPop:null,
-          // tập trung: fGoal = mục tiêu gõ dở cho phiên tới, fRev = điểm / ghi chú gõ dở của phiên vừa xong,
+          // tập trung: fRev = điểm / ghi chú gõ dở của phiên vừa xong,
           // fCheer = các câu mừng đang hiện, fFull = đang toàn màn hình, fCfg = đang mở cài đặt
-          fGoal:'', fRev:{rate:0, next:''}, fCheer:null, fPop:false, fFull:false, fCfg:false};
+          fRev:{rate:0, next:''}, fCheer:null, fPop:false, fFull:false, fCfg:false};
 let nf = null;                 // dữ liệu form tạo task
 let lastSave = null;           // thời điểm lưu gần nhất
 let storageOK = true;          // trình duyệt có cho lưu không
@@ -2173,7 +2173,7 @@ function wireHabits(){
    Đồng hồ không đếm nhịp mà tính từ mốc thời gian: run.acc là phần đã chạy trước lần dừng gần nhất, run.since là lúc chạy lại
    (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi. */
 const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw','toDoing'], pause:['pauseAsk'],
-  streak:['goal','miss','weekend'], reward:['wN','wWhat','mN','mWhat'], ask:['askGoal','askRate','askNext'],
+  streak:['goal','miss','weekend'], reward:['wN','wWhat','mN','mWhat'], ask:['askRate','askNext'],
   look:['look'], sound:['sound','vol','notify','tabTitle']};
 const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
 // giờ nghỉ nên rời màn hình: vận động nhẹ hồi sức tốt hơn lướt điện thoại, thứ kéo đầu sang việc khác
@@ -2260,7 +2260,7 @@ function fPaintTime(){
     if(!r.since) $$('[data-fpaused]').forEach(el => {
       const m = Math.floor((Date.now() - r.pAt) / 6e4), long = m >= c.pauseAsk;
       el.classList.toggle('long', long);
-      el.textContent = `${r.pWhy === 'ext' ? 'Bị gián đoạn' : 'Đang dừng'} ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — làm tiếp hay huỷ phiên?' : ''}`;
+      el.textContent = `Đang tạm dừng ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — làm tiếp hay huỷ phiên?' : ''}`;
     });
   }
   document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fClock(fLeft(r))} · ${FPHASE[r.phase]}` : FTITLE;
@@ -2304,9 +2304,7 @@ function fStart(phase, tid){
     if(c.toDoing && t.status === 'todo'){ t.status = 'doing'; if(t.pg === 0) t.pg = 25; moved = true; }
     ui.fCheer = null;
   }
-  f.run = {phase, tid:phase === 'work' ? tid : null, goal:phase === 'work' ? ui.fGoal.trim() : '',
-           dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, pWhy:null, paused:0, pause:0, ext:0, cap:0, sw:0};
-  if(phase === 'work') ui.fGoal = '';
+  f.run = {phase, tid:phase === 'work' ? tid : null, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0};
   fAudio();   // mở khoá âm thanh ngay trong cú bấm thì lúc hết giờ mới phát được
   save(); fStartTick();
   if(moved && ['board', 'life', 'dash'].includes(ui.view)) render(); else fPaint();
@@ -2315,8 +2313,8 @@ function fLog(r, end, ms){
   const e = {id:uid(), k:r.phase, a:r.a, b:end, plan:r.dur / 6e4, ms, done:ms >= r.dur};
   if(r.phase === 'work'){
     const t = fTask(r.tid);
-    Object.assign(e, {tid:r.tid, title:t ? t.title : '', goal:r.goal.trim(), rate:null, next:'',
-      pause:r.pause, ext:r.ext, cap:r.cap, sw:r.sw, paused:r.paused + (r.pAt ? Date.now() - r.pAt : 0)});
+    Object.assign(e, {tid:r.tid, title:t ? t.title : '', rate:null, next:'',
+      pause:r.pause, cap:r.cap, sw:r.sw, paused:r.paused + (r.pAt ? Date.now() - r.pAt : 0)});
   }
   S.focus.log.push(e);
   return e;
@@ -2337,15 +2335,14 @@ function fFinish(quiet){
   if(c.auto && !quiet && (r.phase === 'work' || q.length)) return fStart(f.next, q[0]);
   fStopTick(); save(); fPaint();
 }
-function fPause(why){
+function fPause(){
   const r = S.focus.run; if(!r || !r.since) return;
-  r.acc += Date.now() - r.since; r.since = null; r.pAt = Date.now(); r.pWhy = why;
-  r[why === 'ext' ? 'ext' : 'pause']++;
+  r.acc += Date.now() - r.since; r.since = null; r.pAt = Date.now(); r.pause++;
   save(); fPaint();
 }
 function fResume(){
   const r = S.focus.run; if(!r || r.since) return;
-  r.paused += Date.now() - r.pAt; r.since = Date.now(); r.pAt = null; r.pWhy = null;
+  r.paused += Date.now() - r.pAt; r.since = Date.now(); r.pAt = null;
   fAudio(); save(); fPaint();
 }
 function fCancel(){
@@ -2431,7 +2428,7 @@ function fCapture(title){
 
 /* --- khung đồng hồ: dùng chung cho sidebar (side), mục Tập trung (page) và toàn màn hình (full) --- */
 function fPanel(mode){
-  const f = S.focus, c = f.cfg, r = f.run, q = fQueue(), big = mode !== 'side';
+  const f = S.focus, c = f.cfg, r = f.run, q = fQueue(), big = mode !== 'side', full = mode === 'full';
   const phase = r ? r.phase : f.next, n = fCount()[today()] || 0;
   const dots = Array.from({length:Math.min(12, Math.max(c.goal, n))}, (_, i) => i < n ? '●' : '○').join('');
   let h = `<div class="fzph"><span class="d"></span>${FPHASE[phase]}
@@ -2448,31 +2445,39 @@ function fPanel(mode){
       <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu nghỉ</button><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
     const t = fTask(q[0]);
     if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task vào hàng đợi để bắt đầu' : 'Kéo card trên bảng thả vào đây'}</div>`;
-    const nx = fLastNext(t.id);
-    return h + `<div class="fztask">${fName(t)}</div>
-      ${nx ? `<div class="fznext">Lần trước dừng ở: ${esc(nx)}</div>` : ''}
-      ${c.askGoal ? `<input class="fzin" data-fin="goal" value="${esc(ui.fGoal)}" placeholder="${big ? 'Phiên này xong thì cái gì xong?' : 'Xong phiên thì cái gì xong?'}" autocomplete="off">` : ''}
-      <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>`;
+    return h + (full ? '' : fTaskHTML(t, false)) + '<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>';
   }
 
   h += `<div class="fzclock" data-fclock>${fClock(fLeft(r))}</div><div class="fzbar"><i data-fbar></i></div>`;
   if(r.phase !== 'work') return h + `<div class="fzrest">${fRest(r.phase)}</div>
     <div class="fzbtns"><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
-  const t = fTask(r.tid);
-  if(t && t.status !== 'done') h += `<div class="fztask">${fName(t)}</div>`;
-  else {
-    const nextId = q.find(id => id !== r.tid);
-    h += `<div class="fzempty">${t ? 'Task đã xong' : 'Chưa gắn task'} — chọn task tiếp trong hàng đợi
-      ${nextId ? `<button class="btn ghost" data-fpick="${nextId}">Làm: ${fName(fTask(nextId))}</button>` : ''}</div>`;
-  }
-  h += `<input class="fzin" data-fin="rgoal" value="${esc(r.goal)}" placeholder="${big ? 'Phiên này xong thì cái gì xong?' : 'Mục tiêu phiên'}" autocomplete="off">`;
+  if(!full) h += fTaskHTML(fTask(r.tid), true);
   h += r.since
-    ? `<div class="fzbtns"><button class="btn ghost" data-fpause="self" title="Tạm dừng">⏸${big ? ' Dừng' : ''}</button>
-        <button class="btn ghost" data-fpause="ext" title="Người khác cắt ngang: đồng hồ dừng và ghi lại lần này">⚡ Bị gián đoạn</button>
+    ? `<div class="fzbtns"><button class="btn ghost" data-fpause>⏸ Tạm dừng</button>
         <button class="fzic" data-fcancel title="Huỷ phiên">■</button></div>`
     : `<div class="fzpaused" data-fpaused></div>
        <div class="fzbtns"><button class="btn" data-fresume>▶ Làm tiếp</button><button class="btn ghost" data-fcancel>Huỷ phiên</button></div>`;
-  return h + `<input class="fzin cap" data-fcap placeholder="${big ? '+ Chợt nhớ việc khác? Ghi vào Để sau rồi Enter' : '+ Ghi để sau (Enter)'}" autocomplete="off">`;
+  return full ? h : h + fCapHTML(big);
+}
+// tên task và câu "lần trước dừng ở"; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
+function fTaskHTML(t, running){
+  if(running && (!t || t.status === 'done')){
+    const nextId = fQueue().find(id => !t || id !== t.id);
+    return `<div class="fzempty">${t ? 'Task đã xong' : 'Chưa gắn task'} — chọn task tiếp trong hàng đợi
+      ${nextId ? `<button class="btn ghost" data-fpick="${nextId}">Làm: ${fName(fTask(nextId))}</button>` : ''}</div>`;
+  }
+  const nx = fLastNext(t.id);
+  return `<div class="fztask">${fName(t)}</div>${nx ? `<div class="fznext">Lần trước dừng ở: ${esc(nx)}</div>` : ''}`;
+}
+const fCapHTML = big => `<input class="fzin cap" data-fcap placeholder="${big ? '+ Chợt nhớ việc khác? Ghi vào Để sau rồi Enter' : '+ Ghi để sau (Enter)'}" autocomplete="off">`;
+// toàn màn hình: task và ô ghi để sau nằm trong ngăn nhỏ bên trái, gập lại được — giữa màn hình chỉ còn đồng hồ
+function fLeftHTML(){
+  const r = S.focus.run, running = !!r && r.phase === 'work';
+  const t = fTask(running ? r.tid : fQueue()[0]);
+  if(!S.settings.fzLeft) return `<button class="fzltab" data-fleft title="Mở task và ô ghi để sau">▸ <span>${t ? fName(t) : 'Task'}</span></button>`;
+  return `<div class="fzlhd">Task<button class="fzic" data-fleft title="Thu gọn">◂</button></div>
+    ${t || running ? fTaskHTML(t, running) : '<div class="fznext">Hàng đợi trống</div>'}
+    ${fCapHTML(false)}`;
 }
 function fRevHTML(){
   const f = S.focus, c = f.cfg, e = f.log.find(x => x.id === f.rev);
@@ -2505,6 +2510,9 @@ function fFullPaint(){
   const b = $('#fzFullBody');
   b.className = 'fz full ' + fCls();
   b.innerHTML = fPanel('full');
+  const L = $('#fzFullLeft');
+  L.className = 'fzleft' + (S.settings.fzLeft ? ' on' : '');
+  L.innerHTML = fLeftHTML();
   fLook(el, S.focus.cfg.look[S.focus.run ? S.focus.run.phase : S.focus.next]);
 }
 function fFull(on){ ui.fFull = on; fFullPaint(); fPaintTime(); }
@@ -2583,11 +2591,11 @@ function fStatsHTML(){
       <div><b>${Math.round(add('ms') / 6e4)}</b><span>phút tập trung</span></div>
       <div><b>${new Set(list.map(e => e.tid)).size}</b><span>task đã làm</span></div>
       <div><b>${add('cap')}</b><span>lần ghi để sau</span></div>
-      <div><b>${add('ext')}</b><span>lần bị gián đoạn</span></div>
+      <div><b>${add('pause')}</b><span>lần tạm dừng</span></div>
       <div><b>${rated.length ? (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1) : '—'}</b><span>điểm tập trung</span></div></div>
     ${list.length ? `<div>${list.slice().reverse().map(e => `<div class="fzli${e.done ? '' : ' off'}">
         <span class="tm">${fHM(e.a)}</span>
-        <span class="nm">${e.title.trim() ? esc(e.title) : '<span class="ph">(chưa đặt tên)</span>'}${e.goal ? `<em>${esc(e.goal)}</em>` : ''}</span>
+        <span class="nm">${e.title.trim() ? esc(e.title) : '<span class="ph">(chưa đặt tên)</span>'}</span>
         <span class="meta">${e.done ? (e.rate ? `${e.rate}/5` : '✓') : `bỏ dở · ${Math.round(e.ms / 6e4)} phút`}</span></div>`).join('')}</div>`
       : '<div class="fzhint">Chưa có phiên nào hôm nay.</div>'}`;
 }
@@ -2619,14 +2627,14 @@ function fCfgHTML(){
       'Đổi khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.')}
     ${grp('queue', 'Hàng đợi', num('qmax', 'Số task tối đa', 1, 10, 'task') + chk('confirmSw', 'Đổi task giữa phiên phải xác nhận')
       + chk('toDoing', 'Bắt đầu phiên thì task sang Đang làm'))}
-    ${grp('pause', 'Gián đoạn', num('pauseAsk', 'Dừng quá bao lâu thì hỏi huỷ phiên', 1, 60, 'phút'))}
+    ${grp('pause', 'Tạm dừng', num('pauseAsk', 'Tạm dừng quá bao lâu thì hỏi huỷ phiên', 1, 60, 'phút'))}
     ${grp('streak', 'Mục tiêu & chuỗi', num('goal', 'Số phiên đạt mỗi ngày', 1, 20, 'phiên') + num('miss', 'Số ngày thường được lỡ', 0, 5, 'ngày')
       + chk('weekend', 'Cuối tuần có làm đủ thì cộng vào chuỗi'),
       'Cuối tuần không làm thì chuỗi không gãy. Phiên huỷ giữa chừng vẫn được ghi lại nhưng không tính là phiên đạt.')}
     ${grp('reward', 'Phần thưởng tự đặt', num('wN', 'Mốc tuần', 0, 100, 'phiên') + txt('wWhat', 'Thưởng tuần', 'Ví dụ: tối thứ Bảy xem phim')
       + num('mN', 'Mốc tháng', 0, 400, 'phiên') + txt('mWhat', 'Thưởng tháng', 'Ví dụ: mua cuốn sách đang muốn đọc'),
       'Đặt 0 để tắt mốc. Tuần tính từ thứ Hai; đầu tuần, đầu tháng tự làm mới.')}
-    ${grp('ask', 'Trước & sau phiên', chk('askGoal', 'Hỏi mục tiêu trước phiên') + chk('askRate', 'Chấm độ tập trung cuối phiên')
+    ${grp('ask', 'Sau phiên', chk('askRate', 'Chấm độ tập trung cuối phiên')
       + chk('askNext', 'Ghi "lần sau bắt đầu từ…"'))}
     ${grp('look', 'Giao diện toàn màn hình', Object.keys(FPHASE).map(fLookHTML).join(''))}
     ${grp('sound', 'Âm thanh & thông báo', chk('sound', 'Âm báo hết phiên')
@@ -2662,12 +2670,13 @@ function fPickImg(p){
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fstart],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
-    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm]');
+    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
   if('fskip' in d) return fSkip();
-  if('fpause' in d) return fPause(d.fpause);
+  if('fpause' in d) return fPause();
+  if('fleft' in d){ S.settings.fzLeft = !S.settings.fzLeft; save(); return fFullPaint(); }
   if('fresume' in d) return fResume();
   if('fcancel' in d) return fCancel();
   if('ffull' in d) return fFull(d.ffull === '1');
@@ -2694,9 +2703,7 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('input', e => {
   const el = e.target, fin = el.dataset && el.dataset.fin;
-  if(fin === 'goal') ui.fGoal = el.value;
-  else if(fin === 'rgoal' && S.focus.run) S.focus.run.goal = el.value;   // lưu khi rời ô
-  else if(fin === 'next') ui.fRev.next = el.value;
+  if(fin === 'next') ui.fRev.next = el.value;
   else if(el.dataset && el.dataset.flook){
     const [p, k] = el.dataset.flook.split('|'), lk = S.focus.cfg.look[p];
     lk[k] = +el.value;
@@ -2706,7 +2713,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if(!el.dataset) return;
-  if(el.dataset.fin === 'rgoal' || el.dataset.flook){ save(); fFullPaint(); }
+  if(el.dataset.flook){ save(); fFullPaint(); }
   else if(el.dataset.fcfg) fSetCfg(el);
   else if(el.id === 'fzPick' && el.value) fAdd(el.value);
 });
@@ -2714,9 +2721,7 @@ document.addEventListener('keydown', e => {
   const el = e.target;
   if(e.key !== 'Enter' || !el.dataset || e.isComposing) return;
   if('fcap' in el.dataset && el.value.trim()){ fCapture(el.value.trim()); el.value = ''; }
-  else if(el.dataset.fin === 'goal') fStart('work', fQueue()[0]);
   else if(el.dataset.fin === 'next') fReview(true);
-  else if(el.dataset.fin === 'rgoal') el.blur();
 });
 // sau F5 trình duyệt chặn âm thanh tới khi có cú bấm đầu tiên — bấm đâu cũng mở khoá lại
 document.addEventListener('pointerdown', () => { if(S.focus.run) fAudio(); });
