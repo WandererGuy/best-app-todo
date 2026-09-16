@@ -22,7 +22,7 @@ const HMARKS = {1:'bắt đầu là phần khó nhất, xong rồi!', 3:'nhịp 
 // look: nền toàn màn hình theo pha — màu c, ảnh img (mã trong kho ảnh), độ rõ ảnh op (%), lớp phủ dim (âm = sáng, dương = tối)
 const FPHASE = {work:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài'};
 const FCFG = {work:40, short:10, long:15, every:3, auto:false,
-  qmax:3, confirmSw:true, toDoing:true, pauseAsk:2,
+  qmax:3, confirmSw:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
   wN:10, wWhat:'', mN:40, mWhat:'',
   askRate:true, askNext:true,
@@ -2172,7 +2172,7 @@ function wireHabits(){
    got = mốc thưởng tuần / tháng đã báo, khỏi báo lại.
    Đồng hồ không đếm nhịp mà tính từ mốc thời gian: run.acc là phần đã chạy trước lần dừng gần nhất, run.since là lúc chạy lại
    (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi. */
-const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw','toDoing'], pause:['pauseAsk'],
+const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
   streak:['goal','miss','weekend'], reward:['wN','wWhat','mN','mWhat'], ask:['askRate','askNext'],
   look:['look'], sound:['sound','vol','notify','tabTitle']};
 const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
@@ -2196,10 +2196,10 @@ const fHM     = ms => new Date(ms).toTimeString().slice(0, 5);
 const fRest   = p => FREST[p][S.focus.cycle % FREST[p].length];
 const fWorks  = () => S.focus.log.filter(e => e.k === 'work');
 const fMon    = k => dShift(k, -((dowOf(k) + 6) % 7));   // thứ Hai của tuần chứa ngày k
-// hàng đợi chỉ giữ task còn trên bảng: xong, bị gác lại hay bị bỏ thì tự rời hàng
+// hàng đợi chỉ nhận task đang ở cột Đang làm: chuyển cột khác, xong hay bị bỏ thì tự rời hàng
 function fQueue(){
   const f = S.focus;
-  f.queue = f.queue.filter(id => { const t = fTask(id); return t && (t.status === 'todo' || t.status === 'doing'); });
+  f.queue = f.queue.filter(id => fTask(id)?.status === 'doing');
   return f.queue;
 }
 // câu "lần sau bắt đầu từ…" gần nhất của task — hiện lại lúc chuẩn bị làm tiếp task đó
@@ -2297,17 +2297,13 @@ function fNotify(phase){
 /* --- vòng đời phiên --- */
 function fStart(phase, tid){
   const f = S.focus, c = f.cfg, now = Date.now();
-  let moved = false;
   if(phase === 'work'){
-    const t = fTask(tid);
-    if(!t) return toast('Thêm một task vào hàng đợi trước đã');
-    if(c.toDoing && t.status === 'todo'){ t.status = 'doing'; if(t.pg === 0) t.pg = 25; moved = true; }
+    if(!fTask(tid)) return toast('Thêm một task vào hàng đợi trước đã');
     ui.fCheer = null;
   }
   f.run = {phase, tid:phase === 'work' ? tid : null, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0};
   fAudio();   // mở khoá âm thanh ngay trong cú bấm thì lúc hết giờ mới phát được
-  save(); fStartTick();
-  if(moved && ['board', 'life', 'dash'].includes(ui.view)) render(); else fPaint();
+  save(); fStartTick(); fPaint();
 }
 function fLog(r, end, ms){
   const e = {id:uid(), k:r.phase, a:r.a, b:end, plan:r.dur / 6e4, ms, done:ms >= r.dur};
@@ -2384,7 +2380,7 @@ function fCheer(){
 /* --- hàng đợi --- */
 function fAdd(tid){
   const f = S.focus, t = fTask(tid); if(!t) return;
-  if(t.status !== 'todo' && t.status !== 'doing') return toast('Chỉ đưa được task Cần làm hoặc Đang làm vào hàng đợi');
+  if(t.status !== 'doing') return toast('Chỉ task ở cột Đang làm mới vào được hàng đợi — kéo task sang Đang làm trước');
   const q = fQueue();
   if(q.includes(tid)) return toast('Task này đã ở trong hàng đợi');
   if(q.length >= f.cfg.qmax) return toast(`Hàng đợi đã đủ ${f.cfg.qmax} task — làm xong hoặc bỏ bớt một task trước`);
@@ -2394,8 +2390,7 @@ function fAdd(tid){
 // chọn task cho phiên: đưa lên đầu hàng. Đang giữa phiên thì là đổi task — một lần chuyển ngữ cảnh,
 // trừ khi task cũ đã xong (làm xong sớm thì chuyển sang việc tiếp là đúng)
 function fPick(tid){
-  const f = S.focus, r = f.run, t = fTask(tid); if(!t) return;
-  let moved = false;
+  const f = S.focus, r = f.run; if(!fTask(tid)) return;
   if(r && r.phase === 'work' && r.tid !== tid){
     const old = fTask(r.tid);
     if(old && old.status !== 'done'){
@@ -2403,11 +2398,9 @@ function fPick(tid){
       r.sw++;
     }
     r.tid = tid;
-    if(f.cfg.toDoing && t.status === 'todo'){ t.status = 'doing'; if(t.pg === 0) t.pg = 25; moved = true; }
   }
   f.queue = [tid, ...fQueue().filter(x => x !== tid)];
-  save();
-  if(moved && ['board', 'life', 'dash'].includes(ui.view)) render(); else fPaint();
+  save(); fPaint();
 }
 function fDone(tid){
   const t = fTask(tid); if(!t) return;
@@ -2444,7 +2437,7 @@ function fPanel(mode){
     if(phase !== 'work') return h + `<div class="fzrest">${fRest(phase)}</div>
       <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu nghỉ</button><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
     const t = fTask(q[0]);
-    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task vào hàng đợi để bắt đầu' : 'Kéo card trên bảng thả vào đây'}</div>`;
+    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task Đang làm vào hàng đợi để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>`;
     return h + (full ? '' : fTaskHTML(t, false)) + '<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>';
   }
 
@@ -2554,23 +2547,27 @@ function fPaintCfg(){
 function fQueueHTML(){
   const f = S.focus, c = f.cfg, q = fQueue(), r = f.run;
   const cur = r && r.phase === 'work' ? r.tid : q[0];
-  const pool = S.tasks.filter(t => (t.status === 'todo' || t.status === 'doing') && !q.includes(t.id));
+  const pool = S.tasks.filter(t => t.status === 'doing' && !q.includes(t.id));
+  const pill = t => `<span class="pill" style="background:${PRIOS[t.prio].c}22;color:${PRIOS[t.prio].c}">${PRIOS[t.prio].n}</span>`;
   return `<div class="fzh">Hàng đợi<span class="n">${q.length}/${c.qmax}</span></div>
     ${q.length ? `<div>${q.map(id => {
       const t = fTask(id), on = id === cur, nx = fLastNext(id);
       return `<div class="fzqi${on ? ' on' : ''}">
         <span class="sw" style="background:${AREAS[t.area].c}"></span>
-        <div class="fzqt"><button class="fzqn" data-fopen="${id}" title="Mở task">${fName(t)}</button>
+        <div class="fzqt"><button class="fzqn" data-fopen="${id}" title="Mở task">${fName(t)}</button> ${pill(t)}
           ${nx ? `<div class="fznext">Lần trước dừng ở: ${esc(nx)}</div>` : ''}</div>
         ${on ? `<span class="meta">${r && r.phase === 'work' ? 'đang làm' : 'phiên tới'}</span>`
              : `<button class="btn ghost" data-fpick="${id}">Chọn</button>`}
         <button class="btn ghost" data-fdone="${id}" title="Đánh dấu task đã xong">✓ Xong</button>
         <button class="fzic" data-fdrop="${id}" title="Bỏ khỏi hàng đợi">✕</button></div>`;
     }).join('')}</div>`
-      : '<div class="empty">Hàng đợi trống. Kéo card trên bảng thả vào khối Tập trung ở sidebar, hoặc chọn task ở dưới.</div>'}
+      : '<div class="empty">Hàng đợi trống. Kéo card ở cột Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn task ở dưới.</div>'}
     ${q.length < c.qmax
-      ? `<select class="inp" id="fzPick"><option value="">+ Thêm task vào hàng đợi…</option>
-          ${pool.map(t => `<option value="${t.id}">${esc(t.title.trim() || '(chưa đặt tên)')}</option>`).join('')}</select>`
+      // chia nhóm theo ưu tiên, cao lên đầu — chọn được việc quan trọng nhất trước
+      ? pool.length ? `<select class="inp" id="fzPick"><option value="">+ Thêm task Đang làm vào hàng đợi…</option>
+          ${PRIO_ORDER.map(p => { const g = pool.filter(t => t.prio === p); return g.length ? `<optgroup label="Ưu tiên ${PRIOS[p].n}">
+            ${g.map(t => `<option value="${t.id}">${esc(t.title.trim() || '(chưa đặt tên)')}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`
+        : '<div class="fzhint">Không còn task nào ở cột Đang làm để thêm. Kéo task sang Đang làm trên bảng trước.</div>'
       : `<div class="fzhint">Hàng đợi đã đủ ${c.qmax} task. Ít việc đang mở thì đầu ít chỗ để nhảy sang.</div>`}`;
 }
 function fStatsHTML(){
@@ -2631,8 +2628,8 @@ function fCfgHTML(){
     ${grp('time', 'Thời lượng', num('work', 'Phiên tập trung', 1, 180, 'phút') + num('short', 'Nghỉ ngắn', 1, 60, 'phút')
       + num('long', 'Nghỉ dài', 1, 90, 'phút') + num('every', 'Nghỉ dài sau mỗi', 1, 12, 'phiên') + chk('auto', 'Tự chạy phiên hoặc giờ nghỉ tiếp theo'),
       'Đổi khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.')}
-    ${grp('queue', 'Hàng đợi', num('qmax', 'Số task tối đa', 1, 10, 'task') + chk('confirmSw', 'Đổi task giữa phiên phải xác nhận')
-      + chk('toDoing', 'Bắt đầu phiên thì task sang Đang làm'))}
+    ${grp('queue', 'Hàng đợi', num('qmax', 'Số task tối đa', 1, 10, 'task') + chk('confirmSw', 'Đổi task giữa phiên phải xác nhận'),
+      'Chỉ task ở cột Đang làm mới vào được hàng đợi.')}
     ${grp('pause', 'Tạm dừng', num('pauseAsk', 'Tạm dừng quá bao lâu thì hỏi huỷ phiên', 1, 60, 'phút'))}
     ${grp('streak', 'Mục tiêu & chuỗi', num('goal', 'Số phiên đạt mỗi ngày', 1, 20, 'phiên') + num('miss', 'Số ngày thường được lỡ', 0, 5, 'ngày')
       + chk('weekend', 'Cuối tuần có làm đủ thì cộng vào chuỗi'),

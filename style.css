@@ -705,6 +705,7 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fzqi .meta{white-space:nowrap;color:var(--acc2)}
 .fzqt{flex:1;min-width:0}
 .fzqn{text-align:left;font-weight:560;word-break:break-word}
+.fzqt .pill{vertical-align:1px;margin-left:2px}
 .fzqn:hover{color:var(--acc2)}
 .fzbig{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .fzbig div,.fzsum div{display:flex;flex-direction:column;gap:2px}
