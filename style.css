@@ -77,6 +77,10 @@ button{background:none;border:none;cursor:pointer}
 .colhd .n{color:var(--tx3);font-weight:500;font-size:12px}
 .colhd .add{margin-left:auto;color:var(--tx3);font-size:17px;line-height:1;padding:0 4px}
 .colhd .add:hover{color:var(--tx)}
+.colhd .dtoday{margin-left:auto;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:540;color:var(--tx3);border:1px solid var(--line)}
+.colhd .dtoday:hover{color:var(--tx)}
+.colhd .dtoday.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.colhd .dtoday + .add{margin-left:0}
 .cards{display:flex;flex-direction:column;gap:9px;flex:1}
 .card{
   background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--other);

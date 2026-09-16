@@ -46,7 +46,7 @@ const TAG_PAL = [
 let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{jH:560}, notis:[], focus:fNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
 let ui = {view:'board', bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
-          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,
+          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, doneToday:false, nOpen:null,
           hEdit:null, hPop:null,
           // tập trung: fRev = điểm / ghi chú gõ dở của phiên vừa xong,
           // fCheer = các câu mừng đang hiện, fFull = đang toàn màn hình, fCfg = đang mở cài đặt
@@ -1023,9 +1023,10 @@ function renderBoard(){
     </div>`
     + '<div id="board">' + Object.entries(COLS).map(([k,c]) => {
     let items = byPrio(list.filter(t => t.status === k));
-    // cột Xong: mới xong lên đầu, mặc định chỉ hiện DONE_MAX task gần nhất
+    // cột Xong: mới xong lên đầu, mặc định chỉ hiện DONE_MAX task gần nhất; bật "Hôm nay" thì chỉ giữ task xong hôm nay
     let more = 0;
     if(k === 'done'){
+      if(ui.doneToday) items = items.filter(t => t.done === today());
       items = [...items].sort((a, b) => (b.done || '').localeCompare(a.done || ''));
       more = items.length - DONE_MAX;
     }
@@ -1040,12 +1041,14 @@ function renderBoard(){
     return `<section class="col" data-col="${k}">
       <div class="colhd"><span class="sw" style="background:${c.c}"></span>${c.n}
         <span class="n">${items.length}</span>
+        ${k === 'done' ? `<button class="dtoday${ui.doneToday ? ' on' : ''}" data-dtoday title="Chỉ hiện task xong hôm nay">Hôm nay</button>` : ''}
         <button class="add" data-add="${k}" title="Thêm vào cột này">+</button></div>
       ${body}
       ${more > 0 ? `<button class="donemore" data-more>${ui.doneAll ? 'Thu gọn' : `Xem thêm ${more} task`}</button>` : ''}</section>`;
   }).join('') + '</div>';
 
   $$('[data-sort]').forEach(b => b.onclick = () => { S.settings.sort = b.dataset.sort; save(); renderBoard(); });
+  $$('[data-dtoday]').forEach(b => b.onclick = () => { ui.doneToday = !ui.doneToday; renderBoard(); });
   $$('[data-more]').forEach(b => b.onclick = () => { ui.doneAll = !ui.doneAll; renderBoard(); });
   $$('[data-zen]').forEach(b => b.onclick = () => { S.settings.zen = !S.settings.zen; save(); renderBoard(); });
   $$('[data-bfbtn]').forEach(b => b.onclick = () => { ui.bfOpen = !ui.bfOpen; renderBoard(); });
