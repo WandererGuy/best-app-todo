@@ -10,6 +10,14 @@ const DONE_MAX = 10;   // số task hiện sẵn ở cột Xong
 const SORTS  = {manual:'Thủ công', prio:'Theo ưu tiên', group:'Chia nhóm ưu tiên'};
 const PRIO_ORDER = ['high', 'med', 'low'];
 const DOW   = ['CN','T2','T3','T4','T5','T6','T7'];
+// thói quen: good = việc muốn giữ, bad = việc muốn bỏ (tick = hôm nay đã dùng hành vi thay thế)
+const HKINDS = {good:{n:'Nên làm', c:'#22c55e'}, bad:{n:'Nên bỏ', c:'#f43f5e'}};
+const HWEEKS = 12;   // số tuần hiện trên lưới theo dõi thói quen
+// câu mừng theo mốc chuỗi; 66 là số ngày trung bình để một hành vi thành tự động (Lally, 2010)
+const HMARKS = {1:'bắt đầu là phần khó nhất, xong rồi!', 3:'nhịp đang hình thành.',
+  7:'một tuần liền!', 14:'hai tuần liền, đã thành nếp.', 21:'21 buổi liền!',
+  30:'30 buổi liền, rất đáng nể.', 66:'mốc trung bình để một hành vi thành tự động!',
+  100:'100 buổi liền 🎉'};
 const KEY   = 'dieukhien.v1';
 // khung giờ: bước 30 phút; nhắc trước tính bằng phút, 0 = không nhắc
 const TIMES   = Array.from({length:48}, (_, i) => `${String(i >> 1).padStart(2,'0')}:${i % 2 ? '30' : '00'}`);
@@ -24,10 +32,11 @@ const TAG_PAL = [
 ];
 
 /* ============ trạng thái ============ */
-let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], settings:{jH:560}, notis:[]};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ
+let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{jH:560}, notis:[]};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
 let ui = {view:'board', bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
-          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null};
+          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,
+          hEdit:null, hPop:null};
 let nf = null;                 // dữ liệu form tạo task
 let lastSave = null;           // thời điểm lưu gần nhất
 let storageOK = true;          // trình duyệt có cho lưu không
@@ -45,7 +54,7 @@ function load(){
     if(raw){
       const d = JSON.parse(raw);
       S.tasks = d.tasks || []; S.trash = d.trash || []; S.journal = d.journal || {};
-      S.notes = d.notes || []; S.ntrash = d.ntrash || [];
+      S.notes = d.notes || []; S.ntrash = d.ntrash || []; S.habits = d.habits || [];
       S.settings = Object.assign({jH:560}, d.settings || {});
       S.tags = d.tags || {}; syncTags();
       S.notis = d.notis || [];
@@ -281,6 +290,15 @@ function seed(){
      tags:['sức khoẻ'], due:'', note:'', subs:[], cr:today(), done:null},
     {id:uid(), title:'Dọn hộp thư đến về 0', area:'other', prio:'low', status:'done', pg:100,
      tags:[], due:'', note:'', subs:[], cr:today(), done:today()}
+  ];
+  S.habits = [
+    {id:uid(), name:'Đọc 20 trang', kind:'good', days:[1,2,3,4,5], cue:'Sau khi ăn tối, ở bàn làm việc',
+     swap:'', color:'#38bdf8', log:{}, cr:today()},
+    {id:uid(), name:'Đi bộ 20 phút', kind:'good', days:[1,3,5], cue:'Ngay sau giờ tan làm',
+     swap:'', color:'#4ade80', log:{}, cr:today()},
+    {id:uid(), name:'Lướt điện thoại trên giường', kind:'bad', days:[0,1,2,3,4,5,6],
+     cue:'Lúc chuẩn bị đi ngủ', swap:'Cắm sạc điện thoại ngoài phòng, đọc vài trang sách giấy',
+     color:'#fb7185', log:{}, cr:today()}
   ];
   S.journal[today()] = [{id:uid(), name:'Ghi chép', html:'<h1>Hôm nay</h1><p>Viết bất cứ điều gì trong đầu ở đây.</p><h2>Việc đã làm</h2><ul class="td"><li data-d="1">Mở app lần đầu</li><li data-d="0">Thêm task thật của mình</li></ul><h2>Suy nghĩ</h2><blockquote>Trang này của riêng ngày hôm nay. Đổi ngày ở thanh trên. Bấm + để thêm trang khác trong cùng ngày.</blockquote>'}];
   syncTags();
@@ -832,6 +850,8 @@ function render(){
   $('#ctL').textContent = onBoard.filter(t => t.area === 'life').length;
   $('#ctK').textContent = S.tasks.filter(t => t.status === 'backlog').length;
   $('#ctT').textContent = S.trash.length + S.ntrash.filter(n => n.trashed).length;
+  $('#ctH').textContent = hDue().filter(h => !hDone(h, today())).length;
+  if(ui.view !== 'habits' && hd){ hd = null; ui.hEdit = null; }
 
   const tags = tagNames();
   $('#tagFil').innerHTML = tags.length
@@ -841,9 +861,9 @@ function render(){
   renderSideCal();
 
   killEds(); closePal();
-  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
+  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', habits:'Thói quen', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
   $('#vTitle').textContent = titles[ui.view];
-  ({board:renderBoard, life:renderBoard, backlog:renderBacklog, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
+  ({board:renderBoard, life:renderBoard, backlog:renderBacklog, habits:renderHabits, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. ' +
     'Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.</div>');
@@ -870,7 +890,7 @@ function renderBoard(){
   const box = (items, status, prio, emptyTxt) => `<div class="cards" data-cards="${status}"${prio ? ` data-prio="${prio}"` : ''}>
         ${items.length ? items.map(card).join('') : `<div class="empty">${emptyTxt}</div>`}</div>`;
 
-  $('#view').innerHTML = `<div class="tb">
+  $('#view').innerHTML = habitStrip() + `<div class="tb">
       <span class="hint">${hidden ? `Đang ẩn ${hidden} task ngoài khoảng này` : 'Đang hiện toàn bộ task khớp bộ lọc'}</span>
       <div class="bfw">
         <div class="scope"><button class="${nFil ? 'on' : ''}" data-bfbtn>Lọc${nFil ? ` · ${nFil}` : ''}</button></div>
@@ -1494,6 +1514,9 @@ function renderDash(){
   for(let i = 0; ; i++){ const d = new Date(n); d.setDate(n.getDate() - i);
     if(jDays.includes(iso(d))) streak++; else if(i > 0 || !jDays.includes(iso(n))) break; }
 
+  const hDueL = hDue(), hOkN = hDueL.filter(h => hDone(h, today())).length;
+  const hBest = S.habits.reduce((a, h) => Math.max(a, hStreak(h)), 0);
+
   const stat = (k,v,d,c) => `<div class="stat"><div class="k">${k}</div><div class="v"${c?` style="color:${c}"`:''}>${v}</div><div class="d">${d}</div></div>`;
 
   const seg = [['todo',by('todo')],['doing',by('doing')],['done',done]];
@@ -1520,6 +1543,9 @@ function renderDash(){
       ${stat('Tỷ lệ hoàn thành', rate + '%', `${done}/${total} task`)}
       ${stat('Tiến độ trung bình', avgPg + '%', 'trên toàn bộ task')}
       ${stat('Chuỗi viết nhật ký', streak, streak ? `${streak} ngày liên tiếp` : 'hôm nay chưa viết', streak ? '#818cf8' : null)}
+      ${S.habits.length ? stat('Thói quen hôm nay', `${hOkN}/${hDueL.length}`,
+        hBest ? `chuỗi dài nhất ${hBest} buổi` : 'chưa có chuỗi nào',
+        hDueL.length && hOkN === hDueL.length ? '#22c55e' : null) : ''}
     </div>
     <div class="grid panes">
       <div class="pane"><h3>Phân bố trạng thái</h3><div class="donut">
@@ -1713,6 +1739,230 @@ function renderBacklog(){
   $$('[data-bk]').forEach(r => r.onclick = () => openTask(r.dataset.bk));
 }
 
+/* ============ thói quen ============ */
+/* Thói quen đứng riêng ở S.habits: không lên bảng, lịch, nhắc việc và không tính vào thống kê task —
+   task là việc làm một lần rồi xong, thói quen là chuỗi không có điểm kết thúc.
+   Mỗi thói quen chỉ ghi lại những ngày đã làm (log). Ngày nằm trong lịch mà không có trong log
+   nghĩa là bỏ lỡ, nên không phải đụng vào dữ liệu những hôm không làm gì. */
+let hd = null;        // bản nháp thói quen đang thêm / sửa
+let hFocus = false;   // vừa mở form thì đưa con trỏ vào ô tên
+
+const dShift = (k, n) => { const d = new Date(k + 'T00:00:00'); d.setDate(d.getDate() + n); return iso(d); };
+const dowOf  = k => new Date(k + 'T00:00:00').getDay();
+const hOn    = (h, k) => h.days.includes(dowOf(k));   // ngày k có nằm trong lịch của thói quen không
+const hDone  = (h, k) => !!h.log[k];
+const hDue   = () => S.habits.filter(h => hOn(h, today()));
+
+// chuỗi: đếm ngược các buổi theo lịch đã làm liên tiếp.
+// Hôm nay chưa tick thì chuỗi vẫn còn nguyên, vì ngày hôm nay chưa hết.
+function hStreak(h){
+  let n = 0, k = today();
+  for(let i = 0; i < 400; i++, k = dShift(k, -1)){
+    if(!hOn(h, k)) continue;
+    if(hDone(h, k)) n++;
+    else if(k !== today()) break;
+  }
+  return n;
+}
+// số buổi theo lịch gần nhất đã bỏ liên tiếp, không tính hôm nay — nền của luật "không bỏ hai lần"
+function hMiss(h){
+  let n = 0, k = dShift(today(), -1);
+  for(let i = 0; i < 120; i++, k = dShift(k, -1)){
+    if(k < h.cr) break;
+    if(!hOn(h, k)) continue;
+    if(hDone(h, k)) break;
+    n++;
+  }
+  return n;
+}
+// tỉ lệ làm được trên các buổi theo lịch trong khoảng lưới, bỏ qua ngày trước khi tạo thói quen
+function hRate(h){
+  let due = 0, ok = 0, k = today();
+  for(let i = 0; i < HWEEKS * 7; i++, k = dShift(k, -1)){
+    if(k < h.cr || !hOn(h, k)) continue;
+    due++; if(hDone(h, k)) ok++;
+  }
+  return due ? Math.round(ok / due * 100) : 0;
+}
+// mừng ngay lúc tick: cảm xúc tích cực tức thì mới là thứ gắn hành vi thành thói quen,
+// không phải số lần lặp — nên lần tick nào cũng có phản hồi.
+function hCheer(h){
+  const n = hStreak(h);
+  toast(HMARKS[n] ? `🔥 ${n} buổi · ${HMARKS[n]}` : `✓ ${h.name} · chuỗi ${n} buổi`);
+}
+function hToggle(id, k){
+  const h = S.habits.find(x => x.id === id);
+  if(!h || k > today()) return;               // ngày chưa tới thì không tick trước được
+  const on = !hDone(h, k);
+  if(on) h.log[k] = 1; else delete h.log[k];
+  save();
+  ui.hPop = on ? h.id : null; render(); ui.hPop = null;
+  if(on) hCheer(h);
+}
+
+/* dải thói quen hôm nay ở đầu bảng — đặt ngay chỗ mình mở đầu tiên mỗi ngày thì mới thật sự tick */
+function habitStrip(){
+  const list = hDue(), k = today();
+  if(!list.length) return '';
+  const done = list.filter(h => hDone(h, k)).length;
+  const dec = list.filter(h => !hDone(h, k) && hMiss(h) >= 1).length;
+  const chips = list.map(h => {
+    const on = hDone(h, k), n = hStreak(h), m = hMiss(h);
+    const tip = [h.kind === 'bad' && h.swap ? `Thay bằng: ${h.swap}` : h.cue,
+                 !on && m === 1 ? 'Đã bỏ 1 buổi — đừng bỏ buổi thứ hai' : '',
+                 !on && m >= 2 ? `Đã bỏ ${m} buổi liên tiếp` : ''].filter(Boolean).join(' · ');
+    return `<button class="hchip${on ? ' on' : ''}${!on && m ? ' miss' : ''}${ui.hPop === h.id ? ' pop' : ''}"
+      data-htick="${h.id}"${on ? ` style="background:${h.color}1c;border-color:${h.color}55;color:${h.color}"` : ''}
+      title="${esc(tip || h.name)}"><span class="bx"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''}>${on ? '✓' : ''}</span>${esc(h.name)}${n ? `<span class="st">🔥${n}</span>` : ''}</button>`;
+  }).join('');
+  return `<div class="hstrip">
+    <button class="hshd" data-hgo title="Mở mục Thói quen"><span class="d">Thói quen hôm nay</span><b>${done}/${list.length}</b></button>
+    ${chips}
+    ${done === list.length ? '<span class="hsnote ok">Xong cả rồi</span>'
+      : dec ? `<span class="hsnote warn">${dec} việc đang ở buổi quyết định</span>` : ''}</div>`;
+}
+
+/* lưới theo dõi: cột là tuần, hàng là thứ — nhìn dọc thấy ngay mình hay đứt vào thứ mấy */
+function hGrid(h){
+  const k0 = today(), end = dShift(k0, 6 - dowOf(k0)), n = HWEEKS * 7;
+  let cells = '';
+  for(let i = 0; i < n; i++){
+    const k = dShift(end, -(n - 1 - i));
+    // ngày đã tick luôn hiện, kể cả khi nằm ngoài lịch — để đổi lịch không xoá mất lịch sử,
+    // và để ghi được buổi làm thêm vào hôm khác. Buổi làm thêm không tính vào chuỗi và tỉ lệ.
+    const cls = k > k0 ? 'fut'
+      : hDone(h, k) ? (hOn(h, k) && k >= h.cr ? 'on' : 'extra')
+      : (k < h.cr || !hOn(h, k)) ? 'off' : 'miss';
+    const note = {on:' · đã làm', extra:' · làm thêm ngoài lịch', miss:' · bỏ lỡ', off:' · ngoài lịch'}[cls] || '';
+    cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}"></i>`;
+  }
+  return `<div class="hgwrap">
+    <div class="hglbl">${DOW.map((d, i) => `<span>${i % 2 ? d : ''}</span>`).join('')}</div>
+    <div class="hgrid">${cells}</div>
+    <div class="hgleg"><i class="on"></i>đã làm<i class="extra"></i>làm thêm<i class="miss"></i>bỏ lỡ<i class="off"></i>ngoài lịch
+      <span style="margin-left:auto">${HWEEKS} tuần gần nhất</span></div>
+  </div>`;
+}
+
+function hCard(h){
+  const k = today(), on = hDone(h, k), due = hOn(h, k), kind = HKINDS[h.kind];
+  const n = hStreak(h), m = hMiss(h);
+  // luật "không bỏ hai lần": bỏ một buổi gần như không ảnh hưởng đến quá trình thành tự động,
+  // bỏ liên tiếp mới là lúc thói quen chết — nên app chỉ lên tiếng đúng lúc đó.
+  const nudge = on || !m ? ''
+    : m >= 2 ? `<div class="hnudge cold">Đã bỏ <b>${m} buổi liên tiếp</b>. Bỏ một buổi thì gần như không mất gì — bỏ liên tiếp mới làm thói quen chết. Hôm nay làm bản dễ nhất của nó cũng được tính.</div>`
+    : `<div class="hnudge warn">Bỏ lỡ buổi gần nhất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — làm được thì coi như nhịp chưa đứt.</div>`;
+  return `<div class="hcard" style="--hc:${h.color}">
+    <div class="hhd">
+      ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
+             : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
+      <span class="hnm">${esc(h.name)}</span>
+      <span class="pill" style="background:${kind.c}22;color:${kind.c}">${kind.n}</span>
+      <span class="hstat" title="Số buổi liên tiếp">🔥 ${n}</span>
+      <span class="hstat" title="Tỉ lệ làm được trong ${HWEEKS} tuần qua">${hRate(h)}%</span>
+      <button class="btn ghost hsm" data-hedit="${h.id}">Sửa</button>
+    </div>
+    ${h.cue ? `<div class="hmeta"><span class="l">Khi nào</span>${esc(h.cue)}</div>` : ''}
+    ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">Thay bằng</span>${esc(h.swap)}</div>` : ''}
+    <div class="hdays">${DOW.map((d, i) => `<span class="${h.days.includes(i) ? 'on' : ''}">${d}</span>`).join('')}</div>
+    ${nudge}
+    ${hGrid(h)}</div>`;
+}
+
+function hForm(){
+  const d = hd;
+  return `<div class="hcard edit" style="--hc:${d.color}">
+    <div class="hhd">
+      <button class="hsw" data-hpal style="background:${d.color}" title="Đổi màu"></button>
+      <input class="fttl" id="hName" value="${esc(d.name)}" autocomplete="off"
+        placeholder="${d.kind === 'bad' ? 'Thói quen muốn bỏ, ví dụ: lướt điện thoại trên giường' : 'Thói quen muốn giữ, ví dụ: đọc 20 trang'}">
+    </div>
+    <div class="fld"><label>Loại</label><div class="seg">${Object.entries(HKINDS).map(([k, v]) =>
+      `<button class="${d.kind === k ? 'on' : ''}" style="${d.kind === k ? `background:${v.c};border-color:${v.c}` : ''}" data-hkind="${k}">${v.n}</button>`).join('')}</div></div>
+    <div class="fld"><label>Những ngày nào trong tuần</label>
+      <div class="hpick">${DOW.map((n, i) => `<button class="${d.days.includes(i) ? 'on' : ''}" data-hdow="${i}">${n}</button>`).join('')}</div>
+      <div class="hint" style="margin:0">Cùng thứ, cùng giờ, cùng chỗ thì não sớm tự chạy mà không cần nhớ.
+        <button class="hpre" data-hpre="all">Mỗi ngày</button><button class="hpre" data-hpre="wd">T2–T6</button></div></div>
+    <div class="fld"><label>Ý định thực hiện</label>
+      <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="Sau khi ăn sáng, ở bàn làm việc" autocomplete="off">
+      <div class="hint" style="margin:0">Ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
+    ${d.kind === 'bad' ? `<div class="fld"><label>Thay bằng hành vi nào</label>
+      <input class="inp" id="hSwap" value="${esc(d.swap)}" placeholder="Cắm sạc điện thoại ngoài phòng, đọc sách giấy" autocomplete="off">
+      <div class="hint" style="margin:0">Cơn thèm vẫn sẽ đến, thứ đổi được là phản ứng. Mỗi ngày dùng được hành vi thay thế thì tick.</div></div>` : ''}
+    <div class="hact">
+      <button class="btn" data-hsave>${d.id ? 'Lưu' : 'Thêm thói quen'}</button>
+      <button class="btn ghost" data-hcancel>Huỷ</button>
+      ${d.id ? `<button class="danger" data-hdel="${d.id}" style="margin-left:auto">Xoá thói quen</button>` : ''}
+    </div></div>`;
+}
+
+function hOpen(h){
+  hd = h ? {...h, days:[...h.days]}
+         : {id:null, name:'', kind:'good', days:[1,2,3,4,5], cue:'', swap:'', color:'#818cf8', log:{}, cr:today()};
+  ui.hEdit = h ? h.id : 'new'; hFocus = true;
+  renderHabits();
+}
+// giữ lại chữ đang gõ trước khi vẽ lại form (bấm chọn thứ, đổi loại… đều vẽ lại)
+function hGrab(){
+  if(!hd) return;
+  hd.name = $('#hName')?.value ?? hd.name;
+  hd.cue  = $('#hCue')?.value  ?? hd.cue;
+  hd.swap = $('#hSwap')?.value ?? hd.swap;
+}
+function hSave(){
+  hGrab();
+  if(!hd.name.trim()) return toast('Đặt tên cho thói quen đã');
+  if(!hd.days.length) return toast('Chọn ít nhất một ngày trong tuần');
+  hd.name = hd.name.trim(); hd.cue = hd.cue.trim(); hd.swap = hd.swap.trim();
+  if(hd.id) Object.assign(S.habits.find(x => x.id === hd.id), hd);
+  else { hd.id = uid(); S.habits.push(hd); }
+  const name = hd.name;
+  hd = null; ui.hEdit = null; save(); render(); toast(`Đã lưu: ${name}`);
+}
+function hDel(id){
+  const h = S.habits.find(x => x.id === id); if(!h) return;
+  const n = Object.keys(h.log).length;
+  if(!confirm(`Xoá thói quen "${h.name}"? ${n} ngày đã đánh dấu sẽ mất và không lấy lại được.`)) return;
+  S.habits = S.habits.filter(x => x.id !== id);
+  hd = null; ui.hEdit = null; save(); render(); toast('Đã xoá thói quen');
+}
+
+function renderHabits(){
+  const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
+  const best = S.habits.reduce((a, h) => Math.max(a, hStreak(h)), 0);
+  $('#vSub').textContent = S.habits.length
+    ? `${S.habits.length} thói quen · hôm nay ${done}/${due.length} · chuỗi dài nhất ${best} buổi`
+    : 'Chưa có thói quen nào';
+  $('#view').innerHTML = `<div class="tb">
+      <span class="hint" style="margin:0">Bấm ô trong lưới để đánh dấu hoặc bỏ đánh dấu một ngày</span>
+      <button class="btn" data-hnew style="margin-left:auto"${ui.hEdit ? ' hidden' : ''}>+ Thói quen mới</button></div>
+    <div class="hlist">
+      ${ui.hEdit === 'new' ? hForm() : ''}
+      ${S.habits.map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
+      ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động ăn đứt việc cố gồng ý chí.</div>' : ''}
+    </div>`;
+  wireHabits();
+}
+function wireHabits(){
+  $$('[data-hnew]').forEach(b => b.onclick = () => hOpen(null));
+  $$('[data-hedit]').forEach(b => b.onclick = () => hOpen(S.habits.find(x => x.id === b.dataset.hedit)));
+  if(!hd) return;
+  $$('[data-hkind]').forEach(b => b.onclick = () => { hGrab(); hd.kind = b.dataset.hkind; renderHabits(); });
+  $$('[data-hdow]').forEach(b => b.onclick = () => {
+    hGrab(); const i = +b.dataset.hdow;
+    hd.days = hd.days.includes(i) ? hd.days.filter(x => x !== i) : [...hd.days, i].sort((a, b) => a - b);
+    renderHabits();
+  });
+  $$('[data-hpre]').forEach(b => b.onclick = () => {
+    hGrab(); hd.days = b.dataset.hpre === 'all' ? [0,1,2,3,4,5,6] : [1,2,3,4,5]; renderHabits();
+  });
+  $$('[data-hpal]').forEach(b => b.onclick = () => { hGrab(); openPal(b, hd.color, c => { hd.color = c; renderHabits(); }); });
+  $$('[data-hsave]').forEach(b => b.onclick = hSave);
+  $$('[data-hcancel]').forEach(b => b.onclick = () => { hd = null; ui.hEdit = null; renderHabits(); });
+  $$('[data-hdel]').forEach(b => b.onclick = () => hDel(b.dataset.hdel));
+  if(hFocus){ $('#hName')?.focus(); hFocus = false; }
+}
+
 /* ============ thùng rác ============ */
 // task bị bỏ nằm riêng trong S.trash nên bảng, lịch, thống kê, nhắc việc tự không thấy
 function trashTask(id){
@@ -1798,7 +2048,8 @@ function importJSON(file){
       if(!confirm(`Nạp ${d.tasks.length} task và ghi đè toàn bộ dữ liệu hiện tại?`)) return;
       for(const [id, url] of Object.entries(d.images || {})) await imgPut(id, await (await fetch(url)).blob());
       S = {tasks: d.tasks, trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
-           notes: d.notes || [], ntrash: d.ntrash || [], settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
+           notes: d.notes || [], ntrash: d.ntrash || [], habits: d.habits || [],
+           settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
       syncTags();
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
       Object.keys(S.journal).forEach(k => {
@@ -1827,6 +2078,12 @@ document.addEventListener('click', e => {
   const sc = e.target.closest('[data-scope]');
   if(sc){ ui.scope = S.settings.scope = sc.dataset.scope; save(); return render(); }
 
+  const ht = e.target.closest('[data-htick]');
+  if(ht) return hToggle(ht.dataset.htick, ht.dataset.hday || today());
+
+  const hg = e.target.closest('[data-hgo]');
+  if(hg){ ui.view = 'habits'; return render(); }
+
   const c = e.target.closest('.card');
   if(c) return openTask(c.dataset.id);
 });
@@ -1839,7 +2096,7 @@ document.addEventListener('click', e => {
 // đóng bảng màu khi bấm ra ngoài
 document.addEventListener('click', e => {
   if(!$('#palEl') || !e.target.isConnected) return;
-  if(!e.target.closest('.pal') && !e.target.closest('[data-pal]')) closePal();
+  if(!e.target.closest('.pal') && !e.target.closest('[data-pal],[data-hpal]')) closePal();
 });
 document.addEventListener('scroll', e => {
   const t = e.target;

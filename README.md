@@ -20,6 +20,12 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Để sau** — chỗ cho việc chưa cam kết làm, dùng chung cho mọi mảng. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. Gõ vào ô trên cùng rồi Enter để ghi nhanh; mỗi dòng hiện tuổi tính từ ngày tạo và nút **→ Cần làm** để đưa lên cuối cột Cần làm. Chiều ngược lại: kéo card trên bảng thả vào mục **Để sau** ở sidebar, hoặc chọn trạng thái **Để sau** trong panel task / form tạo task.
 
+**Thói quen** — việc lặp lại vào những thứ cố định trong tuần, theo dõi riêng chứ không nằm trên bảng: task là việc làm một lần rồi xong, thói quen là chuỗi không có điểm kết thúc, và nếu để chung thì bảng sẽ ngập còn Tổng quan sẽ bị nhiễu. Mỗi thói quen có tên, màu, loại (**Nên làm** / **Nên bỏ**), các thứ trong tuần phải làm, và một câu **ý định thực hiện** dạng "sau việc gì, ở đâu" — thứ có tác dụng mạnh nhất trong các nghiên cứu về hình thành thói quen. Thói quen muốn bỏ thì khai báo thêm **hành vi thay thế**: cơn thèm vẫn đến, cái đổi được là phản ứng, nên bạn tick những ngày dùng được hành vi thay thế.
+
+Mỗi thẻ có lưới 12 tuần kiểu biểu đồ đóng góp — cột là tuần, hàng là thứ, nhìn dọc thấy ngay mình hay đứt vào thứ mấy. Bấm một ô để đánh dấu hoặc bỏ đánh dấu ngày đó. Thẻ hiện **chuỗi buổi liên tiếp** và **tỉ lệ làm được**; bỏ lỡ một buổi thì app không phạt, bỏ buổi thứ hai liên tiếp mới cảnh báo — vì bỏ một lần gần như không ảnh hưởng đến quá trình thành tự động, bỏ liên tiếp mới là lúc thói quen chết.
+
+Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhanh ở đầu Bảng việc và Bảng cuộc sống, kèm số buổi liên tiếp. Tick xong có một nhịp mừng ngắn: cảm xúc tích cực tức thì mới là thứ gắn hành vi thành thói quen, không phải số lần lặp.
+
 **Tag** — danh sách tag dùng chung, mỗi tag một màu riêng. Bấm **Quản lý** cạnh mục Tag ở sidebar để thêm, đổi tên, xoá tag và đổi màu — chọn từ bảng 72 màu hoặc màu bất kỳ (bộ chọn màu / mã hex). Đổi tên trùng một tag có sẵn thì app hỏi gộp hai tag. Khi gắn tag cho task, các tag đã có hiện sẵn để bấm chọn lại; gõ tên mới rồi Enter sẽ tạo tag mới.
 
 **Panel task** — bấm vào task để mở drawer bên phải: sửa mọi trường, tick việc con, viết ghi chú.
@@ -34,7 +40,7 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Ghi chú** — trang không gắn với ngày, lồng nhau như Notion. Cột trái là cây trang: bấm ▸ để mở trang con, rê chuột vào một trang rồi bấm **+** để thêm trang con. Mỗi trang có tiêu đề, tag (dùng chung với task), nội dung soạn bằng cùng trình soạn thảo, **ngày tạo** và **sửa lần cuối** (cập nhật khi đổi tiêu đề, nội dung hoặc tag). Ghim trang để nó hiện ở mục **Đã ghim** trên đầu cây; **Chuyển vào…** để đưa trang (kèm trang con) vào trang khác hoặc về cấp gốc. Gõ vào ô tìm kiếm hoặc bấm một tag ở sidebar thì cây thành danh sách trang khớp, mới sửa lên đầu. Bỏ một trang thì cả các trang con cùng vào **Thùng rác**, khôi phục cũng khôi phục cả cây.
 
-**Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký.
+**Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký, và số thói quen đã tick hôm nay.
 
 **Lọc và tìm** — theo tag (sidebar) và tìm toàn văn trên tiêu đề / tag / ghi chú. Riêng Bảng việc và Bảng cuộc sống có thêm nút **Lọc** trên thanh công cụ (hiện số bộ lọc đang bật), bấm vào mở bảng chọn: khoảng thời gian (hôm nay / 7 ngày / tháng này / tất cả), ưu tiên (chọn được nhiều mức), hạn (trễ hạn / hạn hôm nay / chưa có hạn), mảng Công việc / Khác (chỉ ở Bảng việc), và cách sắp xếp thẻ (thủ công / theo ưu tiên / chia nhóm ưu tiên).
 
@@ -66,7 +72,7 @@ Ngoài ra:
 - **Liên kết file trên ổ đĩa** (Chrome/Edge): chọn một file `.json`, từ đó mọi thay đổi tự ghi ra file thật. Handle được giữ trong IndexedDB nên lần mở sau chỉ cần bấm một nút để kết nối lại.
 - **Xuất / Nạp file** JSON thủ công, dùng để backup hoặc chuyển sang máy khác.
 
-Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, notes: [], settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
+Định dạng dữ liệu là JSON thuần: `{ tasks: [], journal: {}, notes: [], habits: [], settings: {} }`. Đọc được bằng mắt, sửa được bằng tay.
 
 Ảnh và file đính kèm không nằm trong `localStorage` (giới hạn ~5MB) mà trong IndexedDB; ghi chú chỉ giữ `<img data-img="mã">` / `<div data-file="mã" data-name data-size>`. File xuất ra và file liên kết có thêm trường `images: {mã: data URL}` chứa các ảnh và file đang được dùng (tên trường giữ nguyên để backup cũ vẫn nạp được), nên backup có đủ ảnh; nạp file sẽ đưa ảnh trở lại IndexedDB.
 
