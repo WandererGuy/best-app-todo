@@ -1,6 +1,6 @@
 # Trung tâm điều khiển
 
-App quản lý công việc và nhật ký cá nhân, là một trang web tĩnh (HTML + CSS + JS thuần, không framework). Không backend, không tài khoản, không đưa dữ liệu ra internet — mở file là dùng được, dữ liệu nằm trên máy.
+App quản lý công việc và nhật ký cá nhân: HTML + CSS + JS thuần, không framework, cộng một server Python nhỏ chạy trên máy để giữ dữ liệu. Không tài khoản, không đưa dữ liệu ra internet — dữ liệu là một file JSON nằm trong thư mục app.
 
 **Chạy:** bấm đúp `run.bat`. Đóng cửa sổ đen là tắt.
 
@@ -10,7 +10,7 @@ App quản lý công việc và nhật ký cá nhân, là một trang web tĩnh 
 
 Một chỗ duy nhất cho việc cần làm và cho suy nghĩ về việc đó. Task không chỉ là một dòng tiêu đề — mỗi task có một ô ghi chú viết được như trang Notion, để mọi thứ vụn vặt liên quan đến nó có nơi để ném vào thay vì tản mác ở chỗ khác.
 
-Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là của người dùng**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới.
+Ràng buộc tự đặt: **chạy offline, dữ liệu là của người dùng, nằm ở một file cầm nắm được**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới. Ban đầu app không có backend và chỉ lưu trong `localStorage`, nhưng như vậy dữ liệu bị nhốt trong một profile trình duyệt: xoá cache là mất, đổi tài khoản Chrome là không thấy. Nên `serve.py` giờ giữ dữ liệu ra file — vẫn chỉ chạy trên máy, chỉ nghe `localhost`.
 
 ## Có gì
 
@@ -68,7 +68,12 @@ Bôi đen chữ để hiện thanh định dạng nổi (đậm, nghiêng, gạc
 
 ## Dữ liệu
 
-Lưu vào `localStorage` mỗi lần thay đổi. Sidebar có chỉ báo thời điểm lưu gần nhất — nếu trình duyệt chặn ghi, chỉ báo chuyển đỏ và nhắc xuất file.
+Mỗi thay đổi được ghi ra **`data/dieukhien.json`** (qua `serve.py`, sau ~0.8 giây). `localStorage` chỉ còn là bản đệm, nên xoá cache hay mở bằng tài khoản Chrome khác vẫn thấy đủ dữ liệu. Sidebar báo **Đã lưu vào máy** kèm giờ; không ghi được thì chuyển đỏ và hiện banner.
+
+- **Sao lưu tự động** trong `data/backups/`: bản đầu mỗi ngày (`ngay-*.json`, giữ 30 ngày); bản ngay trước khi nạp file (`truoc-khi-nap-*`); dữ liệu trình duyệt không được dùng (`trinh-duyet-*`). Muốn khôi phục thì dùng **Nạp file** với file trong đó.
+- **Hai cửa sổ không đè nhau.** Mỗi lần ghi kèm mã phiên bản; cửa sổ / profile khác đã ghi trước thì server từ chối, bản của cửa sổ này được cất vào `data/backups`, app báo tải lại trang.
+- **Lần đầu mở bản này trên profile có dữ liệu cũ**, khi `data/dieukhien.json` chưa có: app hỏi có dùng dữ liệu trong trình duyệt làm dữ liệu chính không (có ghi số task). Profile khác có dữ liệu riêng chưa từng lên file thì không hỏi — dữ liệu đó được cất vào `data/backups`, app dùng dữ liệu trong file.
+- Server tắt giữa chừng: thay đổi vẫn giữ trong trình duyệt và được đánh dấu, lần mở sau khi server chạy lại sẽ tự gửi lên.
 
 Ngoài ra:
 - **Liên kết file trên ổ đĩa** (Chrome/Edge): chọn một file `.json`, từ đó mọi thay đổi tự ghi ra file thật. Handle được giữ trong IndexedDB nên lần mở sau chỉ cần bấm một nút để kết nối lại.
@@ -83,8 +88,9 @@ Có sẵn đường nâng cấp cho dữ liệu cũ: nhật ký định dạng c
 ## Cấu trúc
 
 ```
-run.bat                Bấm đúp là chạy: bật server tĩnh rồi mở trình duyệt
-serve.py               Server tĩnh cổng 8000, tắt cache
+run.bat                Bấm đúp là chạy: bật server rồi mở trình duyệt
+serve.py               Server cổng 8000 (chỉ localhost): phát file tĩnh tắt cache + API /api/data giữ dữ liệu
+data/                  Dữ liệu thật (dieukhien.json) và backups/ — không đưa vào git
 index.html             Khung HTML, nạp các file dưới
 style.css              Toàn bộ CSS
 app.js                 Toàn bộ code app

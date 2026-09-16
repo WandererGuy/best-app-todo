@@ -48,36 +48,124 @@ const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const today = () => iso(new Date());
 
-function load(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    if(raw){
-      const d = JSON.parse(raw);
-      S.tasks = d.tasks || []; S.trash = d.trash || []; S.journal = d.journal || {};
-      S.notes = d.notes || []; S.ntrash = d.ntrash || []; S.habits = d.habits || [];
-      S.settings = Object.assign({jH:560}, d.settings || {});
-      S.tags = d.tags || {}; syncTags();
-      S.notis = d.notis || [];
-      // nhật ký cũ mỗi ngày một trang -> đổi sang dạng nhiều trang
-      Object.keys(S.journal).forEach(k => {
-        if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:'Ghi chép', html:S.journal[k]}];
-      });
-    }
-    else seed();
-  }catch(e){ console.warn('Không đọc được dữ liệu cũ:', e); }
+/* nạp dữ liệu (từ server, localStorage hay file) vào S — thêm trường mới vào S thì sửa ở đây */
+function applyData(d){
+  S = {tasks: d.tasks || [], trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
+       notes: d.notes || [], ntrash: d.ntrash || [], habits: d.habits || [],
+       settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
+  syncTags();
+  // nhật ký cũ mỗi ngày một trang -> đổi sang dạng nhiều trang
+  Object.keys(S.journal).forEach(k => {
+    if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:'Ghi chép', html:S.journal[k]}];
+  });
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); storageOK = true; }
   catch(e){ storageOK = false; }
-  queueFile();
+  queueFile(); queueSrv();
   paintSave();
 }
 function paintSave(){
   const b = $('#saveBar'); if(!b) return;
-  b.classList.toggle('bad', !storageOK);
-  if(!storageOK){ b.innerHTML = '<span class="d"></span>Không lưu được — hãy xuất file!'; return; }
+  const msg = !storageOK ? 'Không lưu được — hãy xuất file!'
+    : srvErr === 'conflict' ? 'Đã sửa ở cửa sổ khác — tải lại trang'
+    : srvErr ? 'Chưa lưu vào máy — chỉ trong trình duyệt' : '';
+  b.classList.toggle('bad', !!msg);
+  if(msg){ b.innerHTML = `<span class="d"></span>${msg}`; return; }
   const hh = lastSave ? lastSave.toTimeString().slice(0,8) : '—';
-  b.innerHTML = `<span class="d"></span>Đã lưu ${hh}${fh ? ' · ⇄ file' : ''}`;
+  b.innerHTML = `<span class="d"></span>Đã lưu vào máy ${hh}${fh ? ' · ⇄ file' : ''}`;
+}
+
+/* ---- dữ liệu chính nằm ở server: serve.py ghi ra data/dieukhien.json ----
+   localStorage chỉ là bản đệm, nên xoá cache hay đổi profile Chrome không mất gì.
+   Mỗi lần ghi kèm mã phiên bản (ETag) của bản trên server mà dữ liệu đang dựa vào; cửa sổ khác đã ghi
+   trước thì server trả 409, bản ở đây được cất vào data/backups chứ không đè lên.
+   localStorage 'dieukhien.srv' = {tag, dirty}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt). */
+const SRV_KEY = 'dieukhien.srv';
+const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
+let srvOn = false;      // phiên này đang ghi lên server
+let srvErr = null;      // null | 'off': không nối / không gửi được | 'conflict': cửa sổ khác đã ghi
+let srvTag = null, srvTimer = null, srvBusy = false, srvKeep = false, srvGen = 0;
+function setMeta(dirty){
+  if(srvTag) try{ localStorage.setItem(SRV_KEY, JSON.stringify({tag:srvTag, dirty})); }catch(e){}
+}
+function queueSrv(){
+  setMeta(true); srvGen++;
+  if(!srvOn) return;
+  clearTimeout(srvTimer);
+  srvTimer = setTimeout(pushSrv, 800);
+}
+async function pushSrv(){
+  if(srvBusy){ clearTimeout(srvTimer); srvTimer = setTimeout(pushSrv, 300); return; }
+  srvBusy = true;
+  const gen = srvGen, keep = srvKeep;
+  try{
+    const r = await fetch('/api/data' + (keep ? '?keep=1' : ''),
+                          {method:'PUT', headers:{...SRV_H, 'If-Match':srvTag}, body: await dataJSON()});
+    if(r.status === 409){
+      srvOn = false; srvErr = 'conflict';
+      await stashSrv();
+      toast('Dữ liệu vừa được sửa ở cửa sổ khác. Thay đổi ở đây đã cất vào data/backups — hãy tải lại trang.');
+    }else if(r.ok){
+      srvTag = r.headers.get('ETag'); srvErr = null; srvKeep = srvKeep && !keep;
+      setMeta(gen !== srvGen);
+    }else throw new Error(r.status);
+  }catch(e){
+    if(!srvErr) toast('Không lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.');
+    srvErr = 'off';
+  }
+  srvBusy = false;
+  paintSave();
+}
+/* cất dữ liệu đang có trong S vào data/backups (không bao giờ mất, chỉ không được dùng) */
+async function stashSrv(){
+  try{ return (await fetch('/api/backup', {method:'POST', headers:SRV_H, body: await dataJSON()})).ok; }
+  catch(e){ return false; }
+}
+const countData = d => `${(d.tasks || []).length} task, ${(d.notes || []).length} ghi chú, ${(d.habits || []).length} thói quen`;
+/* khởi động: ưu tiên server, không có server mới dùng dữ liệu trình duyệt. Trả về lời nhắn cần báo (nếu có) */
+async function boot(){
+  let local = null, meta = null, res = null, msg = '';
+  try{ local = JSON.parse(localStorage.getItem(KEY)); }catch(e){ console.warn('Không đọc được dữ liệu cũ:', e); }
+  try{ meta = JSON.parse(localStorage.getItem(SRV_KEY)); }catch(e){}
+  if(location.protocol !== 'file:') try{ res = await fetch('/api/data', {cache:'no-store'}); }catch(e){}
+
+  if(!res || res.headers.get('X-App') !== 'dieukhien' || !(res.ok || res.status === 404)){
+    srvErr = 'off'; srvTag = meta && meta.tag;          // vẫn đánh dấu dirty để lần sau có server thì gửi lên
+    if(local) applyData(local); else seed();
+    return '';
+  }
+  srvOn = true;
+  if(res.status === 404){
+    srvTag = 'none';
+    if(!local){ seed(); return ''; }                      // seed() tự save() -> tạo file
+    applyData(local);
+    if(confirm(`Chưa có file dữ liệu trên máy (data/dieukhien.json).\n\n` +
+               `Dùng dữ liệu đang có trong trình duyệt này làm dữ liệu chính?\n(${countData(local)})\n\n` +
+               `Bấm Huỷ nếu đây không phải dữ liệu thật — ví dụ đang mở nhầm profile Chrome.`)){
+      save(); return 'Đã đưa dữ liệu vào data/dieukhien.json.';
+    }
+    srvOn = false; srvErr = 'off'; srvTag = null;
+    return '';
+  }
+
+  const d = await res.json(); srvTag = res.headers.get('ETag');
+  if(local && meta && meta.dirty && meta.tag === srvTag){   // thay đổi lần trước chưa kịp gửi
+    applyData(local); save(); return '';
+  }
+  if(local && !(meta && !meta.dirty)){                      // dữ liệu riêng của trình duyệt này, chưa lên server
+    applyData(local);
+    if(!await stashSrv()){ srvOn = false; srvErr = 'off'; srvTag = null; return ''; }   // bỏ tag: lần sau không được coi là thay đổi của bản server
+    msg = `Trình duyệt này có dữ liệu riêng (${countData(local)}) — đã cất vào data/backups, đang dùng dữ liệu trên máy.`;
+  }
+  for(const [id, url] of Object.entries(d.images || {})){
+    imgData.set(id, url);
+    if(!await imgGet(id)) await imgPut(id, await (await fetch(url)).blob());
+  }
+  applyData(d);
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); }catch(e){ storageOK = false; }
+  setMeta(false);
+  return msg;
 }
 function toast(msg){
   const el = $('#toast'); el.textContent = msg; el.classList.add('on');
@@ -867,6 +955,11 @@ function render(){
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. ' +
     'Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.</div>');
+  else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
+    '<div class="banner">⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. ' +
+    'Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.</div>');
+  else if(srvErr === 'conflict') $('#view').insertAdjacentHTML('afterbegin',
+    '<div class="banner">⚠ Dữ liệu vừa được sửa ở cửa sổ hoặc profile Chrome khác. Thay đổi ở đây đã được cất vào <b>data/backups</b>, không ghi đè lên — hãy <b>tải lại trang</b> để thấy bản mới nhất.</div>');
   paintSave(); paintFs(); paintBell();
 }
 
@@ -2098,14 +2191,9 @@ function importJSON(file){
       if(!Array.isArray(d.tasks)) throw new Error('File không đúng định dạng');
       if(!confirm(`Nạp ${d.tasks.length} task và ghi đè toàn bộ dữ liệu hiện tại?`)) return;
       for(const [id, url] of Object.entries(d.images || {})) await imgPut(id, await (await fetch(url)).blob());
-      S = {tasks: d.tasks, trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
-           notes: d.notes || [], ntrash: d.ntrash || [], habits: d.habits || [],
-           settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || []};
-      syncTags();
+      applyData(d);
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
-      Object.keys(S.journal).forEach(k => {
-        if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:'Ghi chép', html:S.journal[k]}];
-      });
+      srvKeep = true;                          // server cất bản đang có vào data/backups trước khi bị đè
       save(); render();
     }catch(e){ alert('Không đọc được file: ' + e.message); }
   };
@@ -2231,10 +2319,13 @@ document.addEventListener('keydown', e => {
 });
 
 try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
-load(); ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
-if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;
-render(); restoreFile();
-checkReminders();
+boot().then(msg => {
+  ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
+  if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;
+  render(); restoreFile();
+  if(msg) toast(msg);
+  checkReminders();
+});
 setInterval(() => {
   checkReminders(); paintNow();
   $$('[data-ago]').forEach(el => el.textContent = 'Sửa lần cuối ' + fmtAgo(el.dataset.ago));

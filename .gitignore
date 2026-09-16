@@ -1,3 +1,5 @@
 node_modules/
 # ghi chú riêng, Claude bị chặn đọc (.claude/settings.json) nên không đưa vào git
 backlog-human.md
+# dữ liệu thật của app (serve.py ghi ra) — ở ngoài git, tự sao lưu vào data/backups
+data/

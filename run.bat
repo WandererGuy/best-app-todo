@@ -11,8 +11,8 @@ echo   Trung tam dieu khien dang chay tai  http://localhost:8000
 echo.
 echo   - Trinh duyet se tu mo sau vai giay.
 echo   - DONG CUA SO NAY de tat server khi dung xong.
-echo   - Luon vao app bang dia chi localhost:8000 nay, dung mo truc tiep
-echo     index.html, vi hai cach do luu du lieu o hai noi khac nhau.
+echo   - Du lieu luu o data\dieukhien.json, sao luu hang ngay o data\backups.
+echo     Xoa cache hay doi tai khoan Chrome deu khong mat.
 echo.
 
 start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
@@ -26,9 +26,11 @@ goto :eof
 
 :nopython
 echo.
-echo   Khong tim thay Python nen mo truc tiep index.html.
-echo   Cach nay van dung duoc app, nhung tinh nang "Lien ket file tren o dia"
-echo   co the bi trinh duyet chan.
+echo   Khong tim thay Python nen khong chay duoc app.
 echo.
-start "" "index.html"
-ping -n 6 127.0.0.1 >nul
+echo   App can Python de luu du lieu vao data\dieukhien.json. Mo thang index.html
+echo   thi du lieu chi nam trong trinh duyet, xoa cache la mat - nen khong mo cach do.
+echo   Cai Python tai https://www.python.org/downloads/ (tick "Add python.exe to PATH")
+echo   roi chay lai file nay.
+echo.
+pause

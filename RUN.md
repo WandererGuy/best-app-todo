@@ -4,7 +4,7 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 ## 0. Điều cần biết trước
 
-- App là **trang web tĩnh**, không có backend, không có bước build cho phần app. Gồm 4 file:
+- App là **trang web tĩnh cộng một server Python nhỏ** (`serve.py`) giữ dữ liệu ra `data/dieukhien.json`. Không có bước build cho phần app. Phần web gồm 4 file:
   - `index.html` — chỉ khung HTML, nạp 3 file dưới bằng `<link>` / `<script src>`
   - `style.css` — toàn bộ CSS
   - `app.js` — toàn bộ code app (JavaScript thuần, sửa thẳng)
@@ -15,18 +15,19 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 ### Bấm đúp `run.bat`
 
-Đó là tất cả. File này `cd` vào thư mục dự án, bật `python serve.py` (server tĩnh cổng 8000), rồi tự mở `http://localhost:8000` sau vài giây.
+Đó là tất cả. File này `cd` vào thư mục dự án, bật `python serve.py` (cổng 8000), rồi tự mở `http://localhost:8000` sau vài giây.
 
-- **Đóng cửa sổ đen** = tắt server. Không cần làm gì thêm.
-- Nếu máy không có Python, file tự chuyển sang mở trực tiếp `index.html` (vẫn dùng được, nhưng mất tính năng liên kết file).
+- **Đóng cửa sổ đen** = tắt server. Không cần làm gì thêm. Tắt server lúc tab còn mở thì app báo đỏ; thay đổi vẫn giữ trong trình duyệt và được gửi lên ở lần mở sau.
+- Máy không có Python thì `run.bat` báo lỗi và dừng — cố ý không mở thẳng `index.html`, vì cách đó dữ liệu chỉ nằm trong trình duyệt.
 - Báo `address already in use` = còn một cửa sổ `run.bat` khác đang chiếm cổng 8000. Đóng cửa sổ đó rồi chạy lại.
 
 ### Vì sao qua server chứ không mở thẳng file
 
-1. Tính năng **"Liên kết file trên ổ đĩa"** (File System Access API — `showSaveFilePicker`) cần secure context, có thể bị chặn trên `file://`; qua `localhost` thì chắc chắn chạy. Chỉ Chrome/Edge có API này, Firefox/Safari tự ẩn nút.
-2. Quan trọng hơn: `file://index.html` và `http://localhost:8000` là **hai origin khác nhau**, nên có **hai localStorage riêng biệt**. Task tạo ở cách này không hiện ở cách kia. Chọn một cách rồi dùng mãi cách đó — và `run.bat` chính là để khỏi phải nhớ.
+1. **Dữ liệu nằm ở server.** Mở `file://index.html` thì không có server, app chỉ lưu vào `localStorage` và hiện banner cảnh báo.
+2. `file://index.html`, `http://localhost:8000` và `http://127.0.0.1:8000` là **ba origin khác nhau**, mỗi cái một `localStorage` riêng. Với server thì không còn quan trọng (dữ liệu lấy từ file), nhưng dữ liệu cũ chưa lên file thì chỉ thấy ở đúng origin cũ. `run.bat` luôn mở `localhost`.
+3. Tính năng **"Liên kết file trên ổ đĩa"** (File System Access API) cần secure context, có thể bị chặn trên `file://`.
 
-Nếu trước đây đã dùng `file://` và có dữ liệu thật ở đó: mở lại bằng đúng cách cũ, bấm **Xuất file**, rồi chạy `run.bat` và bấm **Nạp file** để chuyển dữ liệu sang origin localhost.
+Nếu trước đây đã dùng `file://` và có dữ liệu thật ở đó: mở lại bằng đúng cách cũ, bấm **Xuất file**, rồi chạy `run.bat` và bấm **Nạp file** (bản đang có trong `data/dieukhien.json` sẽ được cất vào `data/backups` trước khi bị đè).
 
 ### Chạy tay
 
@@ -35,7 +36,12 @@ python serve.py
 # rồi mở http://localhost:8000
 ```
 
-`serve.py` giống `python -m http.server 8000` nhưng gửi `Cache-Control: no-cache`. Không có header này, Chrome có thể giữ bản `app.js` / `style.css` cũ trong cache, sửa code xong F5 không thấy thay đổi.
+`serve.py` làm hai việc:
+
+- Phát file tĩnh như `python -m http.server 8000` nhưng gửi `Cache-Control: no-cache` — không có header này, Chrome có thể giữ bản `app.js` / `style.css` cũ, sửa code xong F5 không thấy thay đổi.
+- Giữ dữ liệu: `GET /api/data` đọc, `PUT /api/data` ghi (bắt buộc `If-Match` đúng mã phiên bản, lệch trả 409; `?keep=1` cất bản cũ trước), `POST /api/backup` cất một bản vào `data/backups`. Ghi ra file tạm rồi `os.replace`, sập giữa chừng không hỏng file.
+
+Chỉ nghe `127.0.0.1` và `::1` — không lộ ra mạng LAN. Nghe cả `::1` là bắt buộc: Chrome gọi `localhost` thử IPv6 trước, thiếu thì mỗi request chậm thêm 50–300ms. API còn kiểm tra header `Host` và đòi header `X-App: dieukhien` để trang web lạ không gọi vào được.
 
 ## 2. Build lại trình soạn thảo (chỉ khi sửa `build/editor.src.js`)
 
@@ -58,7 +64,10 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 
 | Nơi lưu | Khoá / cơ chế | Ghi chú |
 |---|---|---|
-| `localStorage` | khoá `dieukhien.v1` | nguồn chính, lưu mỗi lần `save()` |
+| `data/dieukhien.json` | `serve.py`, `PUT /api/data` sau ~0.8 s | **nguồn chính**, gồm cả ảnh / file đính kèm (trường `images`) |
+| `data/backups/` | `ngay-*` (đầu mỗi ngày, giữ 30), `truoc-khi-nap-*`, `trinh-duyet-*` | nạp lại bằng **Nạp file** |
+| `localStorage` | khoá `dieukhien.v1` | bản đệm, lưu mỗi lần `save()` |
+| `localStorage` | khoá `dieukhien.srv` = `{tag, dirty}` | mã phiên bản của file mà bản đệm dựa vào; `dirty` = còn thay đổi chưa gửi lên |
 | File trên ổ đĩa | `showSaveFilePicker`, tự ghi sau 1.2 s | tuỳ chọn, chỉ Chrome/Edge |
 | `IndexedDB` | db `dieukhien-fs`, store `h` | chỉ giữ file handle để lần mở sau bấm 1 nút là kết nối lại |
 | `IndexedDB` | db `dieukhien-img`, store `img` | ảnh và file đính kèm trong ghi chú (Blob, khoá = mã; ảnh `i…`, file `f…`); file xuất / file liên kết gói kèm ở trường `images` |
@@ -66,31 +75,36 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 
 Nạp file sẽ **ghi đè toàn bộ** dữ liệu hiện tại (có hỏi xác nhận trước).
 
-Lần mở đầu tiên, nếu `localStorage` trống, `seed()` tạo 5 task mẫu + 1 trang nhật ký mẫu.
+Khởi động (`boot()` trong `app.js`):
+
+| Server | Trình duyệt | Làm gì |
+|---|---|---|
+| có file | trống, hoặc đã đồng bộ | dùng file |
+| có file | `dirty` và cùng phiên bản với file | gửi bản trình duyệt lên (thay đổi lần trước chưa kịp gửi) |
+| có file | dữ liệu chưa từng lên file, hoặc `dirty` nhưng file đã bị cửa sổ khác sửa | cất bản trình duyệt vào `data/backups`, dùng file |
+| chưa có file | có dữ liệu | **hỏi** có dùng làm dữ liệu chính không; Huỷ thì chỉ lưu trong trình duyệt |
+| chưa có file | trống | `seed()` tạo dữ liệu mẫu rồi ghi ra file |
+| không nối được | — | dùng `localStorage` như cũ, báo đỏ + banner |
 
 ### Tắt máy có mất dữ liệu không?
 
-**Không.** `localStorage` ghi xuống ổ đĩa trong profile trình duyệt, không phải RAM. Tắt máy, khởi động lại, mở lại app — dữ liệu còn nguyên. Sập điện giữa lúc đang dùng cũng chỉ mất thay đổi của vài giây cuối.
+**Không.** Dữ liệu là file `data/dieukhien.json` trên ổ đĩa. Sập điện giữa lúc đang dùng chỉ mất thay đổi của vài giây cuối — và cả chúng cũng còn trong `localStorage`, lần mở sau tự gửi lên.
 
-Những thứ **thực sự** làm mất dữ liệu:
+Khi mở qua `run.bat`, những thứ **không còn** làm mất dữ liệu: xoá cache / "Cookies and other site data", CCleaner, đổi tài khoản / profile Chrome, đổi trình duyệt, cửa sổ ẩn danh, gỡ cài lại trình duyệt, ổ đĩa đầy khiến trình duyệt dọn dữ liệu site.
+
+Những thứ **vẫn** làm mất dữ liệu:
 
 | Nguyên nhân | Hậu quả |
 |---|---|
-| Xoá "Cookies and other site data" / dọn dẹp trình duyệt, CCleaner | Mất sạch |
-| Mở app ở trình duyệt khác, hoặc profile khác của cùng trình duyệt | Không thấy dữ liệu (nó vẫn nằm ở profile cũ) |
-| Đổi cách mở: `file://` ↔ `localhost:8000` | Không thấy dữ liệu (hai origin, hai kho riêng) |
-| Cửa sổ ẩn danh (Incognito) | Mất khi đóng cửa sổ |
-| Gỡ / cài lại trình duyệt | Mất sạch |
-| Ổ đĩa gần đầy | Trình duyệt có thể dọn bớt dữ liệu site |
-
-Nói cách khác: rủi ro không nằm ở việc tắt máy, mà ở chỗ dữ liệu chỉ tồn tại **bên trong một trình duyệt**.
+| Xoá thư mục `data/`, hoặc `git clean -x` (xoá cả file bị ignore) | Mất sạch, kể cả backup |
+| Hỏng ổ đĩa / mất máy | Mất sạch |
+| Mở thẳng `index.html` rồi dùng lâu dài | Dữ liệu chỉ trong trình duyệt (app hiện banner cảnh báo) |
 
 ### Cách yên tâm hẳn
 
-1. Chạy bằng `run.bat` (origin luôn cố định là `localhost:8000`).
-2. Chrome/Edge: bấm **"Liên kết file trên ổ đĩa"** một lần, chọn file `.json` ở chỗ dễ tìm. Từ đó mọi thay đổi tự ghi ra file thật, độc lập hoàn toàn với trình duyệt — xoá cache hay cài lại trình duyệt cũng không ảnh hưởng. Lần mở sau chỉ cần bấm một nút để kết nối lại.
-3. Nếu để file `.json` đó trong thư mục OneDrive/Google Drive thì có luôn backup theo phiên bản.
-4. Không dùng cách 2 thì thỉnh thoảng bấm **Xuất file** — mỗi lần ra một `dieukhien-<ngày>.json`.
+1. Chạy bằng `run.bat`, nhìn sidebar thấy **Đã lưu vào máy** là được.
+2. Chép thư mục `data/` sang chỗ khác theo định kỳ, hoặc bật **"Liên kết file trên ổ đĩa"** và chọn file nằm trong OneDrive/Google Drive — thêm một bản ngoài máy, có lịch sử phiên bản.
+3. Thỉnh thoảng bấm **Xuất file** — mỗi lần ra một `dieukhien-<ngày>.json`.
 
 ### Xoá sạch để test từ đầu
 
@@ -98,10 +112,13 @@ Mở DevTools Console tại trang app:
 
 ```js
 localStorage.removeItem('dieukhien.v1');
+localStorage.removeItem('dieukhien.srv');
 indexedDB.deleteDatabase('dieukhien-fs');
 indexedDB.deleteDatabase('dieukhien-img');
 location.reload();
 ```
+
+Rồi **đổi tên** (đừng xoá) thư mục `data/` khi server đang tắt, nếu muốn cả file dữ liệu cũng bắt đầu lại từ đầu.
 
 ## 5. Lưu ý khi sửa code
 
