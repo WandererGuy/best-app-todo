@@ -2531,7 +2531,7 @@ async function fLook(el, lk){
 function renderFocus(){
   $('#view').innerHTML = `<div class="fzpage">
     <div class="fzcol"><div id="fzMain"></div><div class="fcard fzcard" id="fzQ"></div></div>
-    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
+    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzChart"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
   fPaintPage(); fPaintCfg();
 }
 function fPaintPage(){
@@ -2541,6 +2541,7 @@ function fPaintPage(){
   $('#fzMain').innerHTML = fPanel('page');
   $('#fzQ').innerHTML = fQueueHTML();
   $('#fzStats').innerHTML = fStatsHTML();
+  $('#fzChart').innerHTML = fChartHTML();
 }
 function fPaintCfg(){
   const el = $('#fzCfg'); if(!el) return;
@@ -2604,6 +2605,47 @@ function fStatsHTML(){
         <span class="nm">${e.title.trim() ? esc(e.title) : '<span class="ph">(chưa đặt tên)</span>'}</span>
         <span class="meta">${e.done ? (e.rate ? `${e.rate}/5` : '✓') : `bỏ dở · ${Math.round(e.ms / 6e4)} phút`}</span></div>`).join('')}</div>`
       : '<div class="fzhint">Chưa có phiên nào hôm nay.</div>'}`;
+}
+// biểu đồ giờ tập trung theo tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
+// ui.fcM = khoảng đang xem, ui.fcOff = lùi / tiến bao nhiêu khoảng so với hiện tại
+const FCM = {week:'Tuần', month:'Tháng', year:'Năm'};
+const fHours = ms => { const m = Math.round(ms / 6e4); return m < 60 ? `${m} phút` : `${Math.floor(m / 60)} giờ${m % 60 ? ` ${m % 60} phút` : ''}`; };
+function fChartHTML(){
+  const mode = ui.fcM || 'week', off = ui.fcOff || 0, k0 = today();
+  let cols, title;   // cols: [{a, b, lbl, tip}] — khoảng ngày [a, b] của mỗi cột
+  if(mode === 'week'){
+    const mon = dShift(fMon(k0), off * 7);
+    cols = Array.from({length:7}, (_, i) => { const d = dShift(mon, i);
+      return {a:d, b:d, lbl:`${DOW[dowOf(d)]}<br>${d.slice(8)}/${d.slice(5, 7)}`, tip:`${DOW[dowOf(d)]} ${fmtVN(d)}`, now:d === k0}; });
+    title = off ? `${fmtVN(mon).slice(0, 5)} – ${fmtVN(dShift(mon, 6))}` : 'Tuần này';
+  }else if(mode === 'month'){
+    const x = new Date(k0.slice(0, 7) + '-01T00:00:00'); x.setMonth(x.getMonth() + off);
+    const first = iso(x), n = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+    cols = Array.from({length:n}, (_, i) => { const d = dShift(first, i);
+      return {a:d, b:d, lbl:+d.slice(8) % 5 && i ? '' : +d.slice(8), tip:`${DOW[dowOf(d)]} ${fmtVN(d)}`, now:d === k0}; });
+    title = `Tháng ${x.getMonth() + 1}/${x.getFullYear()}`;
+  }else{
+    const y = +k0.slice(0, 4) + off;
+    cols = Array.from({length:12}, (_, i) => { const m = `${y}-${String(i + 1).padStart(2, '0')}`;
+      return {a:m + '-01', b:m + '-31', lbl:`T${i + 1}`, tip:`Tháng ${i + 1}/${y}`, now:m === k0.slice(0, 7)}; });
+    title = `Năm ${y}`;
+  }
+  const works = fWorks();
+  cols.forEach(c => { const l = works.filter(e => { const k = iso(new Date(e.a)); return k >= c.a && k <= c.b; });
+    c.ms = l.reduce((s, e) => s + (e.ms || 0), 0); c.n = l.filter(e => e.done).length; });
+  const total = cols.reduce((s, c) => s + c.ms, 0);
+  // trục dọc theo giờ: chia 4 nấc tròn số
+  const maxH = Math.max(...cols.map(c => c.ms)) / 36e5, step = [.25, .5, 1, 2, 5, 10, 20, 50, 100].find(v => v * 4 >= maxH) || Math.ceil(maxH / 4), top = step * 4;
+  return `<div class="fzh">Giờ tập trung<span class="n">${fHours(total)}</span>
+      <div class="scope fcscope">${Object.entries(FCM).map(([k, n]) => `<button class="${mode === k ? 'on' : ''}" data-fcm="${k}">${n}</button>`).join('')}</div></div>
+    <div class="fcnav"><button class="nvb" data-fcoff="-1">‹</button><span>${title}</span><button class="nvb" data-fcoff="1">›</button></div>
+    <div class="fchart">
+      <div class="fcy">${[4, 3, 2, 1, 0].map(i => `<span>${+(step * i).toFixed(2)}</span>`).join('')}</div>
+      <div class="fcplot">${[4, 3, 2, 1, 0].map(i => `<i style="bottom:${i * 25}%"></i>`).join('')}
+        ${cols.map(c => `<div class="fccol${c.now ? ' td' : ''}">
+          <b style="height:${c.ms / 36e5 / top * 100}%" data-tip="${c.tip} · ${c.ms ? `${fHours(c.ms)} · ${c.n} phiên` : 'chưa tập trung'}"></b></div>`).join('')}</div>
+      <div></div>
+      <div class="fcx">${cols.map(c => `<span${c.now ? ' class="td"' : ''}>${c.lbl}</span>`).join('')}</div></div>`;
 }
 function fLookHTML(p){
   const c = S.focus.cfg, lk = c.look[p];
@@ -2676,7 +2718,7 @@ function fPickImg(p){
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fstart],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
-    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
+    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
@@ -2694,6 +2736,8 @@ document.addEventListener('click', e => {
   if('fdone' in d) return fDone(d.fdone);
   if('fdrop' in d){ f.queue = f.queue.filter(x => x !== d.fdrop); save(); return fPaint(); }
   if('fopen' in d) return openTask(d.fopen);
+  if('fcm' in d){ ui.fcM = d.fcm; ui.fcOff = 0; return fPaintPage(); }
+  if('fcoff' in d){ ui.fcOff = (ui.fcOff || 0) + +d.fcoff; return fPaintPage(); }
   if('fcfgbtn' in d){ ui.fCfg = !ui.fCfg; return fPaintCfg(); }
   if('freset' in d){
     FGROUPS[d.freset].forEach(k => f.cfg[k] = structuredClone(FCFG[k]));
