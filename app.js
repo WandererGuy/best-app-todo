@@ -2170,7 +2170,8 @@ function wireHabits(){
 /* ============ tập trung (pomodoro) ============ */
 /* S.focus: cfg = cài đặt; queue = id task đang chờ làm (tối đa cfg.qmax, task đầu hàng là task của phiên tới);
    run = phiên hoặc giờ nghỉ đang chạy; next = pha kế tiếp khi chưa chạy; cycle = số phiên đã xong, để biết lúc nào nghỉ dài;
-   log = mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích; rev = phiên vừa xong đang chờ chấm điểm.
+   log = mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích; rev = phiên vừa xong đang chờ chấm điểm;
+   tree = loài cây chọn cho phiên tới (xem khu vườn).
    Đồng hồ không đếm nhịp mà tính từ mốc thời gian: run.acc là phần đã chạy trước lần dừng gần nhất, run.since là lúc chạy lại
    (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi. */
 const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
@@ -2187,7 +2188,7 @@ function fNorm(f = {}){
   ['wN', 'wWhat', 'mN', 'mWhat'].forEach(k => delete cfg[k]);   // mốc phần thưởng cũ, đã bỏ
   cfg.look = Object.fromEntries(Object.keys(FPHASE).map(p => [p, {...FCFG.look[p], ...(f.cfg?.look || {})[p]}]));
   return {cfg, queue:f.queue || [], run:f.run || null, next:f.next || 'work', cycle:f.cycle || 0,
-          log:f.log || [], rev:f.rev || null};
+          log:f.log || [], rev:f.rev || null, tree:f.tree || 'pine'};
 }
 const fTask   = id => S.tasks.find(t => t.id === id);
 const fName   = t => t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>';
@@ -2258,7 +2259,11 @@ function fPaintTime(){
     const left = fLeft(r), txt = fClock(left);
     $$('[data-fclock]').forEach(el => el.textContent = txt);
     $$('[data-fbar]').forEach(el => el.style.width = Math.min(100, (1 - left / r.dur) * 100) + '%');
-    if(r.phase === 'work') $$('[data-ftree]').forEach(el => el.style.setProperty('--g', fGrow(r)));
+    // cây lên cấp thì thay hình, phần tử mới nên hiệu ứng lớn lên chạy lại
+    if(r.phase === 'work') $$('[data-ftree]').forEach(el => {
+      const st = fStage(fWorked(r) / 6e4);
+      if(+el.dataset.st !== st) el.outerHTML = `<g data-ftree data-st="${st}" class="grow">${fSpecies(r.tree).s[st - 1]}</g>`;
+    });
     if(!r.since) $$('[data-fpaused]').forEach(el => {
       const m = Math.floor((Date.now() - r.pAt) / 6e4), long = m >= c.pauseAsk;
       el.classList.toggle('long', long);
@@ -2303,7 +2308,7 @@ function fStart(phase, tid){
     if(!fTask(tid)) return toast('Thêm một task vào hàng đợi trước đã');
     ui.fCheer = null;
   }
-  f.run = {phase, tid:phase === 'work' ? tid : null, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0};
+  f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0};
   fAudio();   // mở khoá âm thanh ngay trong cú bấm thì lúc hết giờ mới phát được
   save(); fStartTick(); fPaint();
 }
@@ -2311,7 +2316,7 @@ function fLog(r, end, ms){
   const e = {id:uid(), k:r.phase, a:r.a, b:end, plan:r.dur / 6e4, ms, done:ms >= r.dur};
   if(r.phase === 'work'){
     const t = fTask(r.tid);
-    Object.assign(e, {tid:r.tid, title:t ? t.title : '', rate:null, next:'',
+    Object.assign(e, {tid:r.tid, tree:r.tree, title:t ? t.title : '', rate:null, next:'',
       pause:r.pause, cap:r.cap, sw:r.sw, paused:r.paused + (r.pAt ? Date.now() - r.pAt : 0)});
   }
   S.focus.log.push(e);
@@ -2366,7 +2371,7 @@ function fReview(keep){
 // mừng lúc xong phiên; chạm mục tiêu ngày thì nói rõ
 function fCheer(){
   const c = S.focus.cfg, n = fCount()[today()] || 0, e = fWorks().pop();
-  const msg = [`🌳 Trồng xong một ${fTree(e.plan).n.toLowerCase()} · hôm nay ${n}/${c.goal}`];
+  const msg = [`🌳 Trồng xong cây ${fSpecies(e.tree).n} cấp ${fStage(e.ms / 6e4)} · hôm nay ${n}/${c.goal}`];
   if(n === c.goal) msg.push(`🔥 Đạt mục tiêu hôm nay · chuỗi ${fRun().cur} ngày`);
   ui.fCheer = msg;
   ui.fPop = true;
@@ -2435,7 +2440,7 @@ function fPanel(mode){
       <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu nghỉ</button><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
     const t = fTask(q[0]);
     if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task Đang làm vào hàng đợi để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>`;
-    return h + (full ? '' : fTaskHTML(t, false)) + '<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>';
+    return h + (full ? '' : fTaskHTML(t, false)) + (big ? fPickHTML() : '') + '<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>';
   }
 
   h += `<div class="fzclock" data-fclock>${fClock(fLeft(r))}</div><div class="fzbar"><i data-fbar></i></div>`;
@@ -2596,54 +2601,141 @@ function fStatsHTML(){
         <span class="meta">${e.done ? (e.rate ? `${e.rate}/5` : '✓') : `bỏ dở · ${Math.round(e.ms / 6e4)} phút`}</span></div>`).join('')}</div>`
       : '<div class="fzhint">Chưa có phiên nào hôm nay.</div>'}`;
 }
-/* --- khu vườn: mỗi phiên đủ giờ trồng một cây, loài tuỳ độ dài phiên; phiên huỷ giữa chừng để lại cây héo.
-   Cây vẽ bằng SVG, gốc ở (0, 0), cao chừng 100 đơn vị. --- */
-const FTREES = [
-  {min:0, n:'Bụi cây', svg:`<circle cx="-13" cy="-15" r="15" fill="#3f9b4a"/><circle cx="13" cy="-14" r="14" fill="#2f8039"/>
-    <circle cx="0" cy="-27" r="17" fill="#4caf57"/><circle cx="-6" cy="-33" r="6" fill="#7fd489" opacity=".6"/>`},
-  {min:25, n:'Cây tròn', svg:`<rect x="-4" y="-32" width="8" height="32" rx="2" fill="#8b5a2b"/>
-    <circle cy="-54" r="28" fill="#43a047"/><path d="M0-82a28 28 0 0 1 0 56z" fill="#2e7d32" opacity=".55"/><circle cx="-10" cy="-64" r="8" fill="#81c784" opacity=".6"/>`},
-  {min:40, n:'Cây thông', svg:`<rect x="-4" y="-16" width="8" height="16" rx="2" fill="#7a4a24"/>
-    <path d="M-30-14L0-52L30-14z" fill="#2e7d4f"/><path d="M-23-40L0-74L23-40z" fill="#36915c"/><path d="M-16-62L0-96L16-62z" fill="#41a86b"/>
-    <path d="M0-52L30-14H0zM0-74L23-40H0zM0-96L16-62H0z" fill="#000" opacity=".13"/>`},
-  {min:60, n:'Cây anh đào', svg:`<path d="M-3 0L-4-34L-16-50M-4-34L10-52" stroke="#6d4428" stroke-width="7" stroke-linecap="round" fill="none"/>
-    <circle cx="-18" cy="-56" r="18" fill="#f48fb1"/><circle cx="16" cy="-58" r="19" fill="#ec6f9c"/><circle cx="-1" cy="-74" r="20" fill="#f8a5c2"/>
-    <circle cx="-7" cy="-80" r="6" fill="#fde2ec" opacity=".8"/>`},
-  {min:90, n:'Cây cổ thụ', svg:`<path d="M-7 0L-6-40H6L7 0z" fill="#6b4226"/>
-    <circle cx="-24" cy="-52" r="22" fill="#2e7d32"/><circle cx="24" cy="-54" r="22" fill="#276b2b"/><circle cx="-10" cy="-78" r="24" fill="#388e3c"/>
-    <circle cx="14" cy="-82" r="22" fill="#43a047"/><circle cx="-14" cy="-86" r="7" fill="#81c784" opacity=".55"/>
-    <circle cx="-20" cy="-50" r="3" fill="#ffb74d"/><circle cx="20" cy="-72" r="3" fill="#ffb74d"/><circle cx="4" cy="-58" r="3" fill="#ffb74d"/>`}];
-const FDEAD = {n:'Cây héo', svg:`<path d="M0 0V-46M0-26L-15-40L-18-50M0-36L13-50" stroke="#7a6350" stroke-width="5" stroke-linecap="round" fill="none"/>
-    <circle cx="-18" cy="-52" r="3" fill="#a1887f"/><circle cx="14" cy="-53" r="3" fill="#a1887f"/>`};
-const fTree = min => FTREES.filter(t => min >= t.min).pop();
-const fGrow = r => Math.min(1, fWorked(r) / r.dur);
-// cây trên đồng hồ: lớn dần theo phiên, chưa bắt đầu thì là cây non
+/* --- khu vườn: mỗi phiên đủ giờ trồng một cây thuộc loài đã chọn; phiên huỷ giữa chừng để lại cây héo.
+   Mỗi loài 3 cấp theo số phút: dưới 15, 15 tới dưới 40, từ 40. Cây vẽ bằng SVG, gốc ở (0, 0), cấp 3 cao chừng 100 đơn vị. --- */
+const gA = o => o < 1 ? ` opacity="${o}"` : '';
+const gC = (x, y, r, f, o = 1) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"${gA(o)}/>`;
+const gE = (x, y, rx, ry, f, o = 1) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${f}"${gA(o)}/>`;
+const gP = (d, f, o = 1) => `<path d="${d}" fill="${f}"${gA(o)}/>`;
+const gS = (d, c, w) => `<path d="${d}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+const gLeaf = (x, y, deg, s, c) => `<path d="M0 0Q${6 * s} ${-5 * s} ${14 * s} 0Q${6 * s} ${5 * s} 0 0z" transform="translate(${x} ${y}) rotate(${deg})" fill="${c}"/>`;
+// thân thon dần, nửa phải tối hơn
+const gTrunk = (h, w, c = '#8b5a2b') => gP(`M${-w / 2} 0L${-w / 3} ${-h}H${w / 3}L${w / 2} 0z`, c) + gP(`M0 0V${-h}H${w / 3}L${w / 2} 0z`, '#000', .18);
+// tán: các khối tròn / bầu dục vẽ từ sau ra trước, mỗi khối tối nửa phải; đốm sáng trên khối cuối
+const gCrown = (parts, [base, dark, light]) => {
+  const [x, y, r, ry = r] = parts.at(-1);
+  return parts.map(([x, y, r, ry = r]) => gE(x, y, r, ry, base) + gP(`M${x} ${y - ry}a${r} ${ry} 0 0 1 0 ${2 * ry}z`, dark, .45)).join('')
+    + gE(x - r * .38, y - ry * .4, r * .28, ry * .24, light, .7);
+};
+const gTier = (y, h, w, c) => gP(`M${-w} ${y}Q0 ${y + 5} ${w} ${y}L0 ${y - h}z`, c) + gP(`M0 ${y - h}L${w} ${y}Q${w / 2} ${y + 4} 0 ${y + 2.5}z`, '#000', .16);
+const gBirch = (h, w) => gP(`M${-w / 2} 0L${-w / 3} ${-h}H${w / 3}L${w / 2} 0z`, '#f3f1ea') + gP(`M0 0V${-h}H${w / 3}L${w / 2} 0z`, '#000', .1)
+  + Array.from({length:Math.floor(h / 9)}, (_, i) => gP(`M${i % 2 ? 0 : -w / 2.6} ${-6 - i * 9}h${w * .38}v2h${-w * .38}z`, '#3e4a50')).join('');
+const gPalm = (h, lean) => {   // thân cọ gồm từng đốt, cong dần sang phải; trả về cả toạ độ ngọn
+  let s = ''; const n = Math.ceil(h / 8);
+  for(let i = 0; i < n; i++){ const x = lean * (i / n) ** 2, y = -i * 8, w = 4.4 - i * .06;
+    s += gP(`M${x - w} ${y}L${x - w * .8} ${y - 8.5}H${x + w * .8}L${x + w} ${y}z`, i % 2 ? '#a1887f' : '#8d6e63'); }
+  return [s, lean, -n * 8];
+};
+const gFronds = (x, y, ends, w) => ends.map(([dx, dy]) => {
+  const d = `M${x} ${y}Q${x + dx * .5} ${y - Math.abs(dx) * .35 - 8} ${x + dx} ${y + dy}`;
+  return gS(d, '#2e7d32', w) + gS(d, '#66bb6a', w * .4);
+}).join('');
+const gCactus = (h, w) => `<rect x="${-w / 2}" y="${-h}" width="${w}" height="${h}" rx="${w / 2}" fill="#4caf50"/>`
+  + gP(`M0 ${-h}a${w / 2} ${w / 2} 0 0 1 ${w / 2} ${w / 2}V0H0z`, '#000', .15) + gS(`M${-w / 5} ${-w / 2}V${-h + w / 2}`, '#a5d6a7', 1.4);
+const gBamboo = (x, h, w) => {
+  let s = '';
+  for(let y = 0; y < h; y += 12){ const sh = Math.min(12, h - y);
+    s += `<rect x="${x - w / 2}" y="${-y - sh}" width="${w}" height="${sh}" rx="1.5" fill="#7cb342"/>`
+      + `<rect x="${x - w / 2}" y="${-y - sh}" width="${w * .3}" height="${sh}" fill="#dcedc8" opacity=".45"/>`
+      + `<rect x="${x - w / 2 - .8}" y="${-y - sh}" width="${w + 1.6}" height="2" rx="1" fill="#558b2f"/>`; }
+  return s;
+};
+const gSprout = (c1, c2, stem = '#7b5a3a') => gS('M0 0Q-1-8 0-16', stem, 3) + gLeaf(0, -11, -155, .9, c1) + gLeaf(0, -15, -25, .95, c2);
+const FSP = {
+  pine:{n:'Thông', s:[
+    gTrunk(7, 5, '#7a4a24') + gTier(-6, 24, 11, '#46b06d'),
+    gTrunk(12, 7, '#7a4a24') + gTier(-10, 28, 20, '#389a5e') + gTier(-26, 28, 15, '#46b06d'),
+    gTrunk(16, 9, '#7a4a24') + gTier(-14, 34, 30, '#2f7d4f') + gTier(-36, 34, 23, '#389a5e') + gTier(-58, 36, 16, '#46b06d')
+      + gE(-15, -22, 2.6, 4, '#8d5a2b') + gE(12, -44, 2.6, 4, '#8d5a2b')]},
+  oak:{n:'Sồi', s:[
+    gSprout('#66bb6a', '#4caf50') + gC(0, -19, 5, '#5cb860'),
+    gTrunk(24, 7) + gCrown([[-12, -34, 13], [12, -35, 13], [0, -46, 17]], ['#4caf50', '#2e7d32', '#c8e6c9']),
+    gTrunk(34, 11, '#7a5230') + gS('M0-26L-13-38M2-30L14-42', '#7a5230', 4)
+      + gCrown([[-24, -48, 18], [24, -50, 18], [-12, -66, 20], [14, -70, 20], [0, -80, 20]], ['#43a047', '#1b5e20', '#c8e6c9'])
+      + gC(-18, -42, 2.8, '#a1673a') + gC(22, -58, 2.8, '#a1673a') + gC(4, -54, 2.8, '#a1673a')]},
+  cherry:{n:'Anh đào', s:[
+    gSprout('#66bb6a', '#4caf50', '#6d4c41') + gC(0, -19, 4.5, '#f48fb1') + gC(-1.5, -20.5, 1.6, '#fff0f5'),
+    gS('M0 0L0-22M0-17L-10-30M0-20L10-32', '#6d4c41', 5) + gCrown([[-12, -34, 12], [12, -36, 12], [0, -44, 15]], ['#f8a5c2', '#d81b60', '#fff0f5']),
+    gS('M0 0L-1-34M-1-26L-18-44M-1-30L16-48', '#6d4c41', 8)
+      + gCrown([[-22, -50, 17], [22, -52, 17], [-10, -66, 19], [12, -70, 19], [0, -78, 17]], ['#f8a5c2', '#d81b60', '#fff0f5'])
+      + gE(-26, -4, 3, 1.6, '#f8a5c2') + gE(20, -2, 3, 1.6, '#f48fb1') + gE(-6, 4, 3, 1.6, '#f8a5c2') + gE(32, -26, 2.4, 1.4, '#f8a5c2')]},
+  maple:{n:'Phong đỏ', s:[
+    gS('M0 0V-16', '#5d4037', 3) + gLeaf(0, -10, -150, 1, '#ff7043') + gLeaf(0, -14, -30, 1, '#f4511e') + gLeaf(0, -16, -90, .8, '#ffa000'),
+    gTrunk(22, 7, '#5d4037') + gCrown([[-12, -32, 12], [12, -33, 12], [0, -43, 15]], ['#ff7043', '#bf360c', '#ffe0b2']),
+    gTrunk(34, 10, '#5d4037') + gCrown([[-24, -48, 17], [24, -50, 17], [-11, -64, 19]], ['#ffa000', '#e65100', '#ffe0b2'])
+      + gCrown([[13, -68, 19], [0, -80, 18]], ['#f4511e', '#b71c1c', '#ffccbc'])
+      + gLeaf(-32, -12, 20, .6, '#ff7043') + gLeaf(26, -4, -40, .6, '#ffa000')]},
+  birch:{n:'Bạch dương', s:[
+    gSprout('#9ccc65', '#7cb342', '#d7d3c8'),
+    gBirch(40, 6) + gCrown([[-7, -40, 9, 14], [8, -44, 9, 15], [0, -56, 10, 17]], ['#aed581', '#558b2f', '#f1f8e9']),
+    gBirch(58, 8) + gCrown([[-14, -54, 11, 18], [14, -58, 11, 19], [-4, -72, 12, 21], [8, -84, 10, 16]], ['#c0ca33', '#689f38', '#f9fbe7'])]},
+  palm:{n:'Cọ', s:[
+    gS('M0 0V-8', '#8d6e63', 4) + gFronds(0, -8, [[-14, 2], [14, 2], [-8, -10], [8, -10]], 4),
+    (([s, x, y]) => s + gFronds(x, y, [[-28, 6], [28, 6], [-20, -12], [20, -12], [0, -18]], 6))(gPalm(34, 4)),
+    (([s, x, y]) => s + gC(x - 3, y + 3, 4, '#6d4c41') + gC(x + 4, y + 4, 4, '#5d4037')
+      + gFronds(x, y, [[-40, 10], [40, 10], [-32, -14], [32, -14], [-12, -26], [14, -26]], 7))(gPalm(62, 8))]},
+  cactus:{n:'Xương rồng', s:[
+    gCactus(16, 12),
+    gS('M0-18H14V-32', '#43a047', 9) + gCactus(44, 16),
+    gS('M0-30H-19V-48', '#43a047', 11) + gS('M0-42H19V-58', '#43a047', 11) + gCactus(70, 20)
+      + gC(-4, -72, 4, '#ec407a') + gC(4, -72, 4, '#ec407a') + gC(0, -76, 4, '#f06292') + gC(0, -72, 2.5, '#ffd54f')]},
+  bamboo:{n:'Tre', s:[
+    gBamboo(0, 18, 5) + gLeaf(2, -12, -30, .9, '#8bc34a') + gLeaf(-2, -16, -150, .8, '#689f38'),
+    gBamboo(-5, 44, 6) + gBamboo(6, 34, 6) + gLeaf(-3, -30, -150, 1, '#689f38') + gLeaf(8, -24, -25, 1, '#8bc34a') + gLeaf(-3, -42, -40, .9, '#8bc34a'),
+    gBamboo(-11, 78, 7) + gBamboo(12, 64, 7) + gBamboo(1, 96, 7)
+      + gLeaf(-9, -54, -155, 1.1, '#689f38') + gLeaf(14, -48, -20, 1.1, '#8bc34a') + gLeaf(3, -72, -30, 1.1, '#7cb342')
+      + gLeaf(-1, -84, -150, 1, '#8bc34a') + gLeaf(3, -94, -60, .9, '#9ccc65') + gLeaf(-9, -30, -140, .9, '#7cb342')]}};
+const FDEAD = gS('M0 0V-40M0-22L-13-34L-15-44M0-30L11-42', '#7d6b5d', 5) + gE(-12, 2, 4, 1.6, '#a1887f') + gE(10, 1, 4, 1.6, '#8d6e63');
+const fSpecies = k => FSP[k] || FSP.pine;   // phiên cũ trước khi có chọn loài thì là thông
+const fStage   = min => min < 15 ? 1 : min < 40 ? 2 : 3;
+// cây trên đồng hồ: chưa bắt đầu là cây cấp 1, đang chạy thì lên cấp theo số phút đã làm
 function fGrowHTML(){
-  const r = S.focus.run, t = fTree(r ? r.dur / 6e4 : S.focus.cfg.work);
-  return `<div class="fztree" title="Phiên này trồng: ${t.n}"><svg viewBox="-50 -104 100 110">
-    <ellipse rx="30" ry="7" fill="#000" opacity=".2"/><g data-ftree style="--g:${r ? fGrow(r) : 0}">${t.svg}</g></svg></div>`;
+  const r = S.focus.run, k = r ? r.tree : S.focus.tree, st = r ? fStage(fWorked(r) / 6e4) : 1;
+  return `<div class="fztree" title="${fSpecies(k).n} · cấp ${st}"><svg viewBox="-50 -104 100 110">${gE(0, 0, 30, 7, '#000', .2)}
+    <g data-ftree data-st="${st}">${fSpecies(k).s[st - 1]}</g></svg></div>`;
 }
-// ô đất isometric N×N, cây rải ngẫu nhiên nhưng cố định theo khoảng đang xem (vẽ lại không bị xáo)
+// hàng chọn loài cây trước khi bắt đầu phiên; app nhớ loài chọn lần trước
+function fPickHTML(){
+  const cur = S.focus.tree;
+  return `<div class="fzsp">${Object.entries(FSP).map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" data-fsp="${k}" title="${t.n}">
+      <svg viewBox="-50 -104 100 110">${t.s[2]}</svg></button>`).join('')}</div>
+    <div class="fzhint fzsph">${fSpecies(cur).n} · cấp 2 từ 15 phút, cấp 3 từ 40 phút</div>`;
+}
+// ô đất isometric N×N, cây và cỏ hoa rải ngẫu nhiên nhưng cố định theo khoảng đang xem (vẽ lại không bị xáo)
 function fGardenHTML(list, seed){
-  const N = Math.max(4, Math.ceil(Math.sqrt(list.length))), a = 50, b = 25, d = 16;
+  const N = Math.max(4, Math.ceil(Math.sqrt(list.length))), a = 50, b = 25, lip = 6, d = 20;
   let h = 0; for(const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   const rnd = () => (h = (h * 1664525 + 1013904223) >>> 0) / 2 ** 32;
   const cells = []; for(let i = 0; i < N; i++) for(let j = 0; j < N; j++) cells.push([i, j]);
   const tiles = cells.map(([i, j]) => { const x = (i - j) * a, y = (i + j) * b;
-    return `<path d="M${x} ${y}L${x + a} ${y + b}L${x} ${y + 2 * b}L${x - a} ${y + b}z" fill="${(i + j) % 2 ? '#7cc36b' : '#86cc74'}"/>`; }).join('');
+    return `<path d="M${x} ${y}L${x + a} ${y + b}L${x} ${y + 2 * b}L${x - a} ${y + b}z" fill="${(i + j) % 2 ? '#86c75a' : '#8fd062'}" stroke="#7dbb51" stroke-width=".8"/>`; }).join('');
   for(let i = cells.length - 1; i > 0; i--){ const x = Math.floor(rnd() * (i + 1)); [cells[i], cells[x]] = [cells[x], cells[i]]; }
-  // cây ở sau vẽ trước để cây ở trước che lên
-  const put = list.map((e, n) => ({e, i:cells[n][0], j:cells[n][1]})).sort((p, q) => p.i + p.j - q.i - q.j || p.i - q.i);
-  const trees = put.map(({e, i, j}) => {
-    const t = e.done ? fTree(e.plan) : FDEAD, k = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
-    const tip = `${t.n} · ${fHM(e.a)} ${DOW[dowOf(k)]} ${fmtVN(k)} · ${e.done ? `${m} phút` : `bỏ dở sau ${m} phút`} · ${e.title.trim() || '(chưa đặt tên)'}`;
-    return `<g class="gt" data-gtip="${esc(tip)}" transform="translate(${(i - j) * a} ${(i + j) * b + b}) scale(.62)">
-      <ellipse rx="34" ry="12" fill="#000" opacity=".15"/>${t.svg}</g>`;
-  }).join('');
-  return `<svg class="fgarden" viewBox="${-N * a - 6} ${b - 70} ${2 * N * a + 12} ${2 * N * b + d + 76}">
-    <path d="M${-N * a} ${N * b}L0 ${2 * N * b}V${2 * N * b + d}L${-N * a} ${N * b + d}z" fill="#8d6e4f"/>
-    <path d="M${N * a} ${N * b}L0 ${2 * N * b}V${2 * N * b + d}L${N * a} ${N * b + d}z" fill="#6f543a"/>
-    ${tiles}${trees}</svg>`;
+  // ô trống thì thỉnh thoảng có khóm cỏ, bông hoa hay hòn đá
+  const items = cells.map(([i, j], n) => {
+    const x = (i - j) * a + (rnd() - .5) * 30, y = (i + j) * b + b + (rnd() - .5) * 14, e = list[n], p = rnd();
+    if(e){
+      const sp = fSpecies(e.tree), st = fStage(e.ms / 6e4), k = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
+      const tip = `${e.done ? `${sp.n} · cấp ${st}` : `${sp.n} héo`} · ${fHM(e.a)} ${DOW[dowOf(k)]} ${fmtVN(k)} · ${e.done ? `${m} phút` : `bỏ dở sau ${m} phút`} · ${e.title.trim() || '(chưa đặt tên)'}`;
+      return {i, j, svg:`<g class="gt" data-gtip="${esc(tip)}" transform="translate(${(i - j) * a} ${(i + j) * b + b}) scale(.8)">
+        ${gE(0, 0, 30, 10, '#1b4d1b', .22)}${e.done ? sp.s[st - 1] : FDEAD}</g>`};
+    }
+    const svg = p < .22 ? gS(`M${x - 3} ${y}l-2-6M${x} ${y}v-8M${x + 3} ${y}l2-6`, '#5e9e3a', 1.6)
+      : p < .34 ? gS(`M${x} ${y}v-5`, '#5e9e3a', 1.2) + gC(x, y - 6, 2.2, p < .28 ? '#fff' : '#ffd54f')
+      : p < .42 ? gE(x, y, 4.5, 2.6, '#a8a095') + gE(x - 1.2, y - 1, 2, 1, '#d6cec4') : '';
+    return {i, j, svg};
+  }).sort((p, q) => p.i + p.j - q.i - q.j || p.i - q.i).map(x => x.svg).join('');   // sau vẽ trước, trước che lên
+  const face = (sx, dirt, grass, band) => {
+    const X = sx * N * a, Y = N * b, B = 2 * N * b;
+    return gP(`M${X} ${Y}L0 ${B}V${B + lip + d}L${X} ${Y + lip + d}z`, dirt)
+      + gP(`M${X} ${Y + lip + d - 5}L0 ${B + lip + d - 5}V${B + lip + d}L${X} ${Y + lip + d}z`, band)
+      + gP(`M${X} ${Y}L0 ${B}V${B + lip}L${X} ${Y + lip}z`, grass)
+      + Array.from({length:N * 2}, () => { const t = rnd(); return gE(X * (1 - t), Y + (B - Y) * t + lip + 5 + rnd() * (d - 11), 2.2, 1.3, band, .7); }).join('');
+  };
+  const bottom = 2 * N * b + lip + d;
+  return `<svg class="fgarden" viewBox="${-N * a - 6} ${b - 90} ${2 * N * a + 12} ${bottom + 104 - b}">
+    ${gE(0, N * b + lip + d + 14, N * a * .8, N * b * .8, '#000', .25)}
+    ${face(-1, '#9a6a43', '#5e9e3a', '#7a4f2e')}${face(1, '#7d5433', '#4f8a31', '#603c20')}
+    ${tiles}${items}</svg>`;
 }
 // tooltip của cây trong vườn: đi theo chuột
 document.addEventListener('mouseover', e => {
@@ -2772,7 +2864,7 @@ function fPickImg(p){
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fstart],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
-    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
+    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fsp],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
@@ -2790,6 +2882,7 @@ document.addEventListener('click', e => {
   if('fdone' in d) return fDone(d.fdone);
   if('fdrop' in d){ f.queue = f.queue.filter(x => x !== d.fdrop); save(); return fPaint(); }
   if('fopen' in d) return openTask(d.fopen);
+  if('fsp' in d){ f.tree = d.fsp; save(); return fPaint(); }
   if('fcm' in d){ ui.fcM = d.fcm; ui.fcOff = 0; return fPaintPage(); }
   if('fcoff' in d){ ui.fcOff = (ui.fcOff || 0) + +d.fcoff; return fPaintPage(); }
   if('fcfgbtn' in d){ ui.fCfg = !ui.fCfg; return fPaintCfg(); }

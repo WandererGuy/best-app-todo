@@ -730,7 +730,18 @@ select.inp:disabled{opacity:.45;cursor:default}
 #gtip{position:fixed;z-index:120;pointer-events:none;background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:5px 9px;
   font-size:11.5px;color:var(--tx);box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:320px}
 .fztree svg{display:block;width:100%;height:100%;overflow:visible}
-.fztree [data-ftree]{transform-box:fill-box;transform-origin:50% 100%;transform:scale(calc(.25 + .75 * var(--g)));transition:transform 1s linear}
+.fztree .grow{transform-box:fill-box;transform-origin:50% 100%;animation:tgrow .8s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tgrow{from{transform:scale(.5)}to{transform:scale(1)}}
+.fzsp{display:flex;gap:5px;flex-wrap:wrap}
+.fzsp button{width:40px;height:44px;padding:3px;border-radius:9px;border:1px solid var(--line);background:var(--panel2)}
+.fzsp button:hover{border-color:#3a4254}
+.fzsp button.on{border-color:var(--fc);box-shadow:inset 0 0 0 1px var(--fc);background:rgba(129,140,248,.14)}
+.fzsp svg{display:block;width:100%;height:100%}
+.fzsph{margin-top:-4px}
+.fz.full .fzsp{justify-content:center}
+.fz.full .fzsp button{width:48px;height:52px;background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.22)}
+.fz.full .fzsp button.on{border-color:#fff;box-shadow:inset 0 0 0 1px #fff}
+.fz.full .fzsph{color:inherit;opacity:.75}
 .fz.page{position:relative}
 .fz.page .fztree{position:absolute;top:44px;right:26px;width:110px;height:120px}
 .fz.page:has(.fztree) :is(.fzclock,.fzbar,.fztask,.fznext){margin-right:130px}
