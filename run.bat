@@ -6,6 +6,10 @@ title Trung tam dieu khien
 where python >nul 2>nul
 if errorlevel 1 goto :nopython
 
+rem tat server cu con sot (cua so run.bat khac, python serve.py chay tay) de chi co mot server
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tat-server-cu.ps1"
+if errorlevel 1 goto :portbusy
+
 echo.
 echo   Trung tam dieu khien dang chay tai  http://localhost:8000
 echo.
@@ -18,8 +22,12 @@ echo.
 start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
 python serve.py
 echo.
-echo   Server da dung. Neu bao loi "address already in use" thi cong 8000
-echo   dang bi mot cua so run.bat khac chiem - dong cua so do roi chay lai.
+echo   Server da dung.
+echo.
+pause
+goto :eof
+
+:portbusy
 echo.
 pause
 goto :eof

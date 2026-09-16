@@ -19,7 +19,7 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 - **Đóng cửa sổ đen** = tắt server. Không cần làm gì thêm. Tắt server lúc tab còn mở thì app báo đỏ; thay đổi vẫn giữ trong trình duyệt và được gửi lên ở lần mở sau.
 - Máy không có Python thì `run.bat` báo lỗi và dừng — cố ý không mở thẳng `index.html`, vì cách đó dữ liệu chỉ nằm trong trình duyệt.
-- Báo `address already in use` = còn một cửa sổ `run.bat` khác đang chiếm cổng 8000. Đóng cửa sổ đó rồi chạy lại.
+- Bấm `run.bat` khi đã có server đang chạy thì server cũ **tự bị tắt** trước (qua `tat-server-cu.ps1`), nên lúc nào cũng chỉ có một server. Script chỉ tắt thứ của app: cửa sổ `run.bat` cũ (cùng đường dẫn, tắt cả cửa sổ) và `python serve.py` đang giữ cổng 8000 (chạy tay trong terminal thì chỉ tắt python, để yên terminal). Chương trình khác chiếm cổng 8000 thì không bị tắt — `run.bat` báo tên nó rồi dừng.
 
 ### Vì sao qua server chứ không mở thẳng file
 

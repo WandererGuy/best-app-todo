@@ -88,7 +88,8 @@ Có sẵn đường nâng cấp cho dữ liệu cũ: nhật ký định dạng c
 ## Cấu trúc
 
 ```
-run.bat                Bấm đúp là chạy: bật server rồi mở trình duyệt
+run.bat                Bấm đúp là chạy: tắt server cũ còn sót, bật server rồi mở trình duyệt
+tat-server-cu.ps1      run.bat gọi: tắt cửa sổ run.bat cũ và python serve.py đang giữ cổng 8000
 serve.py               Server cổng 8000 (chỉ localhost): phát file tĩnh tắt cache + API /api/data giữ dữ liệu
 data/                  Dữ liệu thật (dieukhien.json) và backups/ — không đưa vào git
 index.html             Khung HTML, nạp các file dưới
