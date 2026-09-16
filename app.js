@@ -1844,6 +1844,20 @@ function hGrid(h){
   </div>`;
 }
 
+/* Lý do: mở ra là một ô soạn thảo như ghi chú task, gập lại chỉ còn một dòng xem trước.
+   Trạng thái mở / gập nằm trong chính thói quen nên mở lại app vẫn đúng như lúc rời đi. */
+function hWhy(h){
+  if(h.open) return `<div class="hwhy on">
+    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▾</span><span class="l">Lý do</span></button>
+    <div class="hwbox"><div id="hWhy-${h.id}"></div></div></div>`;
+  const txt = plain(h.why);
+  const peek = txt ? (txt.length > 72 ? txt.slice(0, 72) + '…' : txt)
+                   : (hasText(h.why) ? '…' : 'chưa viết — bấm để thêm');
+  return `<div class="hwhy">
+    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▸</span><span class="l">Lý do</span>
+      <span class="pk${txt || hasText(h.why) ? '' : ' none'}">${esc(peek)}</span></button></div>`;
+}
+
 function hCard(h){
   const k = today(), on = hDone(h, k), due = hOn(h, k), kind = HKINDS[h.kind];
   const n = hStreak(h), m = hMiss(h);
@@ -1864,6 +1878,7 @@ function hCard(h){
     </div>
     ${h.cue ? `<div class="hmeta"><span class="l">Khi nào</span>${esc(h.cue)}</div>` : ''}
     ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">Thay bằng</span>${esc(h.swap)}</div>` : ''}
+    ${hWhy(h)}
     <div class="hdays">${DOW.map((d, i) => `<span class="${h.days.includes(i) ? 'on' : ''}">${d}</span>`).join('')}</div>
     ${nudge}
     ${hGrid(h)}</div>`;
@@ -1871,9 +1886,9 @@ function hCard(h){
 
 function hForm(){
   const d = hd;
-  return `<div class="hcard edit" style="--hc:${d.color}">
+  return `<div class="hcard edit" id="hEdit" style="--hc:${d.color}">
     <div class="hhd">
-      <button class="hsw" data-hpal style="background:${d.color}" title="Đổi màu"></button>
+      <button class="hsw" id="hSw" data-hpal style="background:${d.color}" title="Đổi màu"></button>
       <input class="fttl" id="hName" value="${esc(d.name)}" autocomplete="off"
         placeholder="${d.kind === 'bad' ? 'Thói quen muốn bỏ, ví dụ: lướt điện thoại trên giường' : 'Thói quen muốn giữ, ví dụ: đọc 20 trang'}">
     </div>
@@ -1886,14 +1901,35 @@ function hForm(){
     <div class="fld"><label>Ý định thực hiện</label>
       <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="Sau khi ăn sáng, ở bàn làm việc" autocomplete="off">
       <div class="hint" style="margin:0">Ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
-    ${d.kind === 'bad' ? `<div class="fld"><label>Thay bằng hành vi nào</label>
+    <div class="fld" id="hSwapFld"${d.kind === 'bad' ? '' : ' hidden'}><label>Thay bằng hành vi nào</label>
       <input class="inp" id="hSwap" value="${esc(d.swap)}" placeholder="Cắm sạc điện thoại ngoài phòng, đọc sách giấy" autocomplete="off">
-      <div class="hint" style="margin:0">Cơn thèm vẫn sẽ đến, thứ đổi được là phản ứng. Mỗi ngày dùng được hành vi thay thế thì tick.</div></div>` : ''}
+      <div class="hint" style="margin:0">Cơn thèm vẫn sẽ đến, thứ đổi được là phản ứng. Mỗi ngày dùng được hành vi thay thế thì tick.</div></div>
+    <div class="fld"><label>Lý do</label>
+      <div class="hwbox"><div id="hWhyEd"></div></div>
+      <div class="hint" style="margin:0">Vì sao thói quen này đáng làm — thứ bạn sẽ cần đọc lại vào đúng hôm không muốn làm. Gõ <b>/</b> để chèn khối.</div></div>
     <div class="hact">
       <button class="btn" data-hsave>${d.id ? 'Lưu' : 'Thêm thói quen'}</button>
       <button class="btn ghost" data-hcancel>Huỷ</button>
       ${d.id ? `<button class="danger" data-hdel="${d.id}" style="margin-left:auto">Xoá thói quen</button>` : ''}
     </div></div>`;
+}
+
+// Vẽ lại các nút trong form theo bản nháp mà không đụng vào ô soạn thảo Lý do đang mở.
+// Nếu vẽ lại cả form thì trình soạn thảo bị huỷ rồi dựng lại, con trỏ nhảy về đầu.
+function hSync(){
+  const f = $('#hEdit'); if(!f || !hd) return;
+  f.style.setProperty('--hc', hd.color);
+  $('#hSw').style.background = hd.color;
+  $$('[data-hkind]').forEach(b => {
+    const on = b.dataset.hkind === hd.kind, c = HKINDS[b.dataset.hkind].c;
+    b.classList.toggle('on', on);
+    b.style.cssText = on ? `background:${c};border-color:${c}` : '';
+  });
+  $$('[data-hdow]').forEach(b => b.classList.toggle('on', hd.days.includes(+b.dataset.hdow)));
+  $('#hSwapFld').hidden = hd.kind !== 'bad';
+  $('#hName').placeholder = hd.kind === 'bad'
+    ? 'Thói quen muốn bỏ, ví dụ: lướt điện thoại trên giường'
+    : 'Thói quen muốn giữ, ví dụ: đọc 20 trang';
 }
 
 function hOpen(h){
@@ -1928,6 +1964,7 @@ function hDel(id){
 }
 
 function renderHabits(){
+  killEds();
   const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
   const best = S.habits.reduce((a, h) => Math.max(a, hStreak(h)), 0);
   $('#vSub').textContent = S.habits.length
@@ -1942,21 +1979,32 @@ function renderHabits(){
       ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động ăn đứt việc cố gồng ý chí.</div>' : ''}
     </div>`;
   wireHabits();
+  S.habits.forEach(h => {
+    if(h.open && ui.hEdit !== h.id)
+      mountEd('hWhy-' + h.id, h.why || '', 'Vì sao thói quen này đáng làm? Gõ / để chèn khối',
+              v => { h.why = v; save(); });
+  });
+  // trong form thì ghi vào bản nháp, chỉ vào dữ liệu thật khi bấm Lưu
+  if(hd) mountEd('hWhyEd', hd.why || '', 'Vì sao thói quen này đáng làm? Gõ / để chèn khối',
+                 v => { hd.why = v; });
 }
 function wireHabits(){
   $$('[data-hnew]').forEach(b => b.onclick = () => hOpen(null));
   $$('[data-hedit]').forEach(b => b.onclick = () => hOpen(S.habits.find(x => x.id === b.dataset.hedit)));
+  $$('[data-hwhy]').forEach(b => b.onclick = () => {
+    const h = S.habits.find(x => x.id === b.dataset.hwhy);
+    h.open = !h.open; save(); renderHabits();
+  });
   if(!hd) return;
-  $$('[data-hkind]').forEach(b => b.onclick = () => { hGrab(); hd.kind = b.dataset.hkind; renderHabits(); });
+  $$('[data-hkind]').forEach(b => b.onclick = () => { hd.kind = b.dataset.hkind; hSync(); });
   $$('[data-hdow]').forEach(b => b.onclick = () => {
-    hGrab(); const i = +b.dataset.hdow;
+    const i = +b.dataset.hdow;
     hd.days = hd.days.includes(i) ? hd.days.filter(x => x !== i) : [...hd.days, i].sort((a, b) => a - b);
-    renderHabits();
+    hSync();
   });
-  $$('[data-hpre]').forEach(b => b.onclick = () => {
-    hGrab(); hd.days = b.dataset.hpre === 'all' ? [0,1,2,3,4,5,6] : [1,2,3,4,5]; renderHabits();
-  });
-  $$('[data-hpal]').forEach(b => b.onclick = () => { hGrab(); openPal(b, hd.color, c => { hd.color = c; renderHabits(); }); });
+  $$('[data-hpre]').forEach(b => b.onclick = () =>
+    { hd.days = b.dataset.hpre === 'all' ? [0,1,2,3,4,5,6] : [1,2,3,4,5]; hSync(); });
+  $$('[data-hpal]').forEach(b => b.onclick = () => openPal(b, hd.color, c => { hd.color = c; hSync(); }));
   $$('[data-hsave]').forEach(b => b.onclick = hSave);
   $$('[data-hcancel]').forEach(b => b.onclick = () => { hd = null; ui.hEdit = null; renderHabits(); });
   $$('[data-hdel]').forEach(b => b.onclick = () => hDel(b.dataset.hdel));

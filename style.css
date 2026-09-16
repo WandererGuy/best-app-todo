@@ -538,6 +538,20 @@ select.inp:disabled{opacity:.45;cursor:default}
 .hdays{display:flex;gap:4px}
 .hdays span{font-size:10.5px;padding:2px 7px;border-radius:5px;color:var(--tx3);border:1px solid transparent;background:var(--bg)}
 .hdays span.on{color:var(--hc);border-color:var(--hc);background:transparent;font-weight:650}
+/* Lý do: nhãn thẳng hàng với các dòng Khi nào / Thay bằng (10 + 9 + 47 + 9 = 75px) */
+.hwhy{display:flex;flex-direction:column;gap:9px}
+.hwt{display:flex;align-items:center;gap:9px;text-align:left;min-width:0;padding:1px 0}
+.hwt .cv{flex:0 0 10px;font-size:9px;color:var(--tx3)}
+.hwt .l{flex:0 0 47px;font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);font-weight:600}
+.hwt .pk{font-size:12.5px;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.hwt .pk.none{color:var(--tx3);font-style:italic}
+.hwt:hover .cv,.hwt:hover .l,.hwt:hover .pk{color:var(--tx)}
+.hwbox{background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:11px 13px;font-size:13px}
+.hwbox:focus-within{border-color:var(--hc)}
+.hwbox .ed{min-height:38px;line-height:1.65}
+.hwbox .ed h1{font-size:18px;margin:14px 0 6px}
+.hwbox .ed h2{font-size:16px;margin:13px 0 5px}
+.hwbox .ed h3{font-size:14px;margin:12px 0 5px}
 .hnudge{font-size:12.5px;line-height:1.6;border-radius:9px;padding:9px 12px}
 .hnudge.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fcd34d}
 .hnudge.cold{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#fda4af}

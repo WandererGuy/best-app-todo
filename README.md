@@ -22,6 +22,8 @@ Ràng buộc tự đặt: **không backend, chạy offline, dữ liệu là củ
 
 **Thói quen** — việc lặp lại vào những thứ cố định trong tuần, theo dõi riêng chứ không nằm trên bảng: task là việc làm một lần rồi xong, thói quen là chuỗi không có điểm kết thúc, và nếu để chung thì bảng sẽ ngập còn Tổng quan sẽ bị nhiễu. Mỗi thói quen có tên, màu, loại (**Nên làm** / **Nên bỏ**), các thứ trong tuần phải làm, và một câu **ý định thực hiện** dạng "sau việc gì, ở đâu" — thứ có tác dụng mạnh nhất trong các nghiên cứu về hình thành thói quen. Thói quen muốn bỏ thì khai báo thêm **hành vi thay thế**: cơn thèm vẫn đến, cái đổi được là phản ứng, nên bạn tick những ngày dùng được hành vi thay thế.
 
+Mỗi thói quen có mục **Lý do** — vì sao nó đáng làm, thứ bạn sẽ cần đọc lại vào đúng hôm không muốn làm. Đây là một ô soạn thảo đầy đủ như ghi chú task (gõ `/` để chèn khối, dán được ảnh và file), có ở hai chỗ: trong form tạo / sửa, nằm cùng các trường khác và chỉ lưu khi bấm **Lưu**; và trên thẻ dưới dạng dòng **▸ Lý do** gập / mở được, sửa là lưu ngay. Gập lại thì chỉ còn một dòng xem trước, và app nhớ bạn đang để nó mở hay gập.
+
 Mỗi thẻ có lưới 12 tuần kiểu biểu đồ đóng góp — cột là tuần, hàng là thứ, nhìn dọc thấy ngay mình hay đứt vào thứ mấy. Bấm một ô để đánh dấu hoặc bỏ đánh dấu ngày đó. Thẻ hiện **chuỗi buổi liên tiếp** và **tỉ lệ làm được**; bỏ lỡ một buổi thì app không phạt, bỏ buổi thứ hai liên tiếp mới cảnh báo — vì bỏ một lần gần như không ảnh hưởng đến quá trình thành tự động, bỏ liên tiếp mới là lúc thói quen chết.
 
 Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhanh ở đầu Bảng việc và Bảng cuộc sống, kèm số buổi liên tiếp. Tick xong có một nhịp mừng ngắn: cảm xúc tích cực tức thì mới là thứ gắn hành vi thành thói quen, không phải số lần lặp.
