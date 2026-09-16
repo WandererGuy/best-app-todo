@@ -564,9 +564,9 @@ select.inp:disabled{opacity:.45;cursor:default}
 .hgrid i.on{background:var(--hc);color:#0e1014;font-weight:650}
 .hgrid i.extra{background:var(--hc);opacity:.4;color:#0e1014;font-weight:650}
 .hgrid i.miss{background:transparent;box-shadow:inset 0 0 0 1.5px #39404f}
-.hgrid i.off{background:#191d25;cursor:default;color:#4a5161}
+.hgrid i.off{background:#191d25;color:#4a5161}
 .hgrid i.fut{background:transparent;cursor:default;color:#3a404c}
-.hgrid i.off:hover,.hgrid i.fut:hover{outline:none}
+.hgrid i.fut:hover{outline:none}
 .hgrid i.td{outline:1.5px solid var(--tx);outline-offset:1px}
 .hgleg{grid-column:2;display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx3);margin-top:7px}
 .hgleg i{width:9px;height:9px;border-radius:3px;background:var(--panel2);margin-left:6px}

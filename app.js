@@ -1868,11 +1868,12 @@ function hMiss(h){
   }
   return n;
 }
-// tỉ lệ làm được trên các buổi theo lịch trong khoảng lưới, bỏ qua ngày trước khi tạo thói quen
+// tỉ lệ làm được trên các buổi theo lịch trong khoảng lưới. Trước ngày tạo thói quen chỉ tính buổi đã tick bù,
+// không coi là bỏ lỡ những buổi hồi đó chưa theo dõi
 function hRate(h){
   let due = 0, ok = 0, k = today();
   for(let i = 0; i < HWEEKS * 7; i++, k = dShift(k, -1)){
-    if(k < h.cr || !hOn(h, k)) continue;
+    if(!hOn(h, k) || (k < h.cr && !hDone(h, k))) continue;
     due++; if(hDone(h, k)) ok++;
   }
   return due ? Math.round(ok / due * 100) : 0;
@@ -1889,8 +1890,8 @@ function hToggle(id, k){
   const on = !hDone(h, k);
   if(on) h.log[k] = 1; else delete h.log[k];
   save();
-  // chỉ mừng buổi theo lịch; tick ngoài lịch không đổi chuỗi nên báo thẳng, tránh trông như được tính
-  const inPlan = hOn(h, k) && k >= h.cr;
+  // chỉ mừng buổi theo lịch (kể cả tick bù trước ngày tạo); tick ngoài lịch không đổi chuỗi nên báo thẳng, tránh trông như được tính
+  const inPlan = hOn(h, k);
   ui.hPop = on && inPlan ? h.id : null; render(); ui.hPop = null;
   if(on && inPlan) hCheer(h);
   else if(on) toast(`Đã ghi buổi làm thêm ${DOW[dowOf(k)]} ${fmtVN(k)} — ngoài lịch nên không tính vào chuỗi`);
@@ -1937,7 +1938,7 @@ function hGrid(h){
     // ngày đã tick luôn hiện, kể cả khi nằm ngoài lịch — để đổi lịch không xoá mất lịch sử,
     // và để ghi được buổi làm thêm vào hôm khác. Buổi làm thêm không tính vào chuỗi và tỉ lệ.
     const cls = k > k0 ? 'fut'
-      : hDone(h, k) ? (hOn(h, k) && k >= h.cr ? 'on' : 'extra')
+      : hDone(h, k) ? (hOn(h, k) ? 'on' : 'extra')
       : (k < h.cr || !hOn(h, k)) ? 'off' : 'miss';
     const note = {on:' · đã làm', extra:' · làm thêm ngoài lịch', miss:' · bỏ lỡ', off:' · ngoài lịch'}[cls] || '';
     cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}">${+k.slice(8)}</i>`;
