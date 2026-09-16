@@ -24,7 +24,6 @@ const FPHASE = {work:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài'};
 const FCFG = {work:40, short:10, long:15, every:3, auto:false,
   qmax:3, confirmSw:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
-  wN:10, wWhat:'', mN:40, mWhat:'',
   askRate:true, askNext:true,
   look:{work:{c:'#1e1b4b', img:null, op:70, dim:35}, short:{c:'#064e3b', img:null, op:70, dim:35},
         long:{c:'#172554', img:null, op:70, dim:35}},
@@ -2171,12 +2170,11 @@ function wireHabits(){
 /* ============ tập trung (pomodoro) ============ */
 /* S.focus: cfg = cài đặt; queue = id task đang chờ làm (tối đa cfg.qmax, task đầu hàng là task của phiên tới);
    run = phiên hoặc giờ nghỉ đang chạy; next = pha kế tiếp khi chưa chạy; cycle = số phiên đã xong, để biết lúc nào nghỉ dài;
-   log = mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích; rev = phiên vừa xong đang chờ chấm điểm;
-   got = mốc thưởng tuần / tháng đã báo, khỏi báo lại.
+   log = mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích; rev = phiên vừa xong đang chờ chấm điểm.
    Đồng hồ không đếm nhịp mà tính từ mốc thời gian: run.acc là phần đã chạy trước lần dừng gần nhất, run.since là lúc chạy lại
    (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi. */
 const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
-  streak:['goal','miss','weekend'], reward:['wN','wWhat','mN','mWhat'], ask:['askRate','askNext'],
+  streak:['goal','miss','weekend'], ask:['askRate','askNext'],
   look:['look'], sound:['sound','vol','notify','tabTitle']};
 const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
 // giờ nghỉ nên rời màn hình: vận động nhẹ hồi sức tốt hơn lướt điện thoại, thứ kéo đầu sang việc khác
@@ -2186,9 +2184,10 @@ const FTITLE = document.title;
 
 function fNorm(f = {}){
   const cfg = {...FCFG, ...f.cfg};
+  ['wN', 'wWhat', 'mN', 'mWhat'].forEach(k => delete cfg[k]);   // mốc phần thưởng cũ, đã bỏ
   cfg.look = Object.fromEntries(Object.keys(FPHASE).map(p => [p, {...FCFG.look[p], ...(f.cfg?.look || {})[p]}]));
   return {cfg, queue:f.queue || [], run:f.run || null, next:f.next || 'work', cycle:f.cycle || 0,
-          log:f.log || [], rev:f.rev || null, got:f.got || {}};
+          log:f.log || [], rev:f.rev || null};
 }
 const fTask   = id => S.tasks.find(t => t.id === id);
 const fName   = t => t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>';
@@ -2218,7 +2217,6 @@ function fCount(){
   fWorks().forEach(e => { if(e.done){ const k = iso(new Date(e.a)); m[k] = (m[k] || 0) + 1; } });
   return m;
 }
-const fSum = (m, a, b) => Object.entries(m).reduce((s, [k, n]) => k >= a && k <= b ? s + n : s, 0);
 // chuỗi ngày đạt mục tiêu. Ngày thường không đạt là lỡ, lỡ quá cfg.miss ngày liên tiếp thì về 0.
 // Cuối tuần không đạt thì bỏ qua; có đạt thì vẫn cộng (tắt cfg.weekend thì bỏ qua hẳn cuối tuần).
 // Hôm nay chưa đạt thì chưa tính là lỡ, vì ngày chưa hết.
@@ -2260,6 +2258,7 @@ function fPaintTime(){
     const left = fLeft(r), txt = fClock(left);
     $$('[data-fclock]').forEach(el => el.textContent = txt);
     $$('[data-fbar]').forEach(el => el.style.width = Math.min(100, (1 - left / r.dur) * 100) + '%');
+    if(r.phase === 'work') $$('[data-ftree]').forEach(el => el.style.setProperty('--g', fGrow(r)));
     if(!r.since) $$('[data-fpaused]').forEach(el => {
       const m = Math.floor((Date.now() - r.pAt) / 6e4), long = m >= c.pauseAsk;
       el.classList.toggle('long', long);
@@ -2347,7 +2346,7 @@ function fResume(){
 function fCancel(){
   const f = S.focus, r = f.run; if(!r) return;
   const ms = fWorked(r);
-  if(!confirm(`Huỷ phiên đang làm? ${Math.floor(ms / 6e4)} phút đã làm vẫn được ghi lại, nhưng không tính là một phiên đạt.`)) return;
+  if(!confirm(`Huỷ phiên đang làm? ${Math.floor(ms / 6e4)} phút đã làm vẫn được ghi lại, nhưng không tính là một phiên đạt, và cây đang trồng sẽ héo.`)) return;
   if(ms >= 6e4) fLog(r, Date.now(), ms);   // bấm nhầm rồi huỷ ngay thì không ghi
   f.run = null; fStopTick(); save(); fPaint();
 }
@@ -2364,18 +2363,12 @@ function fReview(keep){
   f.rev = null; ui.fRev = {rate:0, next:''};
   save(); fPaint();
 }
-// mừng lúc xong phiên; chạm mục tiêu ngày hay mốc thưởng thì nói rõ
+// mừng lúc xong phiên; chạm mục tiêu ngày thì nói rõ
 function fCheer(){
-  const f = S.focus, c = f.cfg, k = today(), m = fCount(), n = m[k] || 0, msg = [];
+  const c = S.focus.cfg, n = fCount()[today()] || 0, e = fWorks().pop();
+  const msg = [`🌳 Trồng xong một ${fTree(e.plan).n.toLowerCase()} · hôm nay ${n}/${c.goal}`];
   if(n === c.goal) msg.push(`🔥 Đạt mục tiêu hôm nay · chuỗi ${fRun().cur} ngày`);
-  const marks = [['w' + fMon(k), fSum(m, fMon(k), k), c.wN, c.wWhat, 'tuần này'],
-                 ['m' + k.slice(0, 7), fSum(m, k.slice(0, 7) + '-01', k), c.mN, c.mWhat, 'tháng này']];
-  marks.forEach(([key, v, goal, what, lbl]) => {
-    if(!goal || v < goal || f.got[key]) return;
-    f.got[key] = 1;
-    msg.push(`🎁 Đủ ${goal} phiên ${lbl}${what ? ` — bạn đã xứng đáng: ${what}` : '!'}`);
-  });
-  ui.fCheer = msg.length ? msg : [`✓ Xong phiên · hôm nay ${n}/${c.goal}`];
+  ui.fCheer = msg;
   ui.fPop = true;
   toast(ui.fCheer[ui.fCheer.length - 1]);
 }
@@ -2431,6 +2424,7 @@ function fPanel(mode){
     <span class="fzdots" title="Hôm nay ${n}/${c.goal} phiên">${dots}</span>
     ${mode === 'full' ? '<button class="fzic" data-ffull="0" title="Thoát toàn màn hình (Esc)">✕</button>'
                       : '<button class="fzic" data-ffull="1" title="Toàn màn hình">⤢</button>'}</div>`;
+  if(big && phase === 'work') h += fGrowHTML();
   if(ui.fCheer) h += `<div class="fzcheer${ui.fPop ? ' pop' : ''}"><span>${ui.fCheer.map(esc).join('<br>')}</span>
     <button class="fzic" data-fcheer title="Đóng">✕</button></div>`;
   if(f.rev) h += fRevHTML();
@@ -2580,8 +2574,6 @@ function fStatsHTML(){
   const add = key => list.reduce((s, e) => s + (e[key] || 0), 0);
   const rated = list.filter(e => e.rate);
   const bar = (v, goal) => `<div class="bk"><i style="width:${goal ? Math.min(100, v / goal * 100) : 0}%;background:${goal && v >= goal ? 'var(--ok)' : 'var(--acc)'}"></i></div>`;
-  const mark = (lbl, v, goal, what, key) => goal ? `<div class="bar"><div class="bt">${lbl}<b>${v}/${goal}</b></div>${bar(v, goal)}
-      <div class="fzrw${S.focus.got[key] ? ' ok' : ''}">${what ? `🎁 ${esc(what)}` : 'Chưa đặt phần thưởng — đặt ở Cài đặt'}</div></div>` : '';
   const days = Array.from({length:7}, (_, i) => dShift(k, i - 6));
   return `<div class="fzh">Tiến độ</div>
     <div class="fzbig">
@@ -2591,8 +2583,6 @@ function fStatsHTML(){
     ${bar(n, c.goal)}
     <div class="fzdays">${days.map(d => { const v = m[d] || 0; return `<div class="${v >= c.goal ? 'ok' : v ? 'part' : ''}${d === k ? ' td' : ''}"
       title="${DOW[dowOf(d)]} ${fmtVN(d)} · ${v} phiên"><b>${v || ''}</b><span>${DOW[dowOf(d)]}</span></div>`; }).join('')}</div>
-    ${mark('Tuần này', fSum(m, fMon(k), k), c.wN, c.wWhat, 'w' + fMon(k))}
-    ${mark('Tháng này', fSum(m, k.slice(0, 7) + '-01', k), c.mN, c.mWhat, 'm' + k.slice(0, 7))}
     <div class="fzh">Hôm nay</div>
     <div class="fzsum">
       <div><b>${Math.round(add('ms') / 6e4)}</b><span>phút tập trung</span></div>
@@ -2606,6 +2596,67 @@ function fStatsHTML(){
         <span class="meta">${e.done ? (e.rate ? `${e.rate}/5` : '✓') : `bỏ dở · ${Math.round(e.ms / 6e4)} phút`}</span></div>`).join('')}</div>`
       : '<div class="fzhint">Chưa có phiên nào hôm nay.</div>'}`;
 }
+/* --- khu vườn: mỗi phiên đủ giờ trồng một cây, loài tuỳ độ dài phiên; phiên huỷ giữa chừng để lại cây héo.
+   Cây vẽ bằng SVG, gốc ở (0, 0), cao chừng 100 đơn vị. --- */
+const FTREES = [
+  {min:0, n:'Bụi cây', svg:`<circle cx="-13" cy="-15" r="15" fill="#3f9b4a"/><circle cx="13" cy="-14" r="14" fill="#2f8039"/>
+    <circle cx="0" cy="-27" r="17" fill="#4caf57"/><circle cx="-6" cy="-33" r="6" fill="#7fd489" opacity=".6"/>`},
+  {min:25, n:'Cây tròn', svg:`<rect x="-4" y="-32" width="8" height="32" rx="2" fill="#8b5a2b"/>
+    <circle cy="-54" r="28" fill="#43a047"/><path d="M0-82a28 28 0 0 1 0 56z" fill="#2e7d32" opacity=".55"/><circle cx="-10" cy="-64" r="8" fill="#81c784" opacity=".6"/>`},
+  {min:40, n:'Cây thông', svg:`<rect x="-4" y="-16" width="8" height="16" rx="2" fill="#7a4a24"/>
+    <path d="M-30-14L0-52L30-14z" fill="#2e7d4f"/><path d="M-23-40L0-74L23-40z" fill="#36915c"/><path d="M-16-62L0-96L16-62z" fill="#41a86b"/>
+    <path d="M0-52L30-14H0zM0-74L23-40H0zM0-96L16-62H0z" fill="#000" opacity=".13"/>`},
+  {min:60, n:'Cây anh đào', svg:`<path d="M-3 0L-4-34L-16-50M-4-34L10-52" stroke="#6d4428" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <circle cx="-18" cy="-56" r="18" fill="#f48fb1"/><circle cx="16" cy="-58" r="19" fill="#ec6f9c"/><circle cx="-1" cy="-74" r="20" fill="#f8a5c2"/>
+    <circle cx="-7" cy="-80" r="6" fill="#fde2ec" opacity=".8"/>`},
+  {min:90, n:'Cây cổ thụ', svg:`<path d="M-7 0L-6-40H6L7 0z" fill="#6b4226"/>
+    <circle cx="-24" cy="-52" r="22" fill="#2e7d32"/><circle cx="24" cy="-54" r="22" fill="#276b2b"/><circle cx="-10" cy="-78" r="24" fill="#388e3c"/>
+    <circle cx="14" cy="-82" r="22" fill="#43a047"/><circle cx="-14" cy="-86" r="7" fill="#81c784" opacity=".55"/>
+    <circle cx="-20" cy="-50" r="3" fill="#ffb74d"/><circle cx="20" cy="-72" r="3" fill="#ffb74d"/><circle cx="4" cy="-58" r="3" fill="#ffb74d"/>`}];
+const FDEAD = {n:'Cây héo', svg:`<path d="M0 0V-46M0-26L-15-40L-18-50M0-36L13-50" stroke="#7a6350" stroke-width="5" stroke-linecap="round" fill="none"/>
+    <circle cx="-18" cy="-52" r="3" fill="#a1887f"/><circle cx="14" cy="-53" r="3" fill="#a1887f"/>`};
+const fTree = min => FTREES.filter(t => min >= t.min).pop();
+const fGrow = r => Math.min(1, fWorked(r) / r.dur);
+// cây trên đồng hồ: lớn dần theo phiên, chưa bắt đầu thì là cây non
+function fGrowHTML(){
+  const r = S.focus.run, t = fTree(r ? r.dur / 6e4 : S.focus.cfg.work);
+  return `<div class="fztree" title="Phiên này trồng: ${t.n}"><svg viewBox="-50 -104 100 110">
+    <ellipse rx="30" ry="7" fill="#000" opacity=".2"/><g data-ftree style="--g:${r ? fGrow(r) : 0}">${t.svg}</g></svg></div>`;
+}
+// ô đất isometric N×N, cây rải ngẫu nhiên nhưng cố định theo khoảng đang xem (vẽ lại không bị xáo)
+function fGardenHTML(list, seed){
+  const N = Math.max(4, Math.ceil(Math.sqrt(list.length))), a = 50, b = 25, d = 16;
+  let h = 0; for(const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => (h = (h * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+  const cells = []; for(let i = 0; i < N; i++) for(let j = 0; j < N; j++) cells.push([i, j]);
+  const tiles = cells.map(([i, j]) => { const x = (i - j) * a, y = (i + j) * b;
+    return `<path d="M${x} ${y}L${x + a} ${y + b}L${x} ${y + 2 * b}L${x - a} ${y + b}z" fill="${(i + j) % 2 ? '#7cc36b' : '#86cc74'}"/>`; }).join('');
+  for(let i = cells.length - 1; i > 0; i--){ const x = Math.floor(rnd() * (i + 1)); [cells[i], cells[x]] = [cells[x], cells[i]]; }
+  // cây ở sau vẽ trước để cây ở trước che lên
+  const put = list.map((e, n) => ({e, i:cells[n][0], j:cells[n][1]})).sort((p, q) => p.i + p.j - q.i - q.j || p.i - q.i);
+  const trees = put.map(({e, i, j}) => {
+    const t = e.done ? fTree(e.plan) : FDEAD, k = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
+    const tip = `${t.n} · ${fHM(e.a)} ${DOW[dowOf(k)]} ${fmtVN(k)} · ${e.done ? `${m} phút` : `bỏ dở sau ${m} phút`} · ${e.title.trim() || '(chưa đặt tên)'}`;
+    return `<g class="gt" data-gtip="${esc(tip)}" transform="translate(${(i - j) * a} ${(i + j) * b + b}) scale(.62)">
+      <ellipse rx="34" ry="12" fill="#000" opacity=".15"/>${t.svg}</g>`;
+  }).join('');
+  return `<svg class="fgarden" viewBox="${-N * a - 6} ${b - 70} ${2 * N * a + 12} ${2 * N * b + d + 76}">
+    <path d="M${-N * a} ${N * b}L0 ${2 * N * b}V${2 * N * b + d}L${-N * a} ${N * b + d}z" fill="#8d6e4f"/>
+    <path d="M${N * a} ${N * b}L0 ${2 * N * b}V${2 * N * b + d}L${N * a} ${N * b + d}z" fill="#6f543a"/>
+    ${tiles}${trees}</svg>`;
+}
+// tooltip của cây trong vườn: đi theo chuột
+document.addEventListener('mouseover', e => {
+  const g = e.target.closest && e.target.closest('[data-gtip]'); let tip = $('#gtip');
+  if(!g){ if(tip) tip.hidden = true; return; }
+  if(!tip){ tip = document.createElement('div'); tip.id = 'gtip'; document.body.appendChild(tip); }
+  tip.textContent = g.dataset.gtip; tip.hidden = false;
+});
+document.addEventListener('mousemove', e => {
+  const tip = $('#gtip'); if(!tip || tip.hidden) return;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = e.clientY + 16 + 'px';
+});
+
 // biểu đồ giờ tập trung theo tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
 // ui.fcM = khoảng đang xem, ui.fcOff = lùi / tiến bao nhiêu khoảng so với hiện tại
 const FCM = {week:'Tuần', month:'Tháng', year:'Năm'};
@@ -2634,11 +2685,18 @@ function fChartHTML(){
   cols.forEach(c => { const l = works.filter(e => { const k = iso(new Date(e.a)); return k >= c.a && k <= c.b; });
     c.ms = l.reduce((s, e) => s + (e.ms || 0), 0); c.n = l.filter(e => e.done).length; });
   const total = cols.reduce((s, c) => s + c.ms, 0);
+  // cây của khoảng đang xem: phiên đủ giờ, và phiên huỷ đã làm được từ 1 phút (huỷ ngay thì không ghi)
+  const a0 = cols[0].a, b0 = cols[cols.length - 1].b;
+  const grown = works.filter(e => { const k = iso(new Date(e.a)); return k >= a0 && k <= b0 && (e.done || e.ms >= 6e4); });
+  const dead = grown.filter(e => !e.done).length;
   // trục dọc theo giờ: chia 4 nấc tròn số
   const maxH = Math.max(...cols.map(c => c.ms)) / 36e5, step = [.25, .5, 1, 2, 5, 10, 20, 50, 100].find(v => v * 4 >= maxH) || Math.ceil(maxH / 4), top = step * 4;
-  return `<div class="fzh">Giờ tập trung<span class="n">${fHours(total)}</span>
+  return `<div class="fzh">Khu vườn<span class="n">🌳 ${grown.length - dead} cây${dead ? ` · 🥀 ${dead} héo` : ''}</span>
       <div class="scope fcscope">${Object.entries(FCM).map(([k, n]) => `<button class="${mode === k ? 'on' : ''}" data-fcm="${k}">${n}</button>`).join('')}</div></div>
     <div class="fcnav"><button class="nvb" data-fcoff="-1">‹</button><span>${title}</span><button class="nvb" data-fcoff="1">›</button></div>
+    ${fGardenHTML(grown, mode + a0)}
+    ${grown.length ? '' : '<div class="fzhint fcempty">Chưa trồng cây nào trong khoảng này. Xong một phiên tập trung là có một cây.</div>'}
+    <div class="fzh">Giờ tập trung<span class="n">${fHours(total)}</span></div>
     <div class="fchart">
       <div class="fcy">${[4, 3, 2, 1, 0].map(i => `<span>${+(step * i).toFixed(2)}</span>`).join('')}</div>
       <div class="fcplot">${[4, 3, 2, 1, 0].map(i => `<i style="bottom:${i * 25}%"></i>`).join('')}
@@ -2662,10 +2720,9 @@ function fLookHTML(p){
 }
 function fCfgHTML(){
   const c = S.focus.cfg;
-  if(!ui.fCfg) return `<button class="fzcfgbtn" data-fcfgbtn>⚙ Cài đặt<span>Thời lượng, hàng đợi, mục tiêu, phần thưởng, giao diện, âm thanh</span></button>`;
+  if(!ui.fCfg) return `<button class="fzcfgbtn" data-fcfgbtn>⚙ Cài đặt<span>Thời lượng, hàng đợi, mục tiêu, giao diện, âm thanh</span></button>`;
   const num = (k, l, min, max, u) => `<label class="fzrow"><span>${l}</span><input class="inp" type="number" data-fcfg="${k}" min="${min}" max="${max}" value="${c[k]}">${u ? `<em>${u}</em>` : ''}</label>`;
   const chk = (k, l) => `<label class="fzrow chk"><input type="checkbox" data-fcfg="${k}"${c[k] ? ' checked' : ''}><span>${l}</span></label>`;
-  const txt = (k, l, p) => `<label class="fzrow"><span>${l}</span><input class="inp wide" data-fcfg="${k}" value="${esc(c[k])}" placeholder="${p}" autocomplete="off"></label>`;
   const grp = (id, t, body, hint) => `<div class="fzgrp"><div class="fzgh">${t}<button class="lblbtn" data-freset="${id}">Khôi phục mặc định</button></div>
     ${body}${hint ? `<div class="fzhint">${hint}</div>` : ''}</div>`;
   const perm = 'Notification' in window ? Notification.permission : 'denied';
@@ -2679,9 +2736,6 @@ function fCfgHTML(){
     ${grp('streak', 'Mục tiêu & chuỗi', num('goal', 'Số phiên đạt mỗi ngày', 1, 20, 'phiên') + num('miss', 'Số ngày thường được lỡ', 0, 5, 'ngày')
       + chk('weekend', 'Cuối tuần có làm đủ thì cộng vào chuỗi'),
       'Cuối tuần không làm thì chuỗi không gãy. Phiên huỷ giữa chừng vẫn được ghi lại nhưng không tính là phiên đạt.')}
-    ${grp('reward', 'Phần thưởng tự đặt', num('wN', 'Mốc tuần', 0, 100, 'phiên') + txt('wWhat', 'Thưởng tuần', 'Ví dụ: tối thứ Bảy xem phim')
-      + num('mN', 'Mốc tháng', 0, 400, 'phiên') + txt('mWhat', 'Thưởng tháng', 'Ví dụ: mua cuốn sách đang muốn đọc'),
-      'Đặt 0 để tắt mốc. Tuần tính từ thứ Hai; đầu tuần, đầu tháng tự làm mới.')}
     ${grp('ask', 'Sau phiên', chk('askRate', 'Chấm độ tập trung cuối phiên')
       + chk('askNext', 'Ghi "lần sau bắt đầu từ…"'))}
     ${grp('look', 'Giao diện toàn màn hình', Object.keys(FPHASE).map(fLookHTML).join(''))}
