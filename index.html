@@ -71,6 +71,23 @@
 
 <script src="vendor/tiptap.js"></script>
 
-<script src="app.js"></script>
+<!-- script thường, không phải module: các file dùng chung biến toàn cục, nên thứ tự nạp quan trọng.
+     core.js phải đứng đầu; main.js đứng cuối vì nó gán sự kiện và khởi động app -->
+<script src="js/core.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/tags.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/schedule.js"></script>
+<script src="js/board.js"></script>
+<script src="js/task.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/journal.js"></script>
+<script src="js/notes.js"></script>
+<script src="js/dash.js"></script>
+<script src="js/habits.js"></script>
+<script src="js/garden.js"></script>
+<script src="js/focus.js"></script>
+<script src="js/trash.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

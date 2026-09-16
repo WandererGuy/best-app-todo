@@ -4,10 +4,10 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 ## 0. Điều cần biết trước
 
-- App là **trang web tĩnh cộng một server Python nhỏ** (`serve.py`) giữ dữ liệu ra `data/dieukhien.json`. Không có bước build cho phần app. Phần web gồm 4 file:
-  - `index.html` — chỉ khung HTML, nạp 3 file dưới bằng `<link>` / `<script src>`
+- App là **trang web tĩnh cộng một server Python nhỏ** (`serve.py`) giữ dữ liệu ra `data/dieukhien.json`. Không có bước build cho phần app. Phần web gồm:
+  - `index.html` — chỉ khung HTML, nạp các file dưới bằng `<link>` / `<script src>`
   - `style.css` — toàn bộ CSS
-  - `app.js` — toàn bộ code app (JavaScript thuần, sửa thẳng)
+  - `js/` — code app, mỗi mục một file (JavaScript thuần, sửa thẳng)
   - `vendor/tiptap.js` — bundle trình soạn thảo TipTap đã minify, **do build sinh ra, không sửa tay**
 - `node_modules/` và `build/` **chỉ dùng khi cần build lại trình soạn thảo**. Chạy app thì không cần.
 
@@ -38,7 +38,7 @@ python serve.py
 
 `serve.py` làm hai việc:
 
-- Phát file tĩnh như `python -m http.server 8000` nhưng gửi `Cache-Control: no-cache` — không có header này, Chrome có thể giữ bản `app.js` / `style.css` cũ, sửa code xong F5 không thấy thay đổi.
+- Phát file tĩnh như `python -m http.server 8000` nhưng gửi `Cache-Control: no-cache` — không có header này, Chrome có thể giữ bản `js/*.js` / `style.css` cũ, sửa code xong F5 không thấy thay đổi.
 - Giữ dữ liệu: `GET /api/data` đọc, `PUT /api/data` ghi (bắt buộc `If-Match` đúng mã phiên bản, lệch trả 409; `?keep=1` cất bản cũ trước), `POST /api/backup` cất một bản vào `data/backups`. Ghi ra file tạm rồi `os.replace`, sập giữa chừng không hỏng file.
 
 Chỉ nghe `127.0.0.1` và `::1` — không lộ ra mạng LAN. Nghe cả `::1` là bắt buộc: Chrome gọi `localhost` thử IPv6 trước, thiếu thì mỗi request chậm thêm 50–300ms. API còn kiểm tra header `Host` và đòi header `X-App: dieukhien` để trang web lạ không gọi vào được.
@@ -75,7 +75,7 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 
 Nạp file sẽ **ghi đè toàn bộ** dữ liệu hiện tại (có hỏi xác nhận trước).
 
-Khởi động (`boot()` trong `app.js`):
+Khởi động (`boot()` trong `js/storage.js`):
 
 | Server | Trình duyệt | Làm gì |
 |---|---|---|
@@ -122,8 +122,8 @@ Rồi **đổi tên** (đừng xoá) thư mục `data/` khi server đang tắt, 
 
 ## 5. Lưu ý khi sửa code
 
-- Sửa app → sửa `app.js` (logic), `style.css` (giao diện), `index.html` (khung HTML). Không cần build.
+- Sửa app → sửa `js/` (logic), `style.css` (giao diện), `index.html` (khung HTML). Không cần build.
 - Sửa trình soạn thảo → sửa `build/editor.src.js`, rồi `node build/build.js`. **Đừng sửa tay `vendor/tiptap.js`**, build sẽ ghi đè.
-- `app.js` là script thường (không phải ES module) để mở thẳng `file://` vẫn chạy — đừng đổi sang `type="module"` / `import`.
+- Các file trong `js/` là script thường (không phải ES module) để mở thẳng `file://` vẫn chạy — đừng đổi sang `type="module"` / `import`. Chúng dùng chung biến toàn cục, nên thứ tự `<script>` trong `index.html` quan trọng: code chạy ngay lúc tải trang (không nằm trong hàm) chỉ được gọi tới thứ đã khai báo ở file nạp trước. Thêm file mới thì nhớ thêm thẻ `<script>`.
 - App chỉ gọi trình soạn thảo qua `window.TT`, không chạm trực tiếp ProseMirror. Giữ nguyên ranh giới này.
 - `backlog-human.md` là ghi chú riêng của chủ dự án, dòng đầu ghi rõ AI không được đọc — **bỏ qua file này**.

@@ -1,4 +1,4 @@
-# Server cho app: phát file tĩnh (tắt cache, sửa app.js / style.css xong chỉ cần F5)
+# Server cho app: phát file tĩnh (tắt cache, sửa js/*.js / style.css xong chỉ cần F5)
 # và giữ dữ liệu ở data/dieukhien.json — nằm ngoài trình duyệt, nên xoá cache hay đổi
 # profile Chrome không làm mất gì.
 #

@@ -108,7 +108,7 @@ serve.py               Server cổng 8000 (chỉ localhost): phát file tĩnh t�
 data/                  Dữ liệu thật (dieukhien.json) và backups/ — không đưa vào git
 index.html             Khung HTML, nạp các file dưới
 style.css              Toàn bộ CSS
-app.js                 Toàn bộ code app
+js/                    Code app, mỗi mục một file (core.js nạp đầu, main.js nạp cuối)
 vendor/tiptap.js       Bundle TipTap đã minify (build sinh ra, không sửa tay)
 build/editor.src.js    Nguồn lớp bọc trình soạn thảo, xuất ra window.TT
 build/build.js         esbuild bundle ra vendor/tiptap.js
