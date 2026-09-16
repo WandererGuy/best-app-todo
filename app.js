@@ -1608,7 +1608,7 @@ function renderDash(){
     if(jDays.includes(iso(d))) streak++; else if(i > 0 || !jDays.includes(iso(n))) break; }
 
   const hDueL = hDue(), hOkN = hDueL.filter(h => hDone(h, today())).length;
-  const hBest = S.habits.reduce((a, h) => Math.max(a, hStreak(h)), 0);
+  const hBest = S.habits.reduce((a, h) => Math.max(a, hRecord(h)), 0);
 
   const stat = (k,v,d,c) => `<div class="stat"><div class="k">${k}</div><div class="v"${c?` style="color:${c}"`:''}>${v}</div><div class="d">${d}</div></div>`;
 
@@ -1846,17 +1846,22 @@ const hOn    = (h, k) => h.days.includes(dowOf(k));   // ngày k có nằm trong
 const hDone  = (h, k) => !!h.log[k];
 const hDue   = () => S.habits.filter(h => hOn(h, today()));
 
-// chuỗi: đếm ngược các buổi theo lịch đã làm liên tiếp.
-// Hôm nay chưa tick thì chuỗi vẫn còn nguyên, vì ngày hôm nay chưa hết.
-function hStreak(h){
-  let n = 0, k = today();
-  for(let i = 0; i < 400; i++, k = dShift(k, -1)){
+// chuỗi: đi xuôi qua các buổi theo lịch, làm thì cộng, bỏ thì về 0.
+// Bật grace thì bỏ một buổi chuỗi vẫn giữ (chỉ không cộng), bỏ 2 buổi liên tiếp mới về 0 — đúng luật "không bỏ hai lần".
+// Hôm nay chưa tick thì chưa tính là bỏ, vì ngày hôm nay chưa hết.
+function hRun(h){
+  const k0 = today(), limit = h.grace ? 2 : 1;
+  let k = Object.keys(h.log).reduce((a, x) => x < a ? x : a, h.cr);
+  let cur = 0, best = 0, gap = 0;
+  for(; k <= k0; k = dShift(k, 1)){
     if(!hOn(h, k)) continue;
-    if(hDone(h, k)) n++;
-    else if(k !== today()) break;
+    if(hDone(h, k)){ cur++; gap = 0; best = Math.max(best, cur); }
+    else if(k !== k0 && ++gap >= limit) cur = 0;
   }
-  return n;
+  return {cur, best};
 }
+const hStreak = h => hRun(h).cur;
+const hRecord = h => hRun(h).best;   // chuỗi dài nhất từng đạt
 // số buổi theo lịch gần nhất đã bỏ liên tiếp, không tính hôm nay — nền của luật "không bỏ hai lần"
 function hMiss(h){
   let n = 0, k = dShift(today(), -1);
@@ -1973,14 +1978,15 @@ function hCard(h){
   // bỏ liên tiếp mới là lúc thói quen chết — nên app chỉ lên tiếng đúng lúc đó.
   const nudge = on || !m ? ''
     : m >= 2 ? `<div class="hnudge cold">Đã bỏ <b>${m} buổi liên tiếp</b>. Bỏ một buổi thì gần như không mất gì — bỏ liên tiếp mới làm thói quen chết. Hôm nay làm bản dễ nhất của nó cũng được tính.</div>`
-    : `<div class="hnudge warn">Bỏ lỡ buổi gần nhất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — làm được thì coi như nhịp chưa đứt.</div>`;
+    : `<div class="hnudge warn">Bỏ lỡ buổi gần nhất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — ${h.grace ? 'chuỗi vẫn được giữ, bỏ tiếp buổi này thì về 0' : 'làm được thì coi như nhịp chưa đứt'}.</div>`;
   return `<div class="hcard" style="--hc:${h.color}">
     <div class="hhd">
       ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
              : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
       <span class="hnm">${esc(h.name)}</span>
       <span class="pill" style="background:${kind.c}22;color:${kind.c}">${kind.n}</span>
-      <span class="hstat" title="Số buổi liên tiếp">🔥 ${n}</span>
+      <span class="hstat" title="Số buổi liên tiếp${h.grace ? ' (cho phép lỡ một buổi)' : ''}">🔥 ${n}</span>
+      <span class="hstat" title="Chuỗi dài nhất từng đạt">🏆 ${hRecord(h)}</span>
       <span class="hstat" title="Tỉ lệ làm được trong ${HWEEKS} tuần qua">${hRate(h)}%</span>
       <button class="btn ghost hsm" data-hedit="${h.id}">Sửa</button>
     </div>
@@ -2005,6 +2011,9 @@ function hForm(){
       <div class="hpick">${HWK.map(i => `<button class="${d.days.includes(i) ? 'on' : ''}" data-hdow="${i}">${DOW[i]}</button>`).join('')}</div>
       <div class="hint" style="margin:0">Cùng thứ, cùng giờ, cùng chỗ thì não sớm tự chạy mà không cần nhớ.
         <button class="hpre" data-hpre="all">Mỗi ngày</button><button class="hpre" data-hpre="wd">T2–T6</button></div></div>
+    <div class="fld"><label>Chuỗi</label>
+      <label class="hgrace"><input type="checkbox" id="hGrace"${d.grace ? ' checked' : ''}>Cho phép lỡ một buổi</label>
+      <div class="hint" style="margin:0">Bỏ một buổi thì chuỗi giữ nguyên, chỉ không cộng thêm. Bỏ 2 buổi liên tiếp mới về 0.</div></div>
     <div class="fld"><label>Ý định thực hiện</label>
       <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="Sau khi ăn sáng, ở bàn làm việc" autocomplete="off">
       <div class="hint" style="margin:0">Ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
@@ -2041,7 +2050,7 @@ function hSync(){
 
 function hOpen(h){
   hd = h ? {...h, days:[...h.days]}
-         : {id:null, name:'', kind:'good', days:[1,2,3,4,5], cue:'', swap:'', color:'#818cf8', log:{}, cr:today()};
+         : {id:null, name:'', kind:'good', days:[1,2,3,4,5], cue:'', swap:'', grace:false, color:'#818cf8', log:{}, cr:today()};
   ui.hEdit = h ? h.id : 'new'; hFocus = true;
   renderHabits();
 }
@@ -2051,6 +2060,7 @@ function hGrab(){
   hd.name = $('#hName')?.value ?? hd.name;
   hd.cue  = $('#hCue')?.value  ?? hd.cue;
   hd.swap = $('#hSwap')?.value ?? hd.swap;
+  hd.grace = $('#hGrace')?.checked ?? hd.grace;
 }
 function hSave(){
   hGrab();
@@ -2073,7 +2083,7 @@ function hDel(id){
 function renderHabits(){
   killEds();
   const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
-  const best = S.habits.reduce((a, h) => Math.max(a, hStreak(h)), 0);
+  const best = S.habits.reduce((a, h) => Math.max(a, hRecord(h)), 0);
   $('#vSub').textContent = S.habits.length
     ? `${S.habits.length} thói quen · hôm nay ${done}/${due.length} · chuỗi dài nhất ${best} buổi`
     : 'Chưa có thói quen nào';
