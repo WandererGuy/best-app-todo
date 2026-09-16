@@ -634,6 +634,13 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fz.side{margin:0 4px;padding:10px 11px;background:var(--bg);border:1px solid var(--line);border-left:3px solid var(--fc);border-radius:9px}
 .fz.side.over{outline:1.5px dashed var(--acc);outline-offset:-1.5px}
 .fz.side .fzbtns .btn{padding:5px 9px;font-size:12px}
+.fz.side.mini{padding:0}
+.fzmini{display:flex;align-items:center;gap:7px;width:100%;padding:6px 10px;font-size:11.5px;color:var(--tx2);text-align:left}
+.fzmini:hover{color:var(--tx)}
+.fzmini .d{width:7px;height:7px;border-radius:50%;background:var(--fc);flex:0 0 7px}
+.fz.paused .fzmini .d{background:var(--warn)}
+.fzmini em{font-style:normal;color:var(--tx3)}
+.fzmini b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
 /* khối lớn ở mục Tập trung */
 .fz.page{background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--fc);border-radius:12px;padding:20px 22px;gap:12px}
 .fz.page .fzph{font-size:11.5px}

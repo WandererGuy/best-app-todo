@@ -2457,7 +2457,7 @@ function fPanel(mode){
         <button class="fzic" data-fcancel title="Huỷ phiên">■</button></div>`
     : `<div class="fzpaused" data-fpaused></div>
        <div class="fzbtns"><button class="btn" data-fresume>▶ Làm tiếp</button><button class="btn ghost" data-fcancel>Huỷ phiên</button></div>`;
-  return full ? h : h + fCapHTML(big);
+  return mode === 'page' ? h + fCapHTML(true) : h;
 }
 // tên task và câu "lần trước dừng ở"; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
 function fTaskHTML(t, running){
@@ -2499,8 +2499,14 @@ function fPaint(){
 }
 function fSide(){
   const el = $('#fzSide'); if(!el) return;
-  el.className = 'fz side ' + fCls();
-  el.innerHTML = fPanel('side');
+  const f = S.focus, r = f.run, min = !!S.settings.fzMin;
+  el.className = `fz side ${fCls()}${min ? ' mini' : ''}`;
+  $('#fzMinBtn').textContent = min ? 'Mở' : 'Thu gọn';
+  // thu gọn: chỉ còn một dòng mảnh, bấm vào để mở lại
+  el.innerHTML = min
+    ? `<button class="fzmini" data-fmin title="Mở khối tập trung"><span class="d"></span>${FPHASE[r ? r.phase : f.next]}
+        ${f.rev ? '<em>· chấm điểm</em>' : ''}<b${r ? ' data-fclock' : ''}>${fClock(r ? fLeft(r) : f.cfg[f.next] * 6e4)}</b></button>`
+    : fPanel('side');
   $('#ctF').textContent = `${fCount()[today()] || 0}/${S.focus.cfg.goal}`;
 }
 function fFullPaint(){
@@ -2670,13 +2676,14 @@ function fPickImg(p){
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-fstart],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
-    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft]');
+    + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
   if('fskip' in d) return fSkip();
   if('fpause' in d) return fPause();
   if('fleft' in d){ S.settings.fzLeft = !S.settings.fzLeft; save(); return fFullPaint(); }
+  if('fmin' in d){ S.settings.fzMin = !S.settings.fzMin; save(); fSide(); return fPaintTime(); }
   if('fresume' in d) return fResume();
   if('fcancel' in d) return fCancel();
   if('ffull' in d) return fFull(d.ffull === '1');
