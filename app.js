@@ -1796,8 +1796,11 @@ function hToggle(id, k){
   const on = !hDone(h, k);
   if(on) h.log[k] = 1; else delete h.log[k];
   save();
-  ui.hPop = on ? h.id : null; render(); ui.hPop = null;
-  if(on) hCheer(h);
+  // chỉ mừng buổi theo lịch; tick ngoài lịch không đổi chuỗi nên báo thẳng, tránh trông như được tính
+  const inPlan = hOn(h, k) && k >= h.cr;
+  ui.hPop = on && inPlan ? h.id : null; render(); ui.hPop = null;
+  if(on && inPlan) hCheer(h);
+  else if(on) toast(`Đã ghi buổi làm thêm ${DOW[dowOf(k)]} ${fmtVN(k)} — ngoài lịch nên không tính vào chuỗi`);
 }
 
 /* dải thói quen hôm nay ở đầu bảng — đặt ngay chỗ mình mở đầu tiên mỗi ngày thì mới thật sự tick */
