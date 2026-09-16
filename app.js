@@ -2788,14 +2788,18 @@ document.addEventListener('mousemove', e => {
   tip.style.left = Math.min(e.clientX + 14, innerWidth - tip.offsetWidth - 8) + 'px'; tip.style.top = e.clientY + 16 + 'px';
 });
 
-// biểu đồ giờ tập trung theo tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
-// ui.fcM = khoảng đang xem, ui.fcOff = lùi / tiến bao nhiêu khoảng so với hiện tại
-const FCM = {week:'Tuần', month:'Tháng', year:'Năm'};
+// biểu đồ giờ tập trung theo ngày / tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
+// S.settings.fcM = kiểu khoảng đang xem (nhớ qua F5), ui.fcOff = lùi / tiến bao nhiêu khoảng so với hiện tại
+const FCM = {day:'Ngày', week:'Tuần', month:'Tháng', year:'Năm'};
 const fHours = ms => { const m = Math.round(ms / 6e4); return m < 60 ? `${m} phút` : `${Math.floor(m / 60)} giờ${m % 60 ? ` ${m % 60} phút` : ''}`; };
 function fChartHTML(){
-  const mode = ui.fcM || 'week', off = ui.fcOff || 0, k0 = today();
-  let cols, title;   // cols: [{a, b, lbl, tip}] — khoảng ngày [a, b] của mỗi cột
-  if(mode === 'week'){
+  const mode = FCM[S.settings.fcM] ? S.settings.fcM : 'week', off = ui.fcOff || 0, k0 = today();
+  let cols, title;   // cols: [{a, b, h, lbl, tip}] — khoảng ngày [a, b] của mỗi cột; xem theo ngày thì mỗi cột là một giờ h
+  if(mode === 'day'){
+    const d = dShift(k0, off), hr = new Date().getHours(), hh = h => String(h).padStart(2, '0') + ':00';
+    cols = Array.from({length:24}, (_, h) => ({a:d, b:d, h, lbl:h % 3 ? '' : h, tip:`${hh(h)}–${hh(h + 1)}`, now:d === k0 && h === hr}));
+    title = off === 0 ? 'Hôm nay' : off === -1 ? 'Hôm qua' : `${DOW[dowOf(d)]} ${fmtVN(d)}`;
+  }else if(mode === 'week'){
     const mon = dShift(fMon(k0), off * 7);
     cols = Array.from({length:7}, (_, i) => { const d = dShift(mon, i);
       return {a:d, b:d, lbl:`${DOW[dowOf(d)]}<br>${d.slice(8)}/${d.slice(5, 7)}`, tip:`${DOW[dowOf(d)]} ${fmtVN(d)}`, now:d === k0}; });
@@ -2813,15 +2817,17 @@ function fChartHTML(){
     title = `Năm ${y}`;
   }
   const works = fWorks();
-  cols.forEach(c => { const l = works.filter(e => { const k = iso(new Date(e.a)); return k >= c.a && k <= c.b; });
+  // phiên tính vào giờ bắt đầu
+  cols.forEach(c => { const l = works.filter(e => { const t = new Date(e.a), k = iso(t); return k >= c.a && k <= c.b && (c.h == null || t.getHours() === c.h); });
     c.ms = l.reduce((s, e) => s + (e.ms || 0), 0); c.n = l.filter(e => e.done).length; });
   const total = cols.reduce((s, c) => s + c.ms, 0);
   // cây của khoảng đang xem: phiên đủ giờ, và phiên huỷ đã làm được từ 1 phút (huỷ ngay thì không ghi)
   const a0 = cols[0].a, b0 = cols[cols.length - 1].b;
   const grown = works.filter(e => { const k = iso(new Date(e.a)); return k >= a0 && k <= b0 && (e.done || e.ms >= 6e4); });
   const dead = grown.filter(e => !e.done).length;
-  // trục dọc theo giờ: chia 4 nấc tròn số
-  const maxH = Math.max(...cols.map(c => c.ms)) / 36e5, step = [.25, .5, 1, 2, 5, 10, 20, 50, 100].find(v => v * 4 >= maxH) || Math.ceil(maxH / 4), top = step * 4;
+  // trục dọc chia 4 nấc tròn số: theo phút khi xem một ngày, theo giờ khi xem khoảng dài hơn
+  const unit = mode === 'day' ? 6e4 : 36e5, max = Math.max(...cols.map(c => c.ms)) / unit;
+  const step = (mode === 'day' ? [5, 10, 15] : [.25, .5, 1, 2, 5, 10, 20, 50, 100]).find(v => v * 4 >= max) || Math.ceil(max / 4), top = step * 4;
   return `<div class="fzh">Khu vườn<span class="n">🌳 ${grown.length - dead} cây${dead ? ` · 🥀 ${dead} héo` : ''}</span>
       <div class="scope fcscope">${Object.entries(FCM).map(([k, n]) => `<button class="${mode === k ? 'on' : ''}" data-fcm="${k}">${n}</button>`).join('')}</div></div>
     <div class="fcnav"><button class="nvb" data-fcoff="-1">‹</button><span>${title}</span><button class="nvb" data-fcoff="1">›</button></div>
@@ -2829,10 +2835,10 @@ function fChartHTML(){
     ${grown.length ? '' : '<div class="fzhint fcempty">Chưa trồng cây nào trong khoảng này. Xong một phiên tập trung là có một cây.</div>'}
     <div class="fzh">Giờ tập trung<span class="n">${fHours(total)}</span></div>
     <div class="fchart">
-      <div class="fcy">${[4, 3, 2, 1, 0].map(i => `<span>${+(step * i).toFixed(2)}</span>`).join('')}</div>
+      <div class="fcy">${[4, 3, 2, 1, 0].map(i => `<span>${+(step * i).toFixed(2)}${mode === 'day' && i ? 'p' : ''}</span>`).join('')}</div>
       <div class="fcplot">${[4, 3, 2, 1, 0].map(i => `<i style="bottom:${i * 25}%"></i>`).join('')}
         ${cols.map(c => `<div class="fccol${c.now ? ' td' : ''}">
-          <b style="height:${c.ms / 36e5 / top * 100}%" data-tip="${c.tip} · ${c.ms ? `${fHours(c.ms)} · ${c.n} phiên` : 'chưa tập trung'}"></b></div>`).join('')}</div>
+          <b style="height:${c.ms / unit / top * 100}%" data-tip="${c.tip} · ${c.ms ? `${fHours(c.ms)} · ${c.n} phiên` : 'chưa tập trung'}"></b></div>`).join('')}</div>
       <div></div>
       <div class="fcx">${cols.map(c => `<span${c.now ? ' class="td"' : ''}>${c.lbl}</span>`).join('')}</div></div>`;
 }
@@ -2922,7 +2928,7 @@ document.addEventListener('click', e => {
   if('fdrop' in d){ f.queue = f.queue.filter(x => x !== d.fdrop); save(); return fPaint(); }
   if('fopen' in d) return openTask(d.fopen);
   if('fsp' in d){ f.tree = d.fsp; save(); return fPaint(); }
-  if('fcm' in d){ ui.fcM = d.fcm; ui.fcOff = 0; return fPaintPage(); }
+  if('fcm' in d){ S.settings.fcM = d.fcm; ui.fcOff = 0; save(); return fPaintPage(); }
   if('fcoff' in d){ ui.fcOff = (ui.fcOff || 0) + +d.fcoff; return fPaintPage(); }
   if('fcfgbtn' in d){ ui.fCfg = !ui.fCfg; return fPaintCfg(); }
   if('freset' in d){
