@@ -1918,9 +1918,19 @@ function habitStrip(){
       : dec ? `<span class="hsnote warn">${dec} việc đang ở buổi quyết định</span>` : ''}</div>`;
 }
 
+const HWK = [1,2,3,4,5,6,0];   // thứ tự thứ trong mục thói quen: tuần bắt đầu từ T2, CN đứng cạnh T7
+
 /* lưới theo dõi: cột là tuần, hàng là thứ — nhìn dọc thấy ngay mình hay đứt vào thứ mấy */
 function hGrid(h){
-  const k0 = today(), end = dShift(k0, 6 - dowOf(k0)), n = HWEEKS * 7;
+  const k0 = today(), end = dShift(k0, (7 - dowOf(k0)) % 7), n = HWEEKS * 7;
+  // nhãn tháng đặt ở cột tuần đầu tiên của tháng; cột đầu lưới chỉ ghi khi tháng sau chưa chen vào ngay
+  const mons = [];
+  for(let c = 0; c < HWEEKS; c++){
+    const m = +dShift(end, -(n - 1 - c * 7)).slice(5, 7);
+    const prev = c ? +dShift(end, -(n - 1 - (c - 1) * 7)).slice(5, 7) : 0;
+    const next = +dShift(end, -(n - 1 - (c + 1) * 7)).slice(5, 7);
+    mons.push(m !== prev && (c || next === m) ? `Th${m}` : '');
+  }
   let cells = '';
   for(let i = 0; i < n; i++){
     const k = dShift(end, -(n - 1 - i));
@@ -1930,10 +1940,11 @@ function hGrid(h){
       : hDone(h, k) ? (hOn(h, k) && k >= h.cr ? 'on' : 'extra')
       : (k < h.cr || !hOn(h, k)) ? 'off' : 'miss';
     const note = {on:' · đã làm', extra:' · làm thêm ngoài lịch', miss:' · bỏ lỡ', off:' · ngoài lịch'}[cls] || '';
-    cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}"></i>`;
+    cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}">${+k.slice(8)}</i>`;
   }
   return `<div class="hgwrap">
-    <div class="hglbl">${DOW.map((d, i) => `<span>${i % 2 ? d : ''}</span>`).join('')}</div>
+    <span></span><div class="hgmon">${mons.map(m => `<span>${m}</span>`).join('')}</div>
+    <div class="hglbl">${HWK.map(i => `<span class="${h.days.includes(i) ? 'on' : ''}">${DOW[i]}</span>`).join('')}</div>
     <div class="hgrid">${cells}</div>
     <div class="hgleg"><i class="on"></i>đã làm<i class="extra"></i>làm thêm<i class="miss"></i>bỏ lỡ<i class="off"></i>ngoài lịch
       <span style="margin-left:auto">${HWEEKS} tuần gần nhất</span></div>
@@ -1975,7 +1986,6 @@ function hCard(h){
     ${h.cue ? `<div class="hmeta"><span class="l">Khi nào</span>${esc(h.cue)}</div>` : ''}
     ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">Thay bằng</span>${esc(h.swap)}</div>` : ''}
     ${hWhy(h)}
-    <div class="hdays">${DOW.map((d, i) => `<span class="${h.days.includes(i) ? 'on' : ''}">${d}</span>`).join('')}</div>
     ${nudge}
     ${hGrid(h)}</div>`;
 }
@@ -1991,7 +2001,7 @@ function hForm(){
     <div class="fld"><label>Loại</label><div class="seg">${Object.entries(HKINDS).map(([k, v]) =>
       `<button class="${d.kind === k ? 'on' : ''}" style="${d.kind === k ? `background:${v.c};border-color:${v.c}` : ''}" data-hkind="${k}">${v.n}</button>`).join('')}</div></div>
     <div class="fld"><label>Những ngày nào trong tuần</label>
-      <div class="hpick">${DOW.map((n, i) => `<button class="${d.days.includes(i) ? 'on' : ''}" data-hdow="${i}">${n}</button>`).join('')}</div>
+      <div class="hpick">${HWK.map(i => `<button class="${d.days.includes(i) ? 'on' : ''}" data-hdow="${i}">${DOW[i]}</button>`).join('')}</div>
       <div class="hint" style="margin:0">Cùng thứ, cùng giờ, cùng chỗ thì não sớm tự chạy mà không cần nhớ.
         <button class="hpre" data-hpre="all">Mỗi ngày</button><button class="hpre" data-hpre="wd">T2–T6</button></div></div>
     <div class="fld"><label>Ý định thực hiện</label>

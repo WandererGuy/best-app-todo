@@ -535,9 +535,6 @@ select.inp:disabled{opacity:.45;cursor:default}
 .hsw{width:24px;height:24px;flex:0 0 24px;border-radius:8px;border:1px solid var(--line)}
 .hmeta{display:flex;gap:9px;font-size:12.5px;color:var(--tx2);line-height:1.5}
 .hmeta .l{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);font-weight:600;flex:0 0 66px;padding-top:2px}
-.hdays{display:flex;gap:4px}
-.hdays span{font-size:10.5px;padding:2px 7px;border-radius:5px;color:var(--tx3);border:1px solid transparent;background:var(--bg)}
-.hdays span.on{color:var(--hc);border-color:var(--hc);background:transparent;font-weight:650}
 /* Lý do: nhãn thẳng hàng với các dòng Khi nào / Thay bằng (10 + 9 + 47 + 9 = 75px) */
 .hwhy{display:flex;flex-direction:column;gap:9px}
 .hwt{display:flex;align-items:center;gap:9px;text-align:left;min-width:0;padding:1px 0}
@@ -556,18 +553,21 @@ select.inp:disabled{opacity:.45;cursor:default}
 .hnudge.warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);color:#fcd34d}
 .hnudge.cold{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.3);color:#fda4af}
 
-.hgwrap{display:grid;grid-template-columns:auto 1fr;gap:6px;align-items:start;margin-top:2px}
-.hglbl{display:grid;grid-template-rows:repeat(7,11px);gap:3px;font-size:9px;line-height:11px;color:var(--tx3);text-align:right}
-.hgrid{display:grid;grid-template-rows:repeat(7,11px);grid-auto-flow:column;grid-auto-columns:11px;gap:3px;justify-content:start}
-.hgrid i{border-radius:3px;background:var(--panel2);cursor:pointer}
+.hgwrap{display:grid;grid-template-columns:auto 1fr;gap:4px 7px;align-items:start;margin-top:2px}
+.hgmon{display:grid;grid-auto-flow:column;grid-auto-columns:21px;gap:3px;justify-content:start;font-size:10px;line-height:12px;color:var(--tx3)}
+.hgmon span{white-space:nowrap}
+.hglbl{display:grid;grid-template-rows:repeat(7,21px);gap:3px;font-size:10.5px;line-height:21px;color:var(--tx3);text-align:right}
+.hglbl span.on{color:var(--hc);font-weight:700}
+.hgrid{display:grid;grid-template-rows:repeat(7,21px);grid-auto-flow:column;grid-auto-columns:21px;gap:3px;justify-content:start}
+.hgrid i{border-radius:4px;background:var(--panel2);cursor:pointer;font-style:normal;font-size:9.5px;line-height:21px;text-align:center;color:var(--tx2);font-variant-numeric:tabular-nums}
 .hgrid i:hover{outline:1px solid var(--tx2);outline-offset:1px}
-.hgrid i.on{background:var(--hc)}
-.hgrid i.extra{background:var(--hc);opacity:.4}
+.hgrid i.on{background:var(--hc);color:#0e1014;font-weight:650}
+.hgrid i.extra{background:var(--hc);opacity:.4;color:#0e1014;font-weight:650}
 .hgrid i.miss{background:transparent;box-shadow:inset 0 0 0 1.5px #39404f}
-.hgrid i.off{background:#191d25;cursor:default}
-.hgrid i.fut{background:transparent;cursor:default}
+.hgrid i.off{background:#191d25;cursor:default;color:#4a5161}
+.hgrid i.fut{background:transparent;cursor:default;color:#3a404c}
 .hgrid i.off:hover,.hgrid i.fut:hover{outline:none}
-.hgrid i.td{outline:1.5px solid var(--tx2);outline-offset:1px}
+.hgrid i.td{outline:1.5px solid var(--tx);outline-offset:1px}
 .hgleg{grid-column:2;display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--tx3);margin-top:7px}
 .hgleg i{width:9px;height:9px;border-radius:3px;background:var(--panel2);margin-left:6px}
 .hgleg i:first-child{margin-left:0}
