@@ -1979,7 +1979,7 @@ function hCard(h){
   const nudge = on || !m ? ''
     : m >= 2 ? `<div class="hnudge cold">Đã bỏ <b>${m} buổi liên tiếp</b>. Bỏ một buổi thì gần như không mất gì — bỏ liên tiếp mới làm thói quen chết. Hôm nay làm bản dễ nhất của nó cũng được tính.</div>`
     : `<div class="hnudge warn">Bỏ lỡ buổi gần nhất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — ${h.grace ? 'chuỗi vẫn được giữ, bỏ tiếp buổi này thì về 0' : 'làm được thì coi như nhịp chưa đứt'}.</div>`;
-  return `<div class="hcard" style="--hc:${h.color}">
+  return `<div class="hcard" id="hc-${h.id}" style="--hc:${h.color}">
     <div class="hhd">
       ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
              : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
@@ -1995,6 +1995,25 @@ function hCard(h){
     ${hWhy(h)}
     ${nudge}
     ${hGrid(h)}</div>`;
+}
+
+/* tóm tắt đầu mục: nhìn một lượt là biết có những thói quen gì, hôm nay cần làm gì — khỏi cuộn qua từng thẻ */
+const hSched = days => days.length === 7 ? 'Mỗi ngày'
+  : days.join() === '1,2,3,4,5' ? 'T2–T6'
+  : HWK.filter(i => days.includes(i)).map(i => DOW[i]).join(', ');
+function hSum(){
+  const k = today();
+  return `<div class="hsum">${S.habits.map(h => {
+    const on = hDone(h, k), due = hOn(h, k);
+    return `<div class="hsr" style="--hc:${h.color}">
+      ${due ? `<button class="hbx${on ? ' on' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
+             : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
+      <button class="hsn" data-hjump="${h.id}" title="Tới thẻ thói quen">${esc(h.name)}</button>
+      <span class="hstat">${hSched(h.days)}</span>
+      <span class="hstat" title="Số buổi liên tiếp">🔥 ${hStreak(h)}</span>
+      <span class="hstat" title="Chuỗi dài nhất từng đạt">🏆 ${hRecord(h)}</span>
+      <span class="hstat" title="Tỉ lệ làm được trong ${HWEEKS} tuần qua">${hRate(h)}%</span></div>`;
+  }).join('')}</div>`;
 }
 
 function hForm(){
@@ -2091,6 +2110,7 @@ function renderHabits(){
       <span class="hint" style="margin:0">Bấm ô trong lưới để đánh dấu hoặc bỏ đánh dấu một ngày</span>
       <button class="btn" data-hnew style="margin-left:auto"${ui.hEdit ? ' hidden' : ''}>+ Thói quen mới</button></div>
     <div class="hlist">
+      ${S.habits.length ? hSum() : ''}
       ${ui.hEdit === 'new' ? hForm() : ''}
       ${S.habits.map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
       ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động ăn đứt việc cố gồng ý chí.</div>' : ''}
@@ -2108,6 +2128,7 @@ function renderHabits(){
 function wireHabits(){
   $$('[data-hnew]').forEach(b => b.onclick = () => hOpen(null));
   $$('[data-hedit]').forEach(b => b.onclick = () => hOpen(S.habits.find(x => x.id === b.dataset.hedit)));
+  $$('[data-hjump]').forEach(b => b.onclick = () => $('#hc-' + b.dataset.hjump)?.scrollIntoView({behavior:'smooth', block:'start'}));
   $$('[data-hwhy]').forEach(b => b.onclick = () => {
     const h = S.habits.find(x => x.id === b.dataset.hwhy);
     h.open = !h.open; save(); renderHabits();
