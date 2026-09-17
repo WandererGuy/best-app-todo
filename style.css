@@ -622,6 +622,9 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fzin.cap{border-style:dashed}
 .fzbtns{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .fzbtns .btn{padding:6px 11px;font-size:12.5px}
+/* nghỉ ngoài chu kỳ: nền mờ, không viền nên vẫn dưới nút Bắt đầu một nấc; dạt sang phải cho tách hẳn ra */
+.fzsolo{margin-left:auto;background:var(--panel2);color:var(--tx2);padding:5px 10px;border-radius:7px;font-size:12px;font-weight:500;white-space:nowrap}
+.fzsolo:hover{color:var(--tx);background:var(--line)}
 .fzpaused{font-size:12px;color:var(--warn)}
 .fzpaused.long{color:#fda4af;font-weight:600}
 .fzcheer{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.55;color:#86efac;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:9px;padding:8px 6px 8px 11px}

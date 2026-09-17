@@ -126,13 +126,15 @@ function fNotify(phase){
 }
 
 /* --- vòng đời phiên --- */
-function fStart(phase, tid){
+// solo = giờ nghỉ tự bấm ngoài chu kỳ (vừa họp xong, vừa huỷ phiên): vẫn vào nhật ký, nhưng không đụng
+// cycle và không kéo theo phiên nào — hết giờ là thôi, kể cả khi bật tự chạy tiếp
+function fStart(phase, tid, solo){
   const f = S.focus, c = f.cfg, now = Date.now();
   if(phase === 'work'){
     if(!fTask(tid)) return toast('Thêm một task vào hàng đợi trước đã');
     ui.fCheer = null;
   }
-  f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0};
+  f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0, solo:!!solo};
   fAudio();   // mở khoá âm thanh ngay trong cú bấm thì lúc hết giờ mới phát được
   save(); fStartTick(); fPaint();
 }
@@ -159,7 +161,7 @@ function fFinish(quiet){
   }else f.next = 'work';
   if(!quiet){ fChime(r.phase); fNotify(r.phase); }
   const q = fQueue();
-  if(c.auto && !quiet && (r.phase === 'work' || q.length)) return fStart(f.next, q[0]);
+  if(c.auto && !quiet && !r.solo && (r.phase === 'work' || q.length)) return fStart(f.next, q[0]);
   fStopTick(); save(); fPaint();
 }
 function fPause(){
@@ -262,9 +264,13 @@ function fPanel(mode){
     h += `<div class="fzclock">${fClock(c[phase] * 6e4)}</div>`;
     if(phase !== 'work') return h + `<div class="fzrest">${fRest(phase)}</div>
       <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu nghỉ</button><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
+    // nghỉ ngoài chu kỳ: vừa họp xong hay vừa huỷ phiên thì bấm nghỉ luôn, không phải chạy hết một phiên trước
+    const solo = `<button class="fzsolo" data-fsolo title="Nghỉ ${c.short} phút, không tính vào chu kỳ">☕ Nghỉ ngắn ${c.short}′</button>`;
     const t = fTask(q[0]);
-    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task Đang làm vào hàng đợi để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>`;
-    return h + (full ? '' : fTaskHTML(t, false)) + (big ? fPickHTML() : '') + '<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button></div>';
+    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task Đang làm vào hàng đợi để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>
+      <div class="fzbtns">${solo}</div>`;
+    return h + (full ? '' : fTaskHTML(t, false)) + (big ? fPickHTML() : '')
+      + `<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button>${solo}</div>`;
   }
 
   h += `<div class="fzclock" data-fclock>${fClock(fLeft(r))}</div><div class="fzbar"><i data-fbar></i></div>`;
@@ -602,11 +608,12 @@ function fPickImg(p){
 
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-fstart],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
+  const b = e.target.closest('[data-fstart],[data-fsolo],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
     + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fsp],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
+  if('fsolo' in d) return fStart('short', null, true);
   if('fskip' in d) return fSkip();
   if('fpause' in d) return fPause();
   if('fleft' in d){ S.settings.fzLeft = !S.settings.fzLeft; save(); return fFullPaint(); }
