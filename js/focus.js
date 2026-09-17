@@ -354,7 +354,8 @@ async function fLook(el, lk){
 function renderFocus(){
   $('#view').innerHTML = `<div class="fzpage">
     <div class="fzcol"><div id="fzMain"></div><div class="fcard fzcard" id="fzQ"></div></div>
-    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzChart"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
+    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzJrn"></div>
+      <div class="fcard fzcard" id="fzChart"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
   fPaintPage(); fPaintCfg();
 }
 function fPaintPage(){
@@ -364,6 +365,7 @@ function fPaintPage(){
   $('#fzMain').innerHTML = fPanel('page');
   $('#fzQ').innerHTML = fQueueHTML();
   $('#fzStats').innerHTML = fStatsHTML();
+  $('#fzJrn').innerHTML = fJournalHTML();
   $('#fzChart').innerHTML = fChartHTML();
 }
 function fPaintCfg(){
@@ -418,12 +420,66 @@ function fStatsHTML(){
       <div><b>${new Set(list.map(e => e.tid)).size}</b><span>task đã làm</span></div>
       <div><b>${add('cap')}</b><span>lần ghi để sau</span></div>
       <div><b>${add('pause')}</b><span>lần tạm dừng</span></div>
-      <div><b>${rated.length ? (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1) : '—'}</b><span>điểm tập trung</span></div></div>
-    ${list.length ? `<div>${list.slice().reverse().map(e => `<div class="fzli${e.done ? '' : ' off'}">
-        <span class="tm">${fHM(e.a)}</span>
-        <span class="nm">${e.title.trim() ? esc(e.title) : '<span class="ph">(chưa đặt tên)</span>'}</span>
-        <span class="meta">${e.done ? (e.rate ? `${e.rate}/5` : '✓') : `bỏ dở · ${Math.round(e.ms / 6e4)} phút`}</span></div>`).join('')}</div>`
-      : '<div class="fzhint">Chưa có phiên nào hôm nay.</div>'}`;
+      <div><b>${rated.length ? (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1) : '—'}</b><span>điểm tập trung</span></div></div>`;
+}
+
+/* --- nhật ký hôm nay: mọi phiên và giờ nghỉ xếp theo dòng thời gian, nối thành một mạch như git log --graph.
+   Xen giữa là khoảng trống trên FGAP phút — lúc rời bàn ngoài giờ nghỉ chính thức, thứ không có trong log. --- */
+const FGAP = 10 * 6e4;
+function fDayLog(){
+  const k = today(), out = [];
+  const list = S.focus.log.filter(e => iso(new Date(e.a)) === k).sort((x, y) => x.a - y.a);
+  list.forEach((e, i) => {
+    const prev = list[i - 1];
+    if(prev && e.a - prev.b >= FGAP) out.push({gap:e.a - prev.b, a:prev.b});
+    out.push(e);
+  });
+  // phiên đang chạy chưa vào log: nối tiếp vào cuối cho mạch liền tới hiện tại
+  const r = S.focus.run;
+  if(r && iso(new Date(r.a)) === k){
+    const last = list[list.length - 1];
+    if(last && r.a - last.b >= FGAP) out.push({gap:r.a - last.b, a:last.b});
+    out.push({k:r.phase, a:r.a, b:Date.now(), ms:fWorked(r), plan:r.dur / 6e4, live:true,
+      title:r.phase === 'work' && fTask(r.tid) ? fTask(r.tid).title : '', pause:r.pause, cap:r.cap, sw:r.sw});
+  }
+  return out;
+}
+// một dòng: cột giờ, đường nối, rồi phần thân. Phiên work có thêm dòng con cho điểm và ghi chú cuối phiên.
+function fJournalHTML(){
+  const rows = fDayLog();
+  if(!rows.length) return `<div class="fzh">Nhật ký hôm nay</div>
+    <div class="fzhint">Chưa có phiên nào hôm nay. Xong một phiên là có một dòng ở đây.</div>`;
+  const mins = ms => Math.round(ms / 6e4);
+  const html = rows.map((e, i) => {
+    const work = e.k === 'work', cut = !e.live && !e.done;
+    // đường nối chỉ hở ở đầu dòng đầu và cuối dòng cuối — ghi chú treo dưới thì dòng cuối là ghi chú đó
+    const tail = i === rows.length - 1 && !(work && !e.live && (e.rate || e.next));
+    const rail = `<span class="rail${i === 0 ? ' first' : ''}${tail ? ' last' : ''}"></span>`;
+    const railNote = `<span class="rail${i === rows.length - 1 ? ' last' : ''}"></span>`;
+    if(e.gap) return `<div class="fzjr gap"><span class="tm">${fHM(e.a)}</span>${rail}<span class="dot"></span>
+      <div class="bd"><span class="nm">Rời bàn ${fHours(e.gap)}</span></div></div>`;
+    const meta = [];
+    if(work){
+      if(e.pause) meta.push(`${e.pause} lần dừng`);
+      if(e.sw) meta.push(`${e.sw} lần đổi task`);
+      if(e.cap) meta.push(`${e.cap} lần ghi để sau`);
+    }
+    // ghi chú cuối phiên treo dưới dòng, vẫn dính vào đường nối
+    const note = work && !e.live && (e.rate || e.next) ? `<div class="fzjr note"><span></span>${railNote}
+      <div class="bd">${e.rate ? `<span class="rate" title="${FRATE[e.rate]}">${'★'.repeat(e.rate)}${'☆'.repeat(5 - e.rate)}</span>` : ''}
+        ${e.next ? `<span class="nx">Lần sau bắt đầu từ: ${esc(e.next)}</span>` : ''}</div></div>` : '';
+    return `<div class="fzjr ${work ? 'work' : 'rest'}${cut ? ' cut' : ''}${e.live ? ' live' : ''}">
+      <span class="tm">${fHM(e.a)}</span>${rail}<span class="dot"></span>
+      <div class="bd">
+        <span class="nm">${FPHASE[e.k]}${work && e.title.trim() ? ` · ${esc(e.title)}` : ''}</span>
+        <span class="du">${e.live ? `đang chạy · ${mins(e.ms)}′` : cut ? `bỏ dở · ${mins(e.ms)}′/${e.plan}′` : `${mins(e.ms)}′`}</span>
+        ${meta.length ? `<span class="mt">${meta.join(' · ')}</span>` : ''}
+      </div></div>${note}`;
+  }).join('');
+  const work = rows.filter(e => e.k === 'work'), rest = rows.filter(e => e.k === 'short' || e.k === 'long');
+  const sum = l => l.reduce((s, e) => s + (e.ms || 0), 0);
+  return `<div class="fzh">Nhật ký hôm nay<span class="n">${fHours(sum(work))} làm · ${fHours(sum(rest))} nghỉ</span></div>
+    <div class="fzjrs">${html}</div>`;
 }
 
 // biểu đồ giờ tập trung theo ngày / tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.

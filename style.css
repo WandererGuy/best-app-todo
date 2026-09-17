@@ -770,13 +770,32 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fcx .td{color:var(--tx);font-weight:650}
 .fzsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px}
 .fzsum b{font-size:18px;font-weight:680}
-.fzli{display:flex;align-items:baseline;gap:10px;padding:6px 2px;border-bottom:1px solid var(--line);font-size:12.5px}
-.fzli:last-child{border-bottom:none}
-.fzli .tm{color:var(--tx3);font-variant-numeric:tabular-nums}
-.fzli .nm{flex:1;min-width:0;word-break:break-word}
-.fzli .nm em{display:block;font-style:normal;font-size:11.5px;color:var(--tx3)}
-.fzli .meta{white-space:nowrap}
-.fzli.off .nm{color:var(--tx2)}
+/* nhật ký: cột giờ · đường nối · thân. Đường nối là span kéo hết chiều cao dòng nên các dòng liền thành một mạch */
+.fzjrs{display:flex;flex-direction:column}
+.fzjr{display:grid;grid-template-columns:38px 13px 1fr;align-items:start;font-size:12.5px;min-height:26px}
+.fzjr .tm{color:var(--tx3);font-variant-numeric:tabular-nums;padding-top:5px;font-size:11.5px}
+.fzjr .rail{grid-column:2;justify-self:center;width:1px;height:100%;min-height:26px;background:var(--line)}
+.fzjr .rail.first{background:linear-gradient(transparent 9px,var(--line) 9px)}
+.fzjr .rail.last{background:linear-gradient(var(--line) 17px,transparent 17px)}
+.fzjr .dot{grid-column:2;grid-row:1;justify-self:center;margin-top:8px;width:7px;height:7px;border-radius:50%;background:var(--panel);box-shadow:0 0 0 1.5px var(--tx3)}
+.fzjr .bd{grid-column:3;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;padding:5px 0 5px 10px;min-width:0}
+.fzjr .nm{word-break:break-word}
+.fzjr .du,.fzjr .mt{color:var(--tx3);font-size:11.5px;white-space:nowrap}
+.fzjr.work .dot{background:var(--acc);box-shadow:0 0 0 1.5px var(--acc)}
+.fzjr.work .nm{font-weight:600}
+.fzjr.rest .nm,.fzjr.gap .nm{color:var(--tx2)}
+.fzjr.cut .dot{background:var(--panel);box-shadow:0 0 0 1.5px var(--warn)}
+.fzjr.cut .du{color:var(--warn)}
+.fzjr.live .dot{background:var(--ok);box-shadow:0 0 0 1.5px var(--ok)}
+.fzjr.live .du{color:var(--ok)}
+/* khoảng rời bàn: đường nối đứt để thấy ngay mạch bị hở */
+.fzjr.gap .rail{background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px)}
+.fzjr.gap .dot{width:0;height:0;box-shadow:none}
+.fzjr.gap .nm{font-size:11.5px;font-style:italic}
+/* ghi chú cuối phiên: dòng con không có cột giờ, vẫn dính vào đường nối */
+.fzjr.note .bd{flex-direction:column;gap:2px;padding:0 0 7px 10px;font-size:11.5px}
+.fzjr.note .rate{color:var(--warn);letter-spacing:1px}
+.fzjr.note .nx{color:var(--tx2);word-break:break-word}
 .fzcfgbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font-weight:600}
 .fzcfgbtn span{font-size:11.5px;color:var(--tx3);font-weight:400}
 .fzcfgbtn:hover{color:var(--acc2)}
