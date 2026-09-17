@@ -18,7 +18,7 @@ function save(){
 function paintSave(){
   const b = $('#saveBar'); if(!b) return;
   const msg = !storageOK ? 'Không lưu được — hãy xuất file!'
-    : srvErr === 'conflict' ? 'Đã sửa ở cửa sổ khác — tải lại trang'
+    : srvErr === 'conflict' ? 'Đã sửa ở cửa sổ khác — đang lấy bản mới'
     : srvErr ? 'Chưa lưu vào máy — chỉ trong trình duyệt' : '';
   b.classList.toggle('bad', !!msg);
   if(msg){ b.innerHTML = `<span class="d"></span>${msg}`; return; }
@@ -29,7 +29,7 @@ function paintSave(){
 /* ---- dữ liệu chính nằm ở server: serve.py ghi ra data/dieukhien.json ----
    localStorage chỉ là bản đệm, nên xoá cache hay đổi profile Chrome không mất gì.
    Mỗi lần ghi kèm mã phiên bản (ETag) của bản trên server mà dữ liệu đang dựa vào; cửa sổ khác đã ghi
-   trước thì server trả 409, bản ở đây được cất vào data/backups chứ không đè lên.
+   trước thì server trả 409 — lúc đó tab này nạp lại bản mới (xem pullSrv) thay vì đè lên.
    localStorage 'dieukhien.srv' = {tag, dirty}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt). */
 const SRV_KEY = 'dieukhien.srv';
 const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
@@ -53,12 +53,16 @@ async function pushSrv(){
     const r = await fetch('/api/data' + (keep ? '?keep=1' : ''),
                           {method:'PUT', headers:{...SRV_H, 'If-Match':srvTag}, body: await dataJSON()});
     if(r.status === 409){
-      srvOn = false; srvErr = 'conflict';
+      // cửa sổ khác vừa ghi: cất bản ở đây vào data/backups rồi nạp bản mới về, không đè lên nhau
       await stashSrv();
-      toast('Dữ liệu vừa được sửa ở cửa sổ khác. Thay đổi ở đây đã cất vào data/backups — hãy tải lại trang.');
+      srvErr = 'conflict'; paintSave();
+      srvBusy = false;
+      await pullSrv(true);
+      return;
     }else if(r.ok){
       srvTag = r.headers.get('ETag'); srvErr = null; srvKeep = srvKeep && !keep;
       setMeta(gen !== srvGen);
+      bcSend();
     }else throw new Error(r.status);
   }catch(e){
     if(!srvErr) toast('Không lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.');
@@ -72,6 +76,58 @@ async function stashSrv(){
   try{ return (await fetch('/api/backup', {method:'POST', headers:SRV_H, body: await dataJSON()})).ok; }
   catch(e){ return false; }
 }
+/* ---- nhiều tab cùng mở: tab nào cũng theo kịp bản mới nhất ----
+   Hỏi server mỗi POLL_MS một lần (và ngay khi quay lại tab); ETag khác thì nạp về.
+   BroadcastChannel chỉ để giục các tab cùng trình duyệt hỏi ngay, khỏi chờ hết nhịp — dữ liệu vẫn lấy từ server,
+   nên hai profile Chrome hay hai trình duyệt khác nhau cũng đồng bộ được.
+   Đang gõ hay đang chạy đồng hồ tập trung thì hoãn: nạp giữa chừng sẽ nuốt mất chữ / phiên đang chạy.
+   Lúc đó hiện thanh mời nạp, người dùng bấm hoặc rời chỗ gõ là nạp. */
+const POLL_MS = 3000;
+const bc = typeof BroadcastChannel === 'function' ? new BroadcastChannel('dieukhien') : null;
+let pullBusy = false, pullWait = false;   // pullWait: có bản mới nhưng đang hoãn
+if(bc) bc.onmessage = () => pullSrv();
+
+function bcSend(){ try{ bc && bc.postMessage(1); }catch(e){} }
+/* lúc này nạp về sẽ phá thứ đang làm dở */
+function busyNow(){
+  const a = document.activeElement;
+  if(a && a.closest('.ed, .ProseMirror, input, textarea')) return true;   // đang gõ
+  if(S.focus.run && S.focus.run.since) return true;                 // đồng hồ tập trung đang chạy
+  if(ui.view === 'new') return true;                                // form tạo task chưa lưu
+  return false;
+}
+/* nạp bản mới trên server về nếu khác bản đang dùng. force = vừa bị 409, phải nạp cho bằng được */
+async function pullSrv(force){
+  if(!srvOn || pullBusy) return;
+  pullBusy = true;
+  try{
+    const r = await fetch('/api/data', {cache:'no-store'});
+    if(!r.ok || r.headers.get('X-App') !== 'dieukhien') throw new Error(r.status);
+    const tag = r.headers.get('ETag');
+    if(tag === srvTag){ pullWait = false; paintSync(); return; }    // đang là bản mới nhất rồi
+    if(!force && busyNow()){ pullWait = true; paintSync(); return; }
+    const d = await r.json();
+    for(const [id, url] of Object.entries(d.images || {})){
+      imgData.set(id, url);
+      if(!await imgGet(id)) await imgPut(id, await (await fetch(url)).blob());
+    }
+    applyData(d);
+    srvTag = tag; srvErr = null; pullWait = false;
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); }catch(e){ storageOK = false; }
+    setMeta(false);
+    render();
+    if(ui.open) drawTask();          // render() không vẽ lại panel task đang mở
+    if(force) toast('Cửa sổ khác vừa sửa dữ liệu. Thay đổi ở đây đã cất vào data/backups, màn hình đang là bản mới nhất.');
+  }catch(e){ /* server tắt: pushSrv sẽ báo, ở đây im lặng */ }
+  finally{ pullBusy = false; }
+}
+function paintSync(){
+  const b = $('#syncBar'); if(!b) return;
+  b.hidden = !pullWait;
+}
+setInterval(() => { if(!document.hidden) pullSrv(); }, POLL_MS);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) pullSrv(); });
+
 const countData = d => `${(d.tasks || []).length} task, ${(d.notes || []).length} ghi chú, ${(d.habits || []).length} thói quen`;
 /* khởi động: ưu tiên server, không có server mới dùng dữ liệu trình duyệt. Trả về lời nhắn cần báo (nếu có) */
 async function boot(){

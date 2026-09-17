@@ -430,6 +430,13 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
   opacity:0;pointer-events:none;transition:.2s;z-index:95;box-shadow:0 10px 32px rgba(0,0,0,.5)
 }
 #toast.on{opacity:1;transform:translate(-50%,0)}
+/* mời nạp bản mới: hiện khi cửa sổ khác đã sửa nhưng ở đây đang gõ dở nên chưa nạp ngay */
+#syncBar{
+  position:fixed;left:50%;bottom:26px;transform:translate(-50%,0);background:var(--panel2);
+  border:1px solid var(--acc);color:var(--tx);padding:10px 18px;border-radius:9px;font-size:13px;
+  cursor:pointer;z-index:96;box-shadow:0 10px 32px rgba(0,0,0,.5)
+}
+#syncBar:hover{background:var(--panel)}
 /* lịch trong ngày ở sidebar: mỗi giờ 40px, bấm khung trống để tạo task */
 .sdcal{flex:0 0 auto;height:320px;overflow-y:auto;margin:0 4px;border:1px solid var(--line);border-radius:9px;background:var(--bg)}
 .sdgrid{position:relative;height:960px}

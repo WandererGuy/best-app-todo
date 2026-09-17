@@ -27,9 +27,7 @@ function render(){
   else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. ' +
     'Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.</div>');
-  else if(srvErr === 'conflict') $('#view').insertAdjacentHTML('afterbegin',
-    '<div class="banner">⚠ Dữ liệu vừa được sửa ở cửa sổ hoặc profile Chrome khác. Thay đổi ở đây đã được cất vào <b>data/backups</b>, không ghi đè lên — hãy <b>tải lại trang</b> để thấy bản mới nhất.</div>');
-  paintSave(); paintFs(); paintBell();
+  paintSave(); paintFs(); paintBell(); paintSync();
 }
 
 /* ============ sự kiện ============ */
@@ -150,6 +148,9 @@ $('#q').oninput = e => {
   if(['dash', 'board', 'life', 'backlog', 'cal'].includes(ui.view)) render();
   if(ui.view === 'notes') drawNoteList();   // chỉ vẽ lại cột trái, trang đang mở giữ nguyên
 };
+$('#syncBar').onclick = () => pullSrv(true);
+// vừa rời ô soạn thảo / vừa đóng form: nếu đang hoãn bản mới thì nạp luôn
+document.addEventListener('focusout', () => setTimeout(() => { if(pullWait) pullSrv(); }, 0));
 $('#expBtn').onclick = exportJSON;
 $('#impBtn').onclick = () => $('#impFile').click();
 $('#impFile').onchange = e => { if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; };
