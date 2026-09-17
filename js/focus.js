@@ -484,8 +484,58 @@ function fJournalHTML(){
   }).join('');
   const work = rows.filter(e => e.k === 'work'), rest = rows.filter(e => e.k === 'short' || e.k === 'long');
   const sum = l => l.reduce((s, e) => s + (e.ms || 0), 0);
-  return `<div class="fzh">Nhật ký hôm nay<span class="n">${fHours(sum(work))} làm · ${fHours(sum(rest))} nghỉ</span></div>
+  const left = fToSend().length;
+  return `<div class="fzh">Nhật ký hôm nay<span class="n">${fHours(sum(work))} làm · ${fHours(sum(rest))} nghỉ</span>
+      ${left ? `<button class="lblbtn" data-fsend title="Viết ${left} phiên chưa đưa sang vào trang Tập trung của mục Nhật ký">→ Đưa vào Nhật ký</button>`
+             : '<span class="lblbtn off" title="Mọi phiên hôm nay đã có trong mục Nhật ký">✓ đã đưa vào Nhật ký</span>'}</div>
     <div class="fzjrs">${html}</div>`;
+}
+
+/* --- đưa sang mục Nhật ký: gom phiên hôm nay thành một bài viết, nối vào cuối trang "Tập trung" của ngày đó.
+   Phiên đã đưa sang được đánh dấu sent nên bấm lại chỉ thêm phần mới, không chép lại từ đầu. --- */
+const FJPAGE = 'Tập trung';
+// chỉ phiên work đã xong hẳn mới đáng viết: đang chạy thì chưa có gì để kể
+const fToSend = () => S.focus.log.filter(e => e.k === 'work' && iso(new Date(e.a)) === today() && !e.sent);
+function fSend(){
+  const list = fToSend();
+  if(!list.length) return toast('Mọi phiên hôm nay đã có trong mục Nhật ký');
+  const k = today(), pages = jPages(k);
+  let page = pages.find(p => p.name === FJPAGE);
+  if(!page){ page = {id:uid(), name:FJPAGE, html:''}; pages.push(page); }
+  page.html = (hasText(page.html) ? page.html : '') + fSendHTML(list, hasText(page.html));
+  list.forEach(e => e.sent = true);
+  save();
+  ui.view = 'journal'; ui.jDate = k; ui.jTab = pages.indexOf(page);
+  render();
+  toast(`Đã đưa ${list.length} phiên sang mục Nhật ký`);
+}
+// bài viết: một dòng tổng ở đầu, rồi mỗi phiên một đoạn. Dùng thẻ thường để sửa lại được bằng tay trong editor.
+function fSendHTML(list, cont){
+  const done = list.filter(e => e.done), cut = list.filter(e => !e.done);
+  const rated = list.filter(e => e.rate);
+  const tot = list.reduce((s, e) => s + e.ms, 0);
+  const stamp = new Date().toTimeString().slice(0, 5);
+  const sum = [`<strong>${done.length} phiên đạt</strong>`, fHours(tot)];
+  if(cut.length) sum.push(`${cut.length} phiên bỏ dở`);
+  if(rated.length) sum.push(`tập trung ${(rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1)}/5`);
+  // gộp các phiên cùng một task lại: đọc theo việc dễ nhớ hơn đọc theo lượt ngồi
+  const byTask = [];
+  list.forEach(e => {
+    const key = e.tid || e.title, g = byTask.find(x => x.key === key);
+    (g || byTask[byTask.push({key, title:e.title, es:[]}) - 1]).es.push(e);
+  });
+  const body = byTask.map(g => {
+    const ms = g.es.reduce((s, e) => s + e.ms, 0);
+    const span = `${fHM(g.es[0].a)}–${fHM(g.es[g.es.length - 1].b)}`;
+    const nd = g.es.filter(e => e.done).length, cut = g.es.length - nd;
+    const head = `<p><strong>${esc(g.title.trim() || '(chưa đặt tên)')}</strong> — ${nd} phiên đạt${cut ? ` · ${cut} bỏ dở` : ''} · ${fHours(ms)} · ${span}</p>`;
+    // ghi chú cuối phiên là thứ đáng giữ nhất, nên cho ra một danh sách riêng
+    const notes = g.es.filter(e => e.next || e.rate).map(e =>
+      `<li>${fHM(e.a)}${e.rate ? ` · ${'★'.repeat(e.rate)}${'☆'.repeat(5 - e.rate)}` : ''}${e.next ? ` — ${esc(e.next)}` : ''}</li>`).join('');
+    return head + (notes ? `<ul>${notes}</ul>` : '');
+  }).join('');
+  return `${cont ? '<hr>' : ''}<h2>Tập trung hôm nay${cont ? ` · thêm lúc ${stamp}` : ''}</h2>
+    <p>${sum.join(' · ')}</p>${body}`;
 }
 
 // biểu đồ giờ tập trung theo ngày / tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
@@ -608,12 +658,13 @@ function fPickImg(p){
 
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-fstart],[data-fsolo],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
+  const b = e.target.closest('[data-fstart],[data-fsolo],[data-fsend],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
     + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fsp],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
   if('fstart' in d) return f.next === 'work' ? fStart('work', fQueue()[0]) : fStart(f.next);
   if('fsolo' in d) return fStart('short', null, true);
+  if('fsend' in d) return fSend();
   if('fskip' in d) return fSkip();
   if('fpause' in d) return fPause();
   if('fleft' in d){ S.settings.fzLeft = !S.settings.fzLeft; save(); return fFullPaint(); }
