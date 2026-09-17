@@ -360,8 +360,8 @@ async function fLook(el, lk){
 function renderFocus(){
   $('#view').innerHTML = `<div class="fzpage">
     <div class="fzcol"><div id="fzMain"></div><div class="fcard fzcard" id="fzQ"></div></div>
-    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzJrn"></div>
-      <div class="fcard fzcard" id="fzChart"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
+    <div class="fzcol"><div class="fcard fzcard" id="fzStats"></div><div class="fcard fzcard" id="fzChart"></div>
+      <div class="fcard fzcard" id="fzJrn"></div><div class="fcard fzcard" id="fzCfg"></div></div></div>`;
   fPaintPage(); fPaintCfg();
 }
 function fPaintPage(){
