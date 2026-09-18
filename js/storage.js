@@ -2,7 +2,8 @@
 function applyData(d){
   S = {tasks: d.tasks || [], trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
        notes: d.notes || [], ntrash: d.ntrash || [], habits: d.habits || [],
-       settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || [], focus: fNorm(d.focus)};
+       settings: Object.assign({jH:560}, d.settings || {}), notis: d.notis || [], focus: fNorm(d.focus),
+       plan: pNorm(d.plan)};
   syncTags();
   // nhật ký cũ mỗi ngày một trang -> đổi sang dạng nhiều trang
   Object.keys(S.journal).forEach(k => {
