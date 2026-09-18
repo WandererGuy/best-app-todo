@@ -40,7 +40,7 @@ function fQueue(){
   f.queue = f.queue.filter(id => fTask(id)?.status === 'doing');
   return f.queue;
 }
-// câu "lần sau bắt đầu từ…" gần nhất của task — hiện lại lúc chuẩn bị làm tiếp task đó
+// ghi chú sau phiên gần nhất của task — hiện lại lúc chuẩn bị làm tiếp task đó
 function fLastNext(tid){
   const log = S.focus.log;
   for(let i = log.length - 1; i >= 0; i--) if(log[i].tid === tid && log[i].next) return log[i].next;
@@ -336,7 +336,7 @@ function fPanel(mode){
          ${r.rang ? '<button class="btn ghost" data-fend>Kết thúc phiên</button>' : '<button class="btn ghost" data-fcancel>Huỷ phiên</button>'}</div>`;
   return mode === 'page' ? h + fCapHTML(true) : h;
 }
-// tên task và câu "lần trước dừng ở"; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
+// tên task và ghi chú của phiên trước; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
 function fTaskHTML(t, running){
   if(running && (!t || t.status === 'done')){
     const nextId = fQueue().find(id => !t || id !== t.id);
@@ -344,7 +344,7 @@ function fTaskHTML(t, running){
       ${nextId ? `<button class="btn ghost" data-fpick="${nextId}">Làm: ${fName(fTask(nextId))}</button>` : ''}</div>`;
   }
   const nx = fLastNext(t.id);
-  return `<div class="fztask">${fName(t)}</div>${nx ? `<div class="fznext">Lần trước dừng ở: ${esc(nx)}</div>` : ''}`;
+  return `<div class="fztask">${fName(t)}</div>${nx ? `<div class="fznext">Ghi chú phiên trước: ${esc(nx)}</div>` : ''}`;
 }
 const fCapHTML = big => `<input class="fzin cap" data-fcap placeholder="${big ? '+ Chợt nhớ việc khác? Ghi vào Để sau rồi Enter' : '+ Ghi để sau (Enter)'}" autocomplete="off">`;
 // toàn màn hình: task và ô ghi để sau nằm trong ngăn nhỏ bên trái, gập lại được — giữa màn hình chỉ còn đồng hồ
@@ -362,7 +362,7 @@ function fRevHTML(){
   return `<div class="fzrev"><div class="fzrevh">Xong phiên${e.title.trim() ? ` · ${esc(e.title)}` : ''}</div>
     ${c.askRate ? `<div class="fzrate"><span>Tập trung</span>${[1, 2, 3, 4, 5].map(i =>
       `<button class="${ui.fRev.rate === i ? 'on' : ''}" data-frate="${i}" title="${FRATE[i]}">${i}</button>`).join('')}</div>` : ''}
-    ${c.askNext ? `<input class="fzin" data-fin="next" value="${esc(ui.fRev.next)}" placeholder="Lần sau bắt đầu từ…" autocomplete="off">` : ''}
+    ${c.askNext ? `<input class="fzin" data-fin="next" value="${esc(ui.fRev.next)}" placeholder="Ghi chú sau phiên…" autocomplete="off">` : ''}
     <div class="fzbtns"><button class="btn" data-frev="1">Lưu</button><button class="btn ghost" data-frev="0">Bỏ qua</button></div></div>`;
 }
 
@@ -442,7 +442,7 @@ function fQueueHTML(){
       return `<div class="fzqi${on ? ' on' : ''}">
         <span class="sw" style="background:${AREAS[t.area].c}"></span>
         <div class="fzqt"><button class="fzqn" data-fopen="${id}" title="Mở task">${fName(t)}</button> ${pill(t)}
-          ${nx ? `<div class="fznext">Lần trước dừng ở: ${esc(nx)}</div>` : ''}</div>
+          ${nx ? `<div class="fznext">Ghi chú phiên trước: ${esc(nx)}</div>` : ''}</div>
         ${on ? `<span class="meta">${r && r.phase === 'work' ? 'đang làm' : 'phiên tới'}</span>`
              : `<button class="btn ghost" data-fpick="${id}">Chọn</button>`}
         <button class="btn ghost" data-fdone="${id}" title="Đánh dấu task đã xong">✓ Xong</button>
@@ -526,7 +526,7 @@ function fJournalHTML(){
     // ghi chú cuối phiên treo dưới dòng, vẫn dính vào đường nối
     const note = work && !e.live && (e.rate || e.next) ? `<div class="fzjr note"><span></span>${railNote}
       <div class="bd">${e.rate ? `<span class="rate" title="${FRATE[e.rate]}">${'★'.repeat(e.rate)}${'☆'.repeat(5 - e.rate)}</span>` : ''}
-        ${e.next ? `<span class="nx">Lần sau bắt đầu từ: ${esc(e.next)}</span>` : ''}</div></div>` : '';
+        ${e.next ? `<span class="nx">Ghi chú sau phiên: ${esc(e.next)}</span>` : ''}</div></div>` : '';
     return `<div class="fzjr ${work ? 'work' : 'rest'}${cut ? ' cut' : ''}${e.live ? ' live' : ''}">
       <span class="tm">${fHM(e.a)}</span>${rail}<span class="dot"></span>
       <div class="bd">
@@ -680,7 +680,7 @@ function fCfgHTML(){
       + chk('weekend', 'Cuối tuần có làm đủ thì cộng vào chuỗi'),
       'Cuối tuần không làm thì chuỗi không gãy. Phiên huỷ giữa chừng vẫn được ghi lại nhưng không tính là phiên đạt.')}
     ${grp('ask', 'Sau phiên', chk('askRate', 'Chấm độ tập trung cuối phiên')
-      + chk('askNext', 'Ghi "lần sau bắt đầu từ…"'))}
+      + chk('askNext', 'Ghi chú sau phiên'))}
     ${grp('look', 'Giao diện toàn màn hình', Object.keys(FPHASE).map(fLookHTML).join(''))}
     ${grp('sound', 'Âm thanh & thông báo', chk('sound', 'Âm báo hết phiên')
       + `<label class="fzrow"><span>Âm lượng</span><input type="range" min="0" max="100" data-fcfg="vol" value="${c.vol}"><button class="btn ghost" data-ftest>Nghe thử</button></label>`
