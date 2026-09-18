@@ -117,6 +117,7 @@ async function pullSrv(force){
     setMeta(false);
     render();
     if(ui.open) drawTask();          // render() không vẽ lại panel task đang mở
+    if(S.focus.run) fStartTick(); else fStopTick();   // tab khác vừa bắt đầu / dừng phiên: nhịp đồng hồ ở đây theo kịp
     if(force) toast('Cửa sổ khác vừa sửa dữ liệu. Thay đổi ở đây đã cất vào data/backups, màn hình đang là bản mới nhất.');
   }catch(e){ /* server tắt: pushSrv sẽ báo, ở đây im lặng */ }
   finally{ pullBusy = false; }

@@ -57,24 +57,37 @@ function fRun(){
   return {cur, best};
 }
 
-/* --- nhịp đồng hồ: Chrome chỉ cho timer ở tab chạy nền chạy mỗi phút một lần, timer trong Worker thì không bị hãm --- */
-let fTick = null;
+/* --- nhịp đồng hồ: Chrome chỉ cho timer ở tab chạy nền chạy mỗi phút một lần, timer trong Worker thì không bị hãm.
+   Không hẹn đều mỗi giây mà hẹn đúng mốc giây kế tiếp của chính đồng hồ: mốc ấy tính ra từ run.since, thứ mọi tab
+   dùng chung, nên hai tab đổi chữ số cùng một khoảnh khắc thay vì lệch theo lúc từng tab được mở. Hẹn một lần một,
+   nên timer chạy trễ (máy ngủ, tab bị hãm) cũng tự về đúng mốc ở lần sau. --- */
+let fTick = null, fTimer = null;
 function fStartTick(){
-  if(fTick) return;
-  try{
-    fTick = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 1000)'])));
+  // mỗi lời hẹn mới xoá lời hẹn cũ, để gọi fArm nhiều lần cũng chỉ còn một nhịp
+  if(!fTick) try{
+    fTick = new Worker(URL.createObjectURL(new Blob(['let t; onmessage = e => { clearTimeout(t); t = setTimeout(() => postMessage(0), e.data); }'])));
     fTick.onmessage = fOnTick;
-  }catch(e){ fTick = setInterval(fOnTick, 1000); }
+  }catch(e){}
+  fArm();
 }
 function fStopTick(){
-  if(!fTick) return;
-  if(fTick.terminate) fTick.terminate(); else clearInterval(fTick);
-  fTick = null;
+  if(fTick){ fTick.terminate(); fTick = null; }
+  clearTimeout(fTimer); fTimer = null;
+}
+// +20ms cho chắc đã qua mốc; đang tạm dừng thì chữ số đứng yên, chỉ cần nhịp thường để đếm phút dừng
+function fArm(){
+  const r = S.focus.run;
+  if(!r) return;
+  const left = r.since ? fLeft(r) : 0;
+  const ms = (left > 0 ? left % 1000 || 1000 : 1000) + 20;
+  if(fTick) fTick.postMessage(ms);
+  else { clearTimeout(fTimer); fTimer = setTimeout(fOnTick, ms); }
 }
 function fOnTick(){
   const r = S.focus.run;
-  if(r && r.since && fLeft(r) <= 0) return fFinish(false);
-  fPaintTime();
+  if(r && r.since && fLeft(r) <= 0) fFinish(false);
+  else fPaintTime();
+  fArm();   // fFinish có thể chạy tiếp phiên sau; hết hẳn thì fArm tự thôi
 }
 // chỉ cập nhật chữ số, không vẽ lại khung — ô đang gõ không bị mất
 function fPaintTime(){
