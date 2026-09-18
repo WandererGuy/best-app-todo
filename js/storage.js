@@ -65,7 +65,7 @@ async function pushSrv(){
       bcSend();
     }else throw new Error(r.status);
   }catch(e){
-    if(!srvErr) toast('Không lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.');
+    if(!srvErr) toast('Chưa lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.');
     srvErr = 'off';
   }
   srvBusy = false;
@@ -88,7 +88,7 @@ let pullBusy = false, pullWait = false;   // pullWait: có bản mới nhưng đ
 if(bc) bc.onmessage = () => pullSrv();
 
 function bcSend(){ try{ bc && bc.postMessage(1); }catch(e){} }
-/* lúc này nạp về sẽ phá thứ đang làm dở */
+/* lúc này nạp về sẽ ghi đè lên thứ đang làm dở */
 function busyNow(){
   const a = document.activeElement;
   if(a && a.closest('.ed, .ProseMirror, input, textarea')) return true;   // đang gõ
@@ -189,7 +189,7 @@ async function linkFile(){
     });
     await writeFile(); await idbPut(fh);
     toast('Đã liên kết. Mọi thay đổi sẽ tự ghi ra file này.');
-  }catch(e){ if(e.name !== 'AbortError') toast('Không liên kết được file: ' + e.message); }
+  }catch(e){ if(e.name !== 'AbortError') toast('Chưa liên kết được file: ' + e.message); }
   paintFs();
 }
 async function writeFile(){
@@ -199,7 +199,7 @@ async function writeFile(){
     const w = await fh.createWritable();
     await w.write(txt);
     await w.close();
-  }catch(e){ fh = null; toast('Mất quyền ghi file — hãy liên kết lại.'); }
+  }catch(e){ fh = null; toast('Mất quyền ghi file — liên kết lại giúp mình.'); }
   paintFs(); paintSave();
 }
 function queueFile(){
@@ -244,7 +244,7 @@ async function reconnectFile(){
   if(!fhPending) return linkFile();
   if(await fhPending.requestPermission({mode:'readwrite'}) === 'granted'){
     fh = fhPending; fhPending = null; await writeFile(); toast('Đã kết nối lại file dữ liệu.');
-  }else toast('Bạn đã từ chối quyền ghi file.');
+  }else toast('Chưa được cấp quyền ghi file.');
   paintFs();
 }
 
@@ -304,16 +304,16 @@ async function addImages(ed, files, pos){
   const ids = [];
   for(const f of files){
     try{ const id = 'i' + uid(); await imgPut(id, await shrink(f)); ids.push(id); }
-    catch(e){ toast(`Không chèn được ảnh ${f.name}`); }
+    catch(e){ toast(`Chưa chèn được ảnh ${f.name}`); }
   }
   TT.image(ed, ids, pos);
 }
 async function addFiles(ed, files, pos){
   const items = [];
   for(const f of files){
-    if(f.size > FILE_MAX){ toast(`${f.name} nặng quá ${FILE_MAX / 1024 / 1024}MB, không đính kèm được`); continue; }
+    if(f.size > FILE_MAX){ toast(`${f.name} nặng hơn ${FILE_MAX / 1024 / 1024}MB nên chưa đính kèm được`); continue; }
     try{ const id = 'f' + uid(); await imgPut(id, f); items.push({file:id, name:f.name, size:f.size}); }
-    catch(e){ toast(`Không đính kèm được ${f.name}`); }
+    catch(e){ toast(`Chưa đính kèm được ${f.name}`); }
   }
   TT.file(ed, items, pos);
 }
@@ -419,7 +419,7 @@ function importJSON(file){
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
       srvKeep = true;                          // server cất bản đang có vào data/backups trước khi bị đè
       save(); render();
-    }catch(e){ alert('Không đọc được file: ' + e.message); }
+    }catch(e){ alert('Chưa đọc được file: ' + e.message); }
   };
   r.readAsText(file);
 }

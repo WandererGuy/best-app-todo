@@ -9,7 +9,7 @@ function trashTask(id){
 function renderTrash(){
   const fmt = d => d ? d.split('-').reverse().join('/') : '';
   const nroots = S.ntrash.filter(n => n.trashed);
-  $('#vSub').textContent = `${S.trash.length} task · ${nroots.length} trang ghi chú · xoá vĩnh viễn thì không lấy lại được`;
+  $('#vSub').textContent = `${S.trash.length} task · ${nroots.length} trang ghi chú · xoá vĩnh viễn thì không khôi phục lại được`;
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
     <div class="fld"><label style="display:flex;align-items:center">Task đã bỏ
       ${S.trash.length ? '<button class="danger" id="trClr" style="margin-left:auto">Xoá vĩnh viễn tất cả</button>' : ''}</label>
@@ -19,7 +19,7 @@ function renderTrash(){
           <span class="meta" style="white-space:nowrap">${STATUSES[t.status].n} · bỏ ngày ${fmt(t.trashed)}</span>
           <button class="btn ghost" data-restore="${t.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Khôi phục</button>
           <button class="danger" data-purge="${t.id}" style="white-space:nowrap">Xoá vĩnh viễn</button></div>`).join('')}</div>`
-        : '<div class="empty">Thùng rác trống. Kéo card trên bảng xuống đáy màn hình để bỏ.</div>'}</div>
+        : '<div class="empty">Thùng rác đang trống. Kéo card trên bảng xuống đáy màn hình để bỏ vào đây.</div>'}</div>
   </div><div class="fcard">
     <div class="fld"><label style="display:flex;align-items:center">Ghi chú đã bỏ
       ${nroots.length ? '<button class="danger" id="ntrClr" style="margin-left:auto">Xoá vĩnh viễn tất cả</button>' : ''}</label>
@@ -39,11 +39,11 @@ function renderTrash(){
   });
   $$('[data-purge]').forEach(b => b.onclick = () => {
     const t = S.trash.find(x => x.id === b.dataset.purge);
-    if(!confirm(`Xoá vĩnh viễn "${t.title.trim() || '(chưa đặt tên)'}"? Không lấy lại được.`)) return;
+    if(!confirm(`Xoá vĩnh viễn "${t.title.trim() || '(chưa đặt tên)'}"? Sẽ không khôi phục lại được.`)) return;
     S.trash = S.trash.filter(x => x !== t); save(); render();
   });
   if(S.trash.length) $('#trClr').onclick = () => {
-    if(!confirm(`Xoá vĩnh viễn ${S.trash.length} task trong thùng rác? Không lấy lại được.`)) return;
+    if(!confirm(`Xoá vĩnh viễn ${S.trash.length} task trong thùng rác? Sẽ không khôi phục lại được.`)) return;
     S.trash = []; save(); render();
   };
 
@@ -58,11 +58,11 @@ function renderTrash(){
   });
   $$('[data-npurge]').forEach(b => b.onclick = () => {
     const n = S.ntrash.find(x => x.id === b.dataset.npurge), tree = nTree(S.ntrash, n);
-    if(!confirm(`Xoá vĩnh viễn "${n.title.trim() || 'Không có tiêu đề'}"${tree.length > 1 ? ` và ${tree.length - 1} trang con` : ''}? Không lấy lại được.`)) return;
+    if(!confirm(`Xoá vĩnh viễn "${n.title.trim() || 'Không có tiêu đề'}"${tree.length > 1 ? ` và ${tree.length - 1} trang con` : ''}? Sẽ không khôi phục lại được.`)) return;
     S.ntrash = S.ntrash.filter(x => !tree.includes(x)); save(); render();
   });
   if(nroots.length) $('#ntrClr').onclick = () => {
-    if(!confirm(`Xoá vĩnh viễn ${nroots.length} trang ghi chú trong thùng rác? Không lấy lại được.`)) return;
+    if(!confirm(`Xoá vĩnh viễn ${nroots.length} trang ghi chú trong thùng rác? Sẽ không khôi phục lại được.`)) return;
     S.ntrash = []; save(); render();
   };
 }

@@ -85,13 +85,13 @@ function toRich(html){
 }
 
 const EDS = new Map();
-function killEd(id){
+function closeEd(id){
   const e = EDS.get(id);
   if(e){ try{ e.destroy(); }catch(err){} EDS.delete(id); }
 }
-function killEds(){ [...EDS.keys()].forEach(killEd); closeSlash(); hideFtb(); }
+function closeEds(){ [...EDS.keys()].forEach(closeEd); closeSlash(); hideFtb(); }
 function mountEd(hostId, content, ph, onChange){
-  killEd(hostId);
+  closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos)});

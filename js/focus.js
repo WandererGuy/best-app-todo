@@ -10,7 +10,7 @@ const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','con
   look:['look'], sound:['sound','vol','notify','tabTitle']};
 const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
 // giờ nghỉ nên rời màn hình: vận động nhẹ hồi sức tốt hơn lướt điện thoại, thứ kéo đầu sang việc khác
-const FREST = {short:['Đứng dậy vươn vai', 'Uống một cốc nước', 'Nhìn ra xa 20 giây cho mắt nghỉ', 'Hít thở chậm vài nhịp', 'Đi lại vài bước, đừng cầm điện thoại'],
+const FREST = {short:['Đứng dậy vươn vai', 'Uống một cốc nước', 'Nhìn ra xa 20 giây cho mắt nghỉ', 'Hít thở chậm vài nhịp', 'Đi lại vài bước, để điện thoại ở lại bàn'],
                long:['Đi bộ một vòng, ra chỗ có ánh sáng', 'Ăn nhẹ và uống nước', 'Nhắm mắt nghỉ vài phút', 'Giãn cổ, vai và lưng']};
 const FTITLE = document.title;
 
@@ -91,7 +91,7 @@ function fPaintTime(){
     if(!r.since) $$('[data-fpaused]').forEach(el => {
       const m = Math.floor((Date.now() - r.pAt) / 6e4), long = m >= c.pauseAsk;
       el.classList.toggle('long', long);
-      el.textContent = `Đang tạm dừng ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — làm tiếp hay huỷ phiên?' : ''}`;
+      el.textContent = `Đang tạm dừng ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — mình làm tiếp, hay dừng ở đây?' : ''}`;
     });
   }
   document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fClock(fLeft(r))} · ${FPHASE[r.phase]}` : FTITLE;
@@ -131,7 +131,7 @@ function fNotify(phase){
 function fStart(phase, tid, solo){
   const f = S.focus, c = f.cfg, now = Date.now();
   if(phase === 'work'){
-    if(!fTask(tid)) return toast('Thêm một task vào hàng đợi trước đã');
+    if(!fTask(tid)) return toast('Hàng đợi đang trống — thêm một task rồi bắt đầu');
     ui.fCheer = null;
   }
   f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0, solo:!!solo};
@@ -177,7 +177,7 @@ function fResume(){
 function fCancel(){
   const f = S.focus, r = f.run; if(!r) return;
   const ms = fWorked(r);
-  if(!confirm(`Huỷ phiên đang làm? ${Math.floor(ms / 6e4)} phút đã làm vẫn được ghi lại, nhưng không tính là một phiên đạt, và cây đang trồng sẽ héo.`)) return;
+  if(!confirm(`Dừng hẳn phiên này? ${Math.floor(ms / 6e4)} phút vừa rồi vẫn được ghi lại, chỉ là chưa tính thành một phiên đạt, và cây đang trồng sẽ héo.`)) return;
   if(ms >= 6e4) fLog(r, Date.now(), ms);   // bấm nhầm rồi huỷ ngay thì không ghi
   f.run = null; fStopTick(); save(); fPaint();
 }
@@ -207,10 +207,10 @@ function fCheer(){
 /* --- hàng đợi --- */
 function fAdd(tid){
   const f = S.focus, t = fTask(tid); if(!t) return;
-  if(t.status !== 'doing') return toast('Chỉ task ở cột Đang làm mới vào được hàng đợi — kéo task sang Đang làm trước');
+  if(t.status !== 'doing') return toast('Hàng đợi chỉ nhận task ở cột Đang làm — kéo task sang đó rồi thêm lại');
   const q = fQueue();
-  if(q.includes(tid)) return toast('Task này đã ở trong hàng đợi');
-  if(q.length >= f.cfg.qmax) return toast(`Hàng đợi đã đủ ${f.cfg.qmax} task — làm xong hoặc bỏ bớt một task trước`);
+  if(q.includes(tid)) return toast('Task này đã có trong hàng đợi rồi');
+  if(q.length >= f.cfg.qmax) return toast(`Hàng đợi đã đủ ${f.cfg.qmax} task — làm xong hoặc bỏ bớt một task rồi thêm tiếp`);
   q.push(tid); save(); fPaint();
   toast(`Đã thêm vào hàng đợi: ${t.title.trim() || '(chưa đặt tên)'}`);
 }
@@ -221,7 +221,7 @@ function fPick(tid){
   if(r && r.phase === 'work' && r.tid !== tid){
     const old = fTask(r.tid);
     if(old && old.status !== 'done'){
-      if(f.cfg.confirmSw && !confirm('Đổi task giữa phiên? Lần đổi này được ghi lại là một lần chuyển ngữ cảnh.')) return;
+      if(f.cfg.confirmSw && !confirm('Đổi sang task khác giữa phiên? Lần đổi này sẽ được ghi lại là một lần chuyển ngữ cảnh.')) return;
       r.sw++;
     }
     r.tid = tid;
@@ -243,7 +243,7 @@ function fCapture(title){
   if(r && r.phase === 'work') r.cap++;
   save();
   $('#ctK').textContent = S.tasks.filter(t => t.status === 'backlog').length;
-  toast('Đã ghi vào Để sau — quay lại việc đang làm');
+  toast('Đã ghi vào Để sau — mình quay lại việc đang làm nhé');
 }
 
 /* --- khung đồng hồ: dùng chung cho sidebar (side), mục Tập trung (page) và toàn màn hình (full) --- */
@@ -267,7 +267,7 @@ function fPanel(mode){
     // nghỉ ngoài chu kỳ: vừa họp xong hay vừa huỷ phiên thì bấm nghỉ luôn, không phải chạy hết một phiên trước
     const solo = `<button class="fzsolo" data-fsolo title="Nghỉ ${c.short} phút, không tính vào chu kỳ">☕ Nghỉ ngắn ${c.short}′</button>`;
     const t = fTask(q[0]);
-    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi trống — thêm task Đang làm vào hàng đợi để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>
+    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi đang trống — thêm một task ở cột Đang làm vào đây để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>
       <div class="fzbtns">${solo}</div>`;
     return h + (full ? '' : fTaskHTML(t, false)) + (big ? fPickHTML() : '')
       + `<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button>${solo}</div>`;
@@ -396,14 +396,14 @@ function fQueueHTML(){
         <button class="btn ghost" data-fdone="${id}" title="Đánh dấu task đã xong">✓ Xong</button>
         <button class="fzic" data-fdrop="${id}" title="Bỏ khỏi hàng đợi">✕</button></div>`;
     }).join('')}</div>`
-      : '<div class="empty">Hàng đợi trống. Kéo card ở cột Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn task ở dưới.</div>'}
+      : '<div class="empty">Hàng đợi đang trống. Kéo card ở cột Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn task ở dưới.</div>'}
     ${q.length < c.qmax
       // chia nhóm theo ưu tiên, cao lên đầu — chọn được việc quan trọng nhất trước
       ? pool.length ? `<select class="inp" id="fzPick"><option value="">+ Thêm task Đang làm vào hàng đợi…</option>
           ${PRIO_ORDER.map(p => { const g = pool.filter(t => t.prio === p); return g.length ? `<optgroup label="Ưu tiên ${PRIOS[p].n}">
             ${g.map(t => `<option value="${t.id}">${esc(t.title.trim() || '(chưa đặt tên)')}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`
-        : '<div class="fzhint">Không còn task nào ở cột Đang làm để thêm. Kéo task sang Đang làm trên bảng trước.</div>'
-      : `<div class="fzhint">Hàng đợi đã đủ ${c.qmax} task. Ít việc đang mở thì đầu ít chỗ để nhảy sang.</div>`}`;
+        : '<div class="fzhint">Không còn task nào ở cột Đang làm để thêm. Kéo một task sang Đang làm trên bảng rồi quay lại đây.</div>'
+      : `<div class="fzhint">Hàng đợi đã đủ ${c.qmax} task. Ít việc đang mở thì đầu cũng ít chỗ để nhảy sang.</div>`}`;
 }
 function fStatsHTML(){
   const c = S.focus.cfg, k = today(), m = fCount(), n = m[k] || 0, run = fRun();
@@ -454,7 +454,7 @@ function fDayLog(){
 function fJournalHTML(){
   const rows = fDayLog();
   if(!rows.length) return `<div class="fzh">Nhật ký hôm nay</div>
-    <div class="fzhint">Chưa có phiên nào hôm nay. Xong một phiên là có một dòng ở đây.</div>`;
+    <div class="fzhint">Hôm nay chưa có phiên nào. Xong một phiên là có một dòng ở đây.</div>`;
   const mins = ms => Math.round(ms / 6e4);
   const html = rows.map((e, i) => {
     const work = e.k === 'work', cut = !e.live && !e.done;
@@ -630,7 +630,7 @@ function fCfgHTML(){
       + `<label class="fzrow"><span>Âm lượng</span><input type="range" min="0" max="100" data-fcfg="vol" value="${c.vol}"><button class="btn ghost" data-ftest>Nghe thử</button></label>`
       + chk('notify', 'Thông báo hệ thống')
       + (perm === 'default' ? '<button class="bperm" data-fperm>Cho phép thông báo hệ thống — để được báo cả khi đang ở cửa sổ khác</button>'
-        : perm === 'denied' ? '<div class="fzhint">Trình duyệt đang chặn thông báo của trang này.</div>' : '')
+        : perm === 'denied' ? '<div class="fzhint">Trình duyệt đang tắt thông báo của trang này.</div>' : '')
       + chk('tabTitle', 'Hiện đồng hồ trên tiêu đề tab'))}`;
 }
 function fSetCfg(el){
@@ -650,7 +650,7 @@ function fPickImg(p){
   inp.onchange = async () => {
     const file = inp.files[0]; if(!file) return;
     try{ const id = 'i' + uid(); await imgPut(id, await shrink(file)); S.focus.cfg.look[p].img = id; }
-    catch(e){ return toast('Không đọc được ảnh này'); }
+    catch(e){ return toast('Chưa đọc được ảnh này'); }
     save(); fPaintCfg(); fFullPaint();
   };
   inp.click();

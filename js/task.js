@@ -31,7 +31,7 @@ function bindSubs(root, subs, onText){
   });
 }
 function drawTask(){
-  killEd('dN');
+  closeEd('dN');
   const t = S.tasks.find(x => x.id === ui.open);
   if(!t) return closeDrawer();
   const segs = (obj, cur, act) => Object.entries(obj).map(([k,v]) =>
@@ -139,12 +139,12 @@ function grabForm(){
 }
 function renderForm(){
   if(!nf) nf = blankForm();
-  $('#vSub').textContent = 'Điền thông tin rồi bấm Tạo task';
+  $('#vSub').textContent = 'Điền vài thông tin rồi bấm Tạo task';
   const segs = (obj, cur, act) => Object.entries(obj).map(([k,v]) =>
     `<button class="${cur===k?'on':''}" style="${cur===k?`background:${v.c};border-color:${v.c}`:''}" data-${act}="${k}">${v.n}</button>`).join('');
 
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
-    <input class="fttl" id="nTitle" value="${esc(nf.title)}" placeholder="Cần làm gì?" autocomplete="off">
+    <input class="fttl" id="nTitle" value="${esc(nf.title)}" placeholder="Mình cần làm gì?" autocomplete="off">
     <div class="frow">
       <div class="fld"><label>Mảng</label><div class="seg">${segs(AREAS, nf.area, 'nfarea')}</div></div>
       <div class="fld"><label>Ưu tiên</label><div class="seg">${segs(PRIOS, nf.prio, 'nfprio')}</div></div>
@@ -201,7 +201,7 @@ function renderForm(){
 function createFromForm(){
   grabForm();
   if(!nf.title.trim()){
-    $('#nErr').innerHTML = '<span class="err">Cần có tên task trước đã.</span>';
+    $('#nErr').innerHTML = '<span class="err">Task này chưa có tên.</span>';
     $('#nTitle').focus(); return;
   }
   const t = {id:uid(), title:nf.title.trim(), area:nf.area, prio:nf.prio, status:nf.status,

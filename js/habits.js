@@ -77,8 +77,8 @@ function habitStrip(){
   const chips = list.map(h => {
     const on = hDone(h, k), n = hStreak(h), m = hMiss(h);
     const tip = [h.kind === 'bad' && h.swap ? `Thay bằng: ${h.swap}` : h.cue,
-                 !on && m === 1 ? 'Đã bỏ 1 buổi — đừng bỏ buổi thứ hai' : '',
-                 !on && m >= 2 ? `Đã bỏ ${m} buổi liên tiếp` : ''].filter(Boolean).join(' · ');
+                 !on && m === 1 ? 'Đã lỡ 1 buổi — buổi tới là buổi quyết định' : '',
+                 !on && m >= 2 ? `Đã lỡ ${m} buổi liên tiếp` : ''].filter(Boolean).join(' · ');
     return `<button class="hchip${on ? ' on' : ''}${!on && m ? ' miss' : ''}${ui.hPop === h.id ? ' pop' : ''}"
       data-htick="${h.id}"${on ? ` style="background:${h.color}1c;border-color:${h.color}55;color:${h.color}"` : ''}
       title="${esc(tip || h.name)}"><span class="bx"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''}>${on ? '✓' : ''}</span>${esc(h.name)}${n ? `<span class="st">🔥${n}</span>` : ''}</button>`;
@@ -141,10 +141,10 @@ function hCard(h){
   const k = today(), on = hDone(h, k), due = hOn(h, k), kind = HKINDS[h.kind];
   const n = hStreak(h), m = hMiss(h);
   // luật "không bỏ hai lần": bỏ một buổi gần như không ảnh hưởng đến quá trình thành tự động,
-  // bỏ liên tiếp mới là lúc thói quen chết — nên app chỉ lên tiếng đúng lúc đó.
+  // bỏ liên tiếp mới là lúc nhịp phai dần — nên app chỉ lên tiếng đúng lúc đó.
   const nudge = on || !m ? ''
-    : m >= 2 ? `<div class="hnudge cold">Đã bỏ <b>${m} buổi liên tiếp</b>. Bỏ một buổi thì gần như không mất gì — bỏ liên tiếp mới làm thói quen chết. Hôm nay làm bản dễ nhất của nó cũng được tính.</div>`
-    : `<div class="hnudge warn">Bỏ lỡ buổi gần nhất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — ${h.grace ? 'chuỗi vẫn được giữ, bỏ tiếp buổi này thì về 0' : 'làm được thì coi như nhịp chưa đứt'}.</div>`;
+    : m >= 2 ? `<div class="hnudge cold">Mình đã lỡ <b>${m} buổi liên tiếp</b> rồi. Lỡ một buổi thì gần như không mất gì — lỡ liên tiếp mới làm nhịp phai dần. Hôm nay chỉ cần làm bản dễ nhất của nó là đã được tính.</div>`
+    : `<div class="hnudge warn">Buổi gần nhất mình lỡ mất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — ${h.grace ? 'chuỗi vẫn được giữ, bỏ tiếp buổi này thì về 0' : 'làm được thì coi như nhịp chưa đứt'}.</div>`;
   return `<div class="hcard" id="hc-${h.id}" style="--hc:${h.color}">
     <div class="hhd">
       ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
@@ -201,7 +201,7 @@ function hForm(){
       <div class="hint" style="margin:0">Bỏ một buổi thì chuỗi giữ nguyên, chỉ không cộng thêm. Bỏ 2 buổi liên tiếp mới về 0.</div></div>
     <div class="fld"><label>Ý định thực hiện</label>
       <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="Sau khi ăn sáng, ở bàn làm việc" autocomplete="off">
-      <div class="hint" style="margin:0">Ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
+      <div class="hint" style="margin:0">Nên ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
     <div class="fld" id="hSwapFld"${d.kind === 'bad' ? '' : ' hidden'}><label>Thay bằng hành vi nào</label>
       <input class="inp" id="hSwap" value="${esc(d.swap)}" placeholder="Cắm sạc điện thoại ngoài phòng, đọc sách giấy" autocomplete="off">
       <div class="hint" style="margin:0">Cơn thèm vẫn sẽ đến, thứ đổi được là phản ứng. Mỗi ngày dùng được hành vi thay thế thì tick.</div></div>
@@ -249,8 +249,8 @@ function hGrab(){
 }
 function hSave(){
   hGrab();
-  if(!hd.name.trim()) return toast('Đặt tên cho thói quen đã');
-  if(!hd.days.length) return toast('Chọn ít nhất một ngày trong tuần');
+  if(!hd.name.trim()) return toast('Thói quen này chưa có tên');
+  if(!hd.days.length) return toast('Thói quen cần ít nhất một ngày trong tuần');
   hd.name = hd.name.trim(); hd.cue = hd.cue.trim(); hd.swap = hd.swap.trim();
   if(hd.id) Object.assign(S.habits.find(x => x.id === hd.id), hd);
   else { hd.id = uid(); S.habits.push(hd); }
@@ -260,13 +260,13 @@ function hSave(){
 function hDel(id){
   const h = S.habits.find(x => x.id === id); if(!h) return;
   const n = Object.keys(h.log).length;
-  if(!confirm(`Xoá thói quen "${h.name}"? ${n} ngày đã đánh dấu sẽ mất và không lấy lại được.`)) return;
+  if(!confirm(`Xoá thói quen "${h.name}"? ${n} ngày đã đánh dấu sẽ mất theo và không khôi phục lại được.`)) return;
   S.habits = S.habits.filter(x => x.id !== id);
   hd = null; ui.hEdit = null; save(); render(); toast('Đã xoá thói quen');
 }
 
 function renderHabits(){
-  killEds();
+  closeEds();
   const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
   const best = S.habits.reduce((a, h) => Math.max(a, hRecord(h)), 0);
   $('#vSub').textContent = S.habits.length
@@ -279,7 +279,7 @@ function renderHabits(){
       ${S.habits.length ? hSum() : ''}
       ${ui.hEdit === 'new' ? hForm() : ''}
       ${S.habits.map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
-      ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động ăn đứt việc cố gồng ý chí.</div>' : ''}
+      ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động nhẹ nhàng hơn nhiều so với việc gồng ý chí.</div>' : ''}
     </div>`;
   wireHabits();
   S.habits.forEach(h => {
