@@ -1,0 +1,3 @@
+# Git lưu LF trong repo, bung ra CRLF trên Windows lúc checkout — khỏi phụ thuộc core.autocrlf của từng máy.
+# Nhờ vậy công cụ nào ghi file lệch ký tự kết dòng cũng không làm diff nổ ra cả file. Ảnh, file nhị phân git tự nhận ra và để nguyên.
+* text=auto
