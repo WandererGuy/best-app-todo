@@ -908,6 +908,7 @@ select.inp:disabled{opacity:.45;cursor:default}
 .plr .dv{font-size:11.5px;color:var(--warn);white-space:nowrap}
 .plr .dv.ok{color:var(--ok)}
 .plr .dv.off{color:var(--tx3);font-style:italic}
+.plr .dv.ov{color:var(--high)}
 .plr.gap{cursor:default}
 .plr.gap:hover{background:none}
 .plr.gap .nm{font-size:11.5px;font-style:italic;color:var(--tx3)}
@@ -927,7 +928,18 @@ select.inp:disabled{opacity:.45;cursor:default}
 .ped .lblbtn{margin-left:0;border:1px solid var(--line)}
 .ped .lblbtn.on{color:var(--acc2);border-color:var(--acc)}
 .ped .lblbtn.del{color:var(--high)}
-.pwrap>#pAdd{margin-left:83px;border:1px solid var(--line)}
+/* hang dau danh sach: nut them khoi co mau de thay ngay, kem chi dan */
+.plhd{display:flex;align-items:center;gap:10px;width:100%;margin-top:2px}
+.plhd .hint{margin-left:0}
+.pbtn{background:rgba(99,102,241,.14);color:var(--acc2);font-weight:620;font-size:12px;
+      padding:5px 11px;border-radius:7px;border:1px solid rgba(99,102,241,.38);white-space:nowrap}
+.pbtn:hover{background:rgba(99,102,241,.28);color:#fff;border-color:var(--acc)}
+
+/* nut luu vao mau sang len khi ngay dang khac mau */
+.ptpl .lblbtn.sv.hot{color:var(--warn);border-color:var(--warn);background:rgba(245,158,11,.13);font-weight:600}
+.ptpl .lblbtn.sv.hot:hover{background:rgba(245,158,11,.24);color:#fff}
+.ptpl .shint{font-size:11px;color:var(--tx3);flex:1 1 100%}
+.ptpl .shint.hot{color:var(--warn)}
 
 /* hang chon mau + gan mau cho tung thu */
 .ptpl,.pdow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;width:100%}
