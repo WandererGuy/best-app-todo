@@ -21,7 +21,7 @@ const HMARKS = {1:'bắt đầu là phần khó nhất, xong rồi!', 3:'nhịp 
 // tập trung (pomodoro): 3 pha của đồng hồ và cài đặt mặc định.
 // look: nền toàn màn hình theo pha — màu c, ảnh img (mã trong kho ảnh), độ rõ ảnh op (%), lớp phủ dim (âm = sáng, dương = tối)
 const FPHASE = {work:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài'};
-const FCFG = {work:40, short:10, long:15, every:3, auto:false,
+const FCFG = {work:40, short:10, long:15, every:3, buffer:0, auto:false,
   qmax:3, confirmSw:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
   askRate:true, askNext:true,

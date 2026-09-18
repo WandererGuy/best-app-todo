@@ -124,7 +124,7 @@ const fSpecies = k => FSP[k] || FSP.pine;   // phiên cũ trước khi có chọ
 const fStage   = min => min < 15 ? 1 : min < 40 ? 2 : 3;
 // cây trên đồng hồ: chưa bắt đầu là cây cấp 1, đang chạy thì lên cấp theo số phút đã làm
 function fGrowHTML(){
-  const r = S.focus.run, k = r ? r.tree : S.focus.tree, st = r ? fStage(fWorked(r) / 6e4) : 1;
+  const r = S.focus.run, k = r ? r.tree : S.focus.tree, st = r ? fStage(fTreeMs(r) / 6e4) : 1;
   return `<div class="fztree" title="${fSpecies(k).n} · cấp ${st}"><svg viewBox="-50 -104 100 110">
     <g data-ftree data-st="${st}">${fSpecies(k).s[st - 1]}</g></svg></div>`;
 }
@@ -154,7 +154,7 @@ function fGardenHTML(list, seed){
   const items = cells.map(([i, j], n) => {
     const x = gR((i - j) * a + (rnd() - .5) * 34), y = gR((i + j) * b + b + (rnd() - .5) * 16), e = list[n], p = rnd();
     if(e){
-      const sp = fSpecies(e.tree), st = fStage(e.ms / 6e4), dk = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
+      const sp = fSpecies(e.tree), st = fStage(fGrown(e) / 6e4), dk = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
       const tip = `${e.done ? `${sp.n} · cấp ${st}` : `${sp.n} héo`} · ${fHM(e.a)} ${DOW[dowOf(dk)]} ${fmtVN(dk)} · ${e.done ? `${m} phút` : `bỏ dở sau ${m} phút`} · ${e.title.trim() || '(chưa đặt tên)'}`;
       return {i, j, svg:`<g class="gt" data-gtip="${esc(tip)}" transform="translate(${(i - j) * a} ${(i + j) * b + b}) scale(.8)">${e.done ? sp.s[st - 1] : FDEAD}</g>`};
     }

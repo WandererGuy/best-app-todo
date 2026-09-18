@@ -4,8 +4,11 @@
    log = mọi phiên và giờ nghỉ đã qua, kể cả bị huỷ, để sau này phân tích; rev = phiên vừa xong đang chờ chấm điểm;
    tree = loài cây chọn cho phiên tới (xem khu vườn).
    Đồng hồ không đếm nhịp mà tính từ mốc thời gian: run.acc là phần đã chạy trước lần dừng gần nhất, run.since là lúc chạy lại
-   (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi. */
-const FGROUPS = {time:['work','short','long','every','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
+   (null khi đang dừng). Nên F5, tab chạy nền hay tắt app giữa chừng đều không lệch, và chỉ cần lưu khi trạng thái đổi.
+   Phần bù (cfg.buffer phút, 0 là tắt): hết giờ phiên mà đang vào mạch thì đồng hồ không khép lại ngay — chỉ kêu chuông
+   (run.rang) rồi đếm lên phần làm thêm, tới khi bấm kết thúc hoặc hết run.buf. Phần bù vẫn là giờ tập trung, nhưng
+   cây đã chốt ở mức lúc vừa đủ giờ nên làm thêm không được thưởng thêm. */
+const FGROUPS = {time:['work','short','long','every','buffer','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
   streak:['goal','miss','weekend'], ask:['askRate','askNext'],
   look:['look'], sound:['sound','vol','notify','tabTitle']};
 const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
@@ -18,7 +21,15 @@ const fTask   = id => S.tasks.find(t => t.id === id);
 const fName   = t => t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>';
 const fLeft   = r => r.dur - r.acc - (r.since ? Date.now() - r.since : 0);
 const fWorked = r => r.acc + (r.since ? Date.now() - r.since : 0);
+// phần bù: fOver = đã làm thêm bao lâu, fBuf = còn được làm thêm bao lâu (0 là tới lúc khép phiên)
+const fOver   = r => Math.max(0, -fLeft(r));
+const fBuf    = r => Math.max(0, (r.buf || 0) - fOver(r));
+// cây chốt ở mức lúc vừa đủ giờ: phần bù không nuôi cây thêm
+const fTreeMs = r => Math.min(fWorked(r), r.dur);
+const fGrown  = e => Math.min(e.ms, e.plan * 6e4);
 const fClock  = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`; };
+// chữ số trên đồng hồ: phần chính đếm ngược, phần bù đếm lên (làm tròn xuống để đủ một giây mới nhảy số)
+const fShow   = r => r.rang ? '+' + fClock(Math.floor(fOver(r) / 1000) * 1000) : fClock(fLeft(r));
 const fHM     = ms => new Date(ms).toTimeString().slice(0, 5);
 const fRest   = p => FREST[p][S.focus.cycle % FREST[p].length];
 const fWorks  = () => S.focus.log.filter(e => e.k === 'work');
@@ -78,27 +89,31 @@ function fStopTick(){
 function fArm(){
   const r = S.focus.run;
   if(!r) return;
-  const left = r.since ? fLeft(r) : 0;
+  const left = r.since ? (r.rang ? fBuf(r) : fLeft(r)) : 0;
   const ms = (left > 0 ? left % 1000 || 1000 : 1000) + 20;
   if(fTick) fTick.postMessage(ms);
   else { clearTimeout(fTimer); fTimer = setTimeout(fOnTick, ms); }
 }
 function fOnTick(){
   const r = S.focus.run;
-  if(r && r.since && fLeft(r) <= 0) fFinish(false);
-  else fPaintTime();
+  if(r && r.since && fLeft(r) <= 0){
+    if(!fBuf(r)) fFinish(false);        // không đặt phần bù, hoặc đã bù hết giờ
+    else if(!r.rang) fOvertime();       // vừa đủ giờ: báo một tiếng rồi để đồng hồ chạy tiếp
+    else fPaintTime();
+  }else fPaintTime();
   fArm();   // fFinish có thể chạy tiếp phiên sau; hết hẳn thì fArm tự thôi
 }
 // chỉ cập nhật chữ số, không vẽ lại khung — ô đang gõ không bị mất
 function fPaintTime(){
   const r = S.focus.run, c = S.focus.cfg;
   if(r){
-    const left = fLeft(r), txt = fClock(left);
+    const txt = fShow(r);
     $$('[data-fclock]').forEach(el => el.textContent = txt);
-    $$('[data-fbar]').forEach(el => el.style.width = Math.min(100, (1 - left / r.dur) * 100) + '%');
+    // phần bù thì thanh đã đầy, đứng yên
+    $$('[data-fbar]').forEach(el => el.style.width = (r.rang ? 100 : Math.min(100, (1 - fLeft(r) / r.dur) * 100)) + '%');
     // cây lên cấp thì thay hình, phần tử mới nên hiệu ứng lớn lên chạy lại
     if(r.phase === 'work') $$('[data-ftree]').forEach(el => {
-      const st = fStage(fWorked(r) / 6e4);
+      const st = fStage(fTreeMs(r) / 6e4);
       if(+el.dataset.st !== st) el.outerHTML = `<g data-ftree data-st="${st}" class="grow">${fSpecies(r.tree).s[st - 1]}</g>`;
     });
     if(!r.since) $$('[data-fpaused]').forEach(el => {
@@ -107,7 +122,7 @@ function fPaintTime(){
       el.textContent = `Đang tạm dừng ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — mình làm tiếp, hay dừng ở đây?' : ''}`;
     });
   }
-  document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fClock(fLeft(r))} · ${FPHASE[r.phase]}` : FTITLE;
+  document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fShow(r)} · ${FPHASE[r.phase]}${r.rang ? ' bù' : ''}` : FTITLE;
 }
 
 /* --- âm báo tự tổng hợp, khỏi kèm file: hết phiên thì đi lên, hết nghỉ thì đi xuống --- */
@@ -129,11 +144,12 @@ function fChime(phase, force){
     o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 1.25);
   });
 }
-function fNotify(phase){
+function fNotify(phase, over){
   if(!S.focus.cfg.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-  const body = phase === 'work' ? `Tới giờ ${FPHASE[S.focus.next].toLowerCase()}.` : 'Sẵn sàng cho phiên tiếp theo.';
+  const body = over ? 'Cây đã xong. Làm nốt rồi bấm kết thúc, hoặc để đó cho đồng hồ tự ngừng.'
+    : phase === 'work' ? `Tới giờ ${FPHASE[S.focus.next].toLowerCase()}.` : 'Sẵn sàng cho phiên tiếp theo.';
   try{
-    const n = new Notification(phase === 'work' ? '✓ Xong phiên tập trung' : 'Hết giờ nghỉ', {body, tag:'focus'});
+    const n = new Notification(over ? '✓ Đủ giờ phiên tập trung' : phase === 'work' ? '✓ Xong phiên tập trung' : 'Hết giờ nghỉ', {body, tag:'focus'});
     n.onclick = () => { window.focus(); n.close(); };
   }catch(e){}
 }
@@ -147,7 +163,8 @@ function fStart(phase, tid, solo){
     if(!fTask(tid)) return toast('Hàng đợi đang trống — thêm một task rồi bắt đầu');
     ui.fCheer = null;
   }
-  f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0, solo:!!solo};
+  f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0, solo:!!solo,
+           buf:phase === 'work' ? c.buffer * 6e4 : 0, rang:false};
   fAudio();   // mở khoá âm thanh ngay trong cú bấm thì lúc hết giờ mới phát được
   save(); fStartTick(); fPaint();
 }
@@ -164,7 +181,9 @@ function fLog(r, end, ms){
 // hết giờ. quiet = phát hiện lúc mở app (đã hết giờ khi app đang tắt): không kêu, không tự chạy tiếp
 function fFinish(quiet){
   const f = S.focus, c = f.cfg, r = f.run;
-  const e = fLog(r, r.since + r.dur - r.acc, r.dur);
+  // phần bù tính hết vào giờ làm, nhưng không quá mức cho phép — app tắt giữa chừng thì cắt đúng ở đó
+  const ms = r.rang ? Math.min(fWorked(r), r.dur + r.buf) : r.dur;
+  const e = fLog(r, r.since ? r.since + ms - r.acc : r.pAt, ms);
   f.run = null;
   if(r.phase === 'work'){
     f.cycle++;
@@ -177,6 +196,14 @@ function fFinish(quiet){
   if(c.auto && !quiet && !r.solo && (r.phase === 'work' || q.length)) return fStart(f.next, q[0]);
   fStopTick(); save(); fPaint();
 }
+// vừa đủ giờ nhưng còn khoảng bù: báo một tiếng rồi để đồng hồ đếm tiếp. Phiên chỉ thật sự khép lại ở fFinish,
+// nên cây, câu mừng, chấm điểm và giờ nghỉ đều chờ tới lúc bấm kết thúc hoặc hết phần bù.
+function fOvertime(){
+  const r = S.focus.run;
+  r.rang = true;
+  fChime('work'); fNotify('work', true);
+  save(); fPaint();
+}
 function fPause(){
   const r = S.focus.run; if(!r || !r.since) return;
   r.acc += Date.now() - r.since; r.since = null; r.pAt = Date.now(); r.pause++;
@@ -186,6 +213,11 @@ function fResume(){
   const r = S.focus.run; if(!r || r.since) return;
   r.paused += Date.now() - r.pAt; r.since = Date.now(); r.pAt = null;
   fAudio(); save(); fPaint();
+}
+// bấm kết thúc trong phần bù: phiên đã đạt rồi, chỉ là thôi làm thêm
+function fEnd(){
+  const r = S.focus.run;
+  if(r && r.rang) fFinish(false);
 }
 function fCancel(){
   const f = S.focus, r = f.run; if(!r) return;
@@ -210,7 +242,7 @@ function fReview(keep){
 // mừng lúc xong phiên; chạm mục tiêu ngày thì nói rõ
 function fCheer(){
   const c = S.focus.cfg, n = fCount()[today()] || 0, e = fWorks().pop();
-  const msg = [`🌳 Trồng xong cây ${fSpecies(e.tree).n} cấp ${fStage(e.ms / 6e4)} · hôm nay ${n}/${c.goal}`];
+  const msg = [`🌳 Trồng xong cây ${fSpecies(e.tree).n} cấp ${fStage(fGrown(e) / 6e4)} · hôm nay ${n}/${c.goal}`];
   if(n === c.goal) msg.push(`🔥 Đạt mục tiêu hôm nay · chuỗi ${fRun().cur} ngày`);
   ui.fCheer = msg;
   ui.fPop = true;
@@ -264,7 +296,7 @@ function fPanel(mode){
   const f = S.focus, c = f.cfg, r = f.run, q = fQueue(), big = mode !== 'side', full = mode === 'full';
   const phase = r ? r.phase : f.next, n = fCount()[today()] || 0;
   const dots = Array.from({length:Math.min(12, Math.max(c.goal, n))}, (_, i) => i < n ? '●' : '○').join('');
-  let h = `<div class="fzph"><span class="d"></span>${FPHASE[phase]}
+  let h = `<div class="fzph"><span class="d"></span>${FPHASE[phase]}${r && r.rang ? ' · phần bù' : ''}
     <span class="fzdots" title="Hôm nay ${n}/${c.goal} phiên">${dots}</span>
     ${mode === 'full' ? '<button class="fzic" data-ffull="0" title="Thoát toàn màn hình (Esc)">✕</button>'
                       : '<button class="fzic" data-ffull="1" title="Toàn màn hình">⤢</button>'}</div>`;
@@ -286,15 +318,22 @@ function fPanel(mode){
       + `<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button>${solo}</div>`;
   }
 
-  h += `<div class="fzclock" data-fclock>${fClock(fLeft(r))}</div><div class="fzbar"><i data-fbar></i></div>`;
+  h += `<div class="fzclock" data-fclock>${fShow(r)}</div><div class="fzbar"><i data-fbar></i></div>`;
   if(r.phase !== 'work') return h + `<div class="fzrest">${fRest(r.phase)}</div>
     <div class="fzbtns"><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
   if(!full) h += fTaskHTML(fTask(r.tid), true);
+  // phần bù: phiên đã đạt rồi nên không còn nút huỷ, chỉ còn kết thúc
+  if(r.rang) h += `<div class="fzover">Đã đủ ${r.dur / 6e4}′ — cây đã xong, phần làm thêm vẫn tính giờ tập trung.
+    Tự ngừng sau ${r.buf / 6e4}′.</div>`;
   h += r.since
-    ? `<div class="fzbtns"><button class="btn ghost" data-fpause>⏸ Tạm dừng</button>
-        <button class="fzic" data-fcancel title="Huỷ phiên">■</button></div>`
+    ? r.rang
+      ? `<div class="fzbtns"><button class="btn" data-fend>✓ Kết thúc phiên</button>
+          <button class="btn ghost" data-fpause>⏸ Tạm dừng</button></div>`
+      : `<div class="fzbtns"><button class="btn ghost" data-fpause>⏸ Tạm dừng</button>
+          <button class="fzic" data-fcancel title="Huỷ phiên">■</button></div>`
     : `<div class="fzpaused" data-fpaused></div>
-       <div class="fzbtns"><button class="btn" data-fresume>▶ Làm tiếp</button><button class="btn ghost" data-fcancel>Huỷ phiên</button></div>`;
+       <div class="fzbtns"><button class="btn" data-fresume>▶ Làm tiếp</button>
+         ${r.rang ? '<button class="btn ghost" data-fend>Kết thúc phiên</button>' : '<button class="btn ghost" data-fcancel>Huỷ phiên</button>'}</div>`;
   return mode === 'page' ? h + fCapHTML(true) : h;
 }
 // tên task và câu "lần trước dừng ở"; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
@@ -328,7 +367,7 @@ function fRevHTML(){
 }
 
 /* --- vẽ --- */
-const fCls = () => { const r = S.focus.run; return `ph-${r ? r.phase : S.focus.next}${r && !r.since ? ' paused' : ''}`; };
+const fCls = () => { const r = S.focus.run; return `ph-${r ? r.phase : S.focus.next}${r && r.rang ? ' over' : ''}${r && !r.since ? ' paused' : ''}`; };
 function fPaint(){
   fSide();
   if(ui.view === 'focus' && $('#fzMain')) fPaintPage();
@@ -343,7 +382,7 @@ function fSide(){
   // thu gọn: chỉ còn một dòng mảnh, bấm vào để mở lại
   el.innerHTML = min
     ? `<button class="fzmini" data-fmin title="Mở khối tập trung"><span class="d"></span>${FPHASE[r ? r.phase : f.next]}
-        ${f.rev ? '<em>· chấm điểm</em>' : ''}<b${r ? ' data-fclock' : ''}>${fClock(r ? fLeft(r) : f.cfg[f.next] * 6e4)}</b></button>`
+        ${f.rev ? '<em>· chấm điểm</em>' : ''}<b${r ? ' data-fclock' : ''}>${r ? fShow(r) : fClock(f.cfg[f.next] * 6e4)}</b></button>`
     : fPanel('side');
   $('#ctF').textContent = `${fCount()[today()] || 0}/${S.focus.cfg.goal}`;
 }
@@ -479,6 +518,7 @@ function fJournalHTML(){
       <div class="bd"><span class="nm">Rời bàn ${fHours(e.gap)}</span></div></div>`;
     const meta = [];
     if(work){
+      if(e.ms > e.plan * 6e4) meta.push(`bù thêm ${mins(e.ms - e.plan * 6e4)}′`);
       if(e.pause) meta.push(`${e.pause} lần dừng`);
       if(e.sw) meta.push(`${e.sw} lần đổi task`);
       if(e.cap) meta.push(`${e.cap} lần ghi để sau`);
@@ -628,8 +668,11 @@ function fCfgHTML(){
   const perm = 'Notification' in window ? Notification.permission : 'denied';
   return `<div class="fzh">Cài đặt<button class="lblbtn" data-fcfgbtn>Thu gọn</button></div>
     ${grp('time', 'Thời lượng', num('work', 'Phiên tập trung', 1, 180, 'phút') + num('short', 'Nghỉ ngắn', 1, 60, 'phút')
-      + num('long', 'Nghỉ dài', 1, 90, 'phút') + num('every', 'Nghỉ dài sau mỗi', 1, 12, 'phiên') + chk('auto', 'Tự chạy phiên hoặc giờ nghỉ tiếp theo'),
-      'Đổi khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.')}
+      + num('long', 'Nghỉ dài', 1, 90, 'phút') + num('every', 'Nghỉ dài sau mỗi', 1, 12, 'phiên')
+      + num('buffer', 'Cho làm bù sau khi hết giờ', 0, 60, 'phút') + chk('auto', 'Tự chạy phiên hoặc giờ nghỉ tiếp theo'),
+      'Đổi khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.<br>'
+      + 'Làm bù để 0 thì hết giờ là phiên khép lại ngay. Đặt số phút thì hết giờ chỉ kêu chuông, bạn làm nốt rồi bấm '
+      + 'kết thúc, hết ngần ấy phút thì đồng hồ tự ngừng. Phần bù vẫn tính là giờ tập trung, nhưng cây đã chốt ở mức đủ giờ.')}
     ${grp('queue', 'Hàng đợi', num('qmax', 'Số task tối đa', 1, 10, 'task') + chk('confirmSw', 'Đổi task giữa phiên phải xác nhận'),
       'Chỉ task ở cột Đang làm mới vào được hàng đợi.')}
     ${grp('pause', 'Tạm dừng', num('pauseAsk', 'Tạm dừng quá bao lâu thì hỏi huỷ phiên', 1, 60, 'phút'))}
@@ -671,7 +714,7 @@ function fPickImg(p){
 
 /* --- sự kiện --- */
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-fstart],[data-fsolo],[data-fsend],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-ffull],[data-fcheer],[data-frate],'
+  const b = e.target.closest('[data-fstart],[data-fsolo],[data-fsend],[data-fskip],[data-fpause],[data-fresume],[data-fcancel],[data-fend],[data-ffull],[data-fcheer],[data-frate],'
     + '[data-frev],[data-fpick],[data-fdone],[data-fdrop],[data-fopen],[data-fcm],[data-fcoff],[data-fsp],[data-fcfgbtn],[data-freset],[data-fpal],[data-fimg],[data-fimgx],[data-ftest],[data-fperm],[data-fleft],[data-fmin]');
   if(!b) return;
   const d = b.dataset, f = S.focus;
@@ -684,6 +727,7 @@ document.addEventListener('click', e => {
   if('fmin' in d){ S.settings.fzMin = !S.settings.fzMin; save(); fSide(); return fPaintTime(); }
   if('fresume' in d) return fResume();
   if('fcancel' in d) return fCancel();
+  if('fend' in d) return fEnd();
   if('ffull' in d) return fFull(d.ffull === '1');
   if('fcheer' in d){ ui.fCheer = null; return fPaint(); }
   if('frate' in d){ ui.fRev.rate = ui.fRev.rate === +d.frate ? 0 : +d.frate; return fPaint(); }
@@ -736,7 +780,7 @@ document.addEventListener('pointerdown', () => { if(S.focus.run) fAudio(); });
 // mở app: phiên đã hết giờ lúc app tắt thì ghi nhận luôn; phiên còn chạy thì chạy tiếp
 function fBoot(){
   const r = S.focus.run;
-  if(r && r.since && fLeft(r) <= 0) fFinish(true);
+  if(r && r.since && fLeft(r) <= 0 && !fBuf(r)) fFinish(true);
   if(S.focus.run) fStartTick();
   fPaint();
 }

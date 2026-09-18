@@ -608,6 +608,8 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fz{--fc:var(--acc2);display:flex;flex-direction:column;gap:8px;min-width:0}
 .fz.ph-short{--fc:#34d399}
 .fz.ph-long{--fc:#38bdf8}
+/* phần bù: đổi sang tông hổ phách cho khác hẳn lúc còn trong giờ */
+.fz.over{--fc:#fbbf24}
 .fzph{display:flex;align-items:center;gap:7px;font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--fc);font-weight:650}
 .fzph .d{width:7px;height:7px;border-radius:50%;background:var(--fc);flex:0 0 7px}
 .fz.paused .fzph .d{background:var(--warn)}
@@ -623,6 +625,7 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fzempty{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;color:var(--tx3);padding:10px 8px;border:1px dashed var(--line);border-radius:8px;text-align:center}
 .fzempty .btn{max-width:100%;overflow:hidden;text-overflow:ellipsis}
 .fzrest{font-size:12.5px;color:var(--tx2)}
+.fzover{font-size:12px;color:var(--fc);line-height:1.5}
 .fzin{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:12.5px;outline:none;width:100%;min-width:0}
 .fzin:focus{border-color:var(--fc)}
 .fzin::placeholder{color:var(--tx3)}
@@ -676,7 +679,7 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fz.full .fzclock{font-size:clamp(84px,17vw,190px);letter-spacing:-5px;text-shadow:0 4px 30px rgba(0,0,0,.25)}
 .fz.full .fzbar{width:100%;background:rgba(255,255,255,.18)}
 .fz.full .fztask{font-size:22px}
-.fz.full .fznext,.fz.full .fzrest,.fz.full .fzempty,.fz.full .fzpaused{color:inherit;opacity:.85;font-size:14px}
+.fz.full .fznext,.fz.full .fzrest,.fz.full .fzempty,.fz.full .fzpaused,.fz.full .fzover{color:inherit;opacity:.85;font-size:14px}
 .fz.full .fzempty{border-color:rgba(255,255,255,.3)}
 .fz.full .fzin{text-align:center;font-size:15px;padding:9px 12px;background:rgba(0,0,0,.22);border-color:rgba(255,255,255,.22);color:inherit}
 .fz.full .fzin::placeholder{color:inherit;opacity:.6}
@@ -754,7 +757,7 @@ select.inp:disabled{opacity:.45;cursor:default}
 .fz.full .fzsph{color:inherit;opacity:.75}
 .fz.page{position:relative}
 .fz.page .fztree{position:absolute;top:44px;right:26px;width:110px;height:120px}
-.fz.page:has(.fztree) :is(.fzclock,.fzbar,.fztask,.fznext){margin-right:130px}
+.fz.page:has(.fztree) :is(.fzclock,.fzbar,.fztask,.fznext,.fzover){margin-right:130px}
 .fz.full .fztree{width:150px;height:165px}
 /* biểu đồ giờ tập trung */
 .fcscope{margin-left:auto;text-transform:none;letter-spacing:0}
