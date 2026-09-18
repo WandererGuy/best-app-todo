@@ -853,15 +853,13 @@ select.inp:disabled{opacity:.45;cursor:default}
 .pwrap .jbar .inp{width:auto}
 .pwrap .jbar .lblbtn{margin-left:0}
 
-/* ruy-băng: hai bảng cùng một trục 0–24h nên chỗ lệch thành chỗ so le */
+/* ruy-băng: cả ngày trên một trục 0–24h, khoảng trống để hở */
 .pbn{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px 12px}
-.pbn .ax{position:relative;height:13px;margin-left:26px}
+.pbn .ax{position:relative;height:13px}
 .pbn .ax span{position:absolute;transform:translateX(-50%);font-size:10.5px;color:var(--tx3);font-variant-numeric:tabular-nums}
 .pbn .rw{display:flex;align-items:center;gap:8px;margin-top:4px}
-.pbn .rw>span{width:18px;flex:0 0 18px;font-size:10.5px;color:var(--tx3);font-weight:600;letter-spacing:.3px}
 .pbd{position:relative;flex:1;height:26px;border-radius:5px;background:var(--panel2);overflow:hidden}
 .pbd i{position:absolute;top:0;height:100%;min-width:2px;opacity:.85}
-.pbd.tt i{opacity:.55}
 .pbd .pnow{position:absolute;top:0;width:2px;height:100%;background:var(--high);z-index:2}
 
 /* tổng giờ theo loại — phần nhìn tổng thể mà danh sách task rời không cho */
@@ -870,11 +868,10 @@ select.inp:disabled{opacity:.45;cursor:default}
 .psum .d{width:8px;height:8px;border-radius:3px}
 .psum b{color:var(--tx);font-weight:600;font-variant-numeric:tabular-nums}
 
-/* danh sách: cột giờ, hai đường KV/TT nối thành mạch như git log --graph, rồi phần thân.
-   Cùng cách dựng như .fzjr ở mục Tập trung — chấm mang màu loại khối:
-   KV chấm rỗng viền màu, TT chấm đặc. */
+/* danh sách: cột giờ, một đường nối thành mạch như git log --graph, rồi phần thân.
+   Cùng cách dựng như .fzjr ở mục Tập trung — chấm rỗng mang màu loại khối. */
 .plist{width:100%;display:flex;flex-direction:column}
-.plr{display:grid;grid-template-columns:42px 13px 13px 1fr;align-items:start;gap:0 5px;
+.plr{display:grid;grid-template-columns:42px 13px 1fr;align-items:start;gap:0 5px;
      font-size:12.5px;min-height:26px;cursor:pointer;border-radius:6px}
 .plr:hover,.plr.on{background:var(--panel)}
 .plr .tm{grid-column:1;color:var(--tx3);font-variant-numeric:tabular-nums;padding-top:5px;font-size:11.5px}
@@ -882,43 +879,30 @@ select.inp:disabled{opacity:.45;cursor:default}
 /* duong noi: 1px, ho o dau mach va cuoi mach dung bang chieu cao cham */
 .plr .rail{justify-self:center;width:1px;height:100%;min-height:26px;background:var(--line)}
 .plr .rail.k{grid-column:2}
-.plr .rail.t{grid-column:3}
 .plr.p0 .rail{background:linear-gradient(transparent 9px,var(--line) 9px)}
 .plr.pz .rail{background:linear-gradient(var(--line) 17px,transparent 17px)}
 
 /* cham: nam tren duong noi, mau theo loai khoi */
 .plr .dot{grid-row:1;justify-self:center;margin-top:8px;width:7px;height:7px;border-radius:50%}
 .plr .dot.k{grid-column:2;background:var(--panel);box-shadow:0 0 0 1.5px var(--c)}
-.plr .dot.t{grid-column:3;background:var(--c);box-shadow:0 0 0 1.5px var(--c)}
-/* moc co dinh: cham to hon de ba nut nay bat mat */
-.plr.anc .dot{width:9px;height:9px;margin-top:7px}
-.plr.anc .dot.k{box-shadow:0 0 0 2px var(--c)}
 
-/* khoi khong lam: cham rong xam, duong noi thanh net dut o dung cot do */
-.plr .dot.sk{background:var(--panel);box-shadow:0 0 0 1.5px var(--tx3)}
-.plr .rail.sk{background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px)}
-/* dong trong: khong co cham, ca hai duong deu net dut */
+/* dong trong: khong co cham, duong noi thanh net dut */
 .plr.gap .rail{background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px)}
 .plr.gap .dot{display:none}
 
-.plr .bd{grid-column:4;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 9px;padding:5px 0 5px 10px;min-width:0}
+.plr .bd{grid-column:3;display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 9px;padding:5px 0 5px 10px;min-width:0}
 .plr .nm{word-break:break-word}
-.plr .an{color:var(--acc2);font-weight:400}
-.plr .du,.plr .rl{color:var(--tx3);font-size:11.5px;white-space:nowrap}
+.plr .du{color:var(--tx3);font-size:11.5px;white-space:nowrap}
 .plr .dv{font-size:11.5px;color:var(--warn);white-space:nowrap}
-.plr .dv.ok{color:var(--ok)}
-.plr .dv.off{color:var(--tx3);font-style:italic}
 .plr .dv.ov{color:var(--high)}
 .plr.gap{cursor:default}
 .plr.gap:hover{background:none}
 .plr.gap .nm{font-size:11.5px;font-style:italic;color:var(--tx3)}
 
-/* panel sửa: kỳ vọng và thực tế trong cùng một lần mở */
-.ped{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin:3px 0 7px 83px;display:flex;flex-direction:column;gap:7px}
-.ped::before,.ped::after{content:'';position:absolute;top:-3px;bottom:-7px;width:2px;
+/* panel sửa: tên, loại và giờ của khối đang mở */
+.ped{position:relative;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:9px 10px;margin:3px 0 7px 65px;display:flex;flex-direction:column;gap:7px}
+.ped::before{content:'';position:absolute;top:-3px;bottom:-7px;left:-12px;width:2px;
   background:repeating-linear-gradient(var(--line) 0 3px,transparent 3px 7px)}
-.ped::before{left:-30px}
-.ped::after{left:-12px}
 .ped .r{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .ped .r.end{justify-content:flex-end}
 .ped .lb{width:54px;flex:0 0 54px;font-size:11.5px;color:var(--tx3)}
@@ -950,13 +934,3 @@ select.inp:disabled{opacity:.45;cursor:default}
 .pdow label.td{color:var(--acc2);font-weight:600}
 .pdow .inp{width:auto;padding:4px 6px;font-size:11.5px}
 .pdow .hint{font-size:11px;color:var(--tx3)}
-
-/* dau cot KV / TT tren danh sach */
-.phd{display:grid;grid-template-columns:42px 13px 13px 1fr;gap:0 5px;font-size:10px;color:var(--tx3);
-     letter-spacing:.3px;padding-bottom:3px}
-.phd span:nth-child(2),.phd span:nth-child(3){text-align:center}
-
-/* dong giai thich moc co dinh */
-.phint{max-width:640px;font-size:11.5px;line-height:1.65;color:var(--tx3);
-       border-left:2px solid var(--line);padding:2px 0 2px 10px;margin-top:4px}
-.phint b{color:var(--tx2);font-weight:600}
