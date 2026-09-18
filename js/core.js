@@ -29,6 +29,13 @@ const FCFG = {work:40, short:10, long:15, every:3, buffer:0, auto:false,
         long:{c:'#172554', img:null, op:70, dim:35}},
   sound:true, vol:60, notify:true, tabTitle:true};
 const KEY   = 'dieukhien.v1';
+// trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
+// 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
+const VIEW_KEY = 'dieukhien.view';
+const KEEP_VIEWS = ['board','life','backlog','habits','focus','plan','cal','journal','notes','dash','trash'];
+const keptView = () => {
+  try{ const v = localStorage.getItem(VIEW_KEY); return KEEP_VIEWS.includes(v) ? v : 'board'; }catch(e){ return 'board'; }
+};
 // khung giờ: bước 30 phút; nhắc trước tính bằng phút, 0 = không nhắc
 const TIMES   = Array.from({length:48}, (_, i) => `${String(i >> 1).padStart(2,'0')}:${i % 2 ? '30' : '00'}`);
 const DURS    = [15, 30, 45, 60, 90, 120, 180, 240];
@@ -133,7 +140,7 @@ function fNorm(f = {}){
 /* ============ trạng thái ============ */
 let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{jH:560}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
-let ui = {view:'board', bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
+let ui = {view: keptView(), bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
           open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, doneToday:false, nOpen:null,
           hEdit:null, hPop:null,
           // lịch trình: pDate = ngày đang xem, pOpen = id khối đang mở panel sửa

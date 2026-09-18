@@ -1,6 +1,14 @@
 /* ============ render khung ============ */
-function render(){
+const VTITLES = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', habits:'Thói quen', focus:'Tập trung', plan:'Lịch trình', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
+/* nav + tiêu đề: vẽ được ngay từ ui.view, không cần dữ liệu. Gọi sớm lúc tải trang để khung
+   hiện đúng trang đang xem luôn, thay vì loé qua "Bảng việc" rồi nhảy khi boot() nạp xong. */
+function paintShell(){
+  if(KEEP_VIEWS.includes(ui.view)) try{ localStorage.setItem(VIEW_KEY, ui.view); }catch(e){}
   $$('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === ui.view));
+  $('#vTitle').textContent = VTITLES[ui.view];
+}
+function render(){
+  paintShell();
   const onBoard = S.tasks.filter(t => t.status !== 'done' && t.status !== 'backlog');
   $('#ctB').textContent = onBoard.filter(t => t.area !== 'life').length;
   $('#ctL').textContent = onBoard.filter(t => t.area === 'life').length;
@@ -17,8 +25,6 @@ function render(){
   renderSideCal();
 
   closeEds(); closePal();
-  const titles = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', habits:'Thói quen', focus:'Tập trung', plan:'Lịch trình', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
-  $('#vTitle').textContent = titles[ui.view];
   ({board:renderBoard, life:renderBoard, backlog:renderBacklog, habits:renderHabits, focus:renderFocus, plan:renderPlan, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
   fSide(); fFullPaint(); fPaintTime(); ui.fPop = false;
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
@@ -166,6 +172,7 @@ document.addEventListener('keydown', e => {
 });
 
 try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
+paintShell();                    // trước khi boot() nạp xong, khung đã đứng ở đúng trang
 boot().then(msg => {
   ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
   if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;

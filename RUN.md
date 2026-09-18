@@ -68,6 +68,7 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 | `data/backups/` | `ngay-*` (đầu mỗi ngày, giữ 30), `truoc-khi-nap-*`, `trinh-duyet-*` | nạp lại bằng **Nạp file** |
 | `localStorage` | khoá `dieukhien.v1` | bản đệm, lưu mỗi lần `save()` |
 | `localStorage` | khoá `dieukhien.srv` = `{tag, dirty}` | mã phiên bản của file mà bản đệm dựa vào; `dirty` = còn thay đổi chưa gửi lên |
+| `localStorage` | khoá `dieukhien.view` | trang đang xem, để tải lại trang vẫn ở nguyên chỗ cũ; riêng từng trình duyệt, không lên file |
 | File trên ổ đĩa | `showSaveFilePicker`, tự ghi sau 1.2 s | tuỳ chọn, chỉ Chrome/Edge |
 | `IndexedDB` | db `dieukhien-fs`, store `h` | chỉ giữ file handle để lần mở sau bấm 1 nút là kết nối lại |
 | `IndexedDB` | db `dieukhien-img`, store `img` | ảnh và file đính kèm trong ghi chú (Blob, khoá = mã; ảnh `i…`, file `f…`); file xuất / file liên kết gói kèm ở trường `images` |
@@ -113,6 +114,7 @@ Mở DevTools Console tại trang app:
 ```js
 localStorage.removeItem('dieukhien.v1');
 localStorage.removeItem('dieukhien.srv');
+localStorage.removeItem('dieukhien.view');
 indexedDB.deleteDatabase('dieukhien-fs');
 indexedDB.deleteDatabase('dieukhien-img');
 location.reload();
