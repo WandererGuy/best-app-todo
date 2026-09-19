@@ -5,6 +5,7 @@
   --high:#f43f5e; --med:#f59e0b; --low:#22c55e;
   --work:#3b82f6; --life:#a855f7; --other:#64748b;
   --ok:#22c55e; --warn:#f59e0b;
+  --vt:.34s;   /* nhịp chuyển mục: chỉnh riêng số này là cả cụm animation nhanh chậm theo */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
@@ -31,9 +32,14 @@ button{background:none;border:none;cursor:pointer}
 .brand .dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--acc),#a855f7);flex:0 0 22px}
 .navlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);padding:16px 8px 6px;font-weight:600}
 .nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--tx2);font-weight:500;width:100%;text-align:left;
-  transition:background-color .15s,color .15s}
+  position:relative;isolation:isolate;transition:background-color .15s,color .15s}
 .nav:hover{background:var(--panel2);color:var(--tx)}
-.nav.on{background:var(--acc);color:#fff}
+.nav.on{color:#fff}
+/* Ô nền của mục đang mở tách ra một lớp riêng, dùng chung một view-transition-name nên khi đổi trang
+   trình duyệt coi ô ở mục cũ và ô ở mục mới là cùng một vật và cho nó trượt từ chỗ này sang chỗ kia.
+   Để nguyên background trên nút thì chữ và số đếm sẽ bị kéo giãn theo trong lúc trượt. */
+.nav.on::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:8px;background:var(--acc);
+  view-transition-name:navpill}
 .nav .ic{width:16px;text-align:center;font-size:14px}
 .nav .ct{margin-left:auto;font-size:11px;color:var(--tx3);background:var(--panel2);padding:1px 7px;border-radius:20px}
 .nav.on .ct{background:rgba(255,255,255,.2);color:#fff}
@@ -74,13 +80,17 @@ button{background:none;border:none;cursor:pointer}
    nên mắt không thấy khoảng trống ở giữa. Khung ngoài (sidebar, tiêu đề) hoà chậm hơn một nhịp. */
 @keyframes vfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes vhide{to{opacity:0}}
-::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
-::view-transition-old(view){animation:vhide .16s ease-in both}
-::view-transition-new(view){animation:vfade .26s cubic-bezier(.2,0,.2,1) both}
-#view.vfade{animation:vfade .17s cubic-bezier(.2,0,.2,1)}   /* dự phòng cho trình duyệt chưa có View Transitions */
+::view-transition-old(root),::view-transition-new(root){animation-duration:calc(var(--vt) * .85)}
+/* ô highlight trượt hết một nhịp, còn phần hoà hình giữa ô cũ và ô mới thì ngắn thôi: hai ô
+   cùng màu cùng cỡ nên kéo dài chỉ làm màu bị nhạt đi ở quãng giữa */
+::view-transition-group(navpill){animation-duration:var(--vt);animation-timing-function:cubic-bezier(.2,0,.2,1)}
+::view-transition-old(navpill),::view-transition-new(navpill){animation-duration:calc(var(--vt) * .45)}
+::view-transition-old(view){animation:vhide calc(var(--vt) * .6) ease-in both}
+::view-transition-new(view){animation:vfade var(--vt) cubic-bezier(.2,0,.2,1) both}
+#view.vfade{animation:vfade calc(var(--vt) * .65) cubic-bezier(.2,0,.2,1)}   /* dự phòng cho trình duyệt chưa có View Transitions */
 @media (prefers-reduced-motion:reduce){
   #view.vfade{animation:none}
-  ::view-transition-old(*),::view-transition-new(*){animation:none!important}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
 }
 
 /* ---------- board ---------- */
@@ -381,7 +391,7 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 /* ---------- bổ sung ---------- */
 .nav.prim{background:rgba(99,102,241,.14);color:var(--acc2);font-weight:620}
 .nav.prim:hover{background:rgba(99,102,241,.26);color:#fff}
-.nav.prim.on{background:var(--acc);color:#fff}
+.nav.prim.on{color:#fff}
 .tb{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .scope{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:3px}
 .scope button{padding:5px 13px;border-radius:7px;font-size:12.5px;color:var(--tx2);font-weight:540}

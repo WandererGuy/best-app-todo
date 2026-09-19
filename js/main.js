@@ -18,18 +18,26 @@ function goView(v, after){
   if(!document.startViewTransition) return draw();   // trình duyệt chưa hỗ trợ: fadeView() lo phần dự phòng
   document.startViewTransition(draw);
 }
-/* Trang vừa vẽ xong lần trước — chỉ để biết khi nào cần chạy fade dự phòng. */
+/* Trang đang hiển thị trước lần render này, và vị trí cuộn đã nhớ của từng trang.
+   Mọi renderer đều thay innerHTML của #view nên scrollTop tự về 0: không cất lại thì tick một ô ở
+   giữa trang Thói quen là cả trang nhảy lên đầu. Nhớ theo từng trang để quay lại trang cũ cũng
+   về đúng chỗ đang đọc. */
 let shownView = null;
+const viewScroll = {};
+const keepScroll = () => { if(shownView) viewScroll[shownView] = $('#view').scrollTop; };
+// trả lại chỗ cũ; trang ngắn hơn trước thì trình duyệt tự kẹp về mức cuộn tối đa
+const restoreScroll = () => { $('#view').scrollTop = viewScroll[ui.view] || 0; };
 function fadeView(){
-  if(ui.view === shownView) return;
+  const changed = ui.view !== shownView;
   shownView = ui.view;
-  if(document.startViewTransition) return;
+  if(!changed || document.startViewTransition) return;   // có View Transitions thì không cần fade dự phòng
   const v = $('#view');
   v.classList.remove('vfade');
   void v.offsetWidth;            // buộc tính lại layout, nếu không animation sẽ không chạy lại từ đầu
   v.classList.add('vfade');
 }
 function render(){
+  keepScroll();
   paintShell();
   const onBoard = S.tasks.filter(t => t.status !== 'done' && t.status !== 'backlog');
   $('#ctB').textContent = onBoard.filter(t => t.area !== 'life').length;
@@ -55,6 +63,7 @@ function render(){
   else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. ' +
     'Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.</div>');
+  restoreScroll();
   fadeView();
   paintSave(); paintFs(); paintBell(); paintSync();
 }
