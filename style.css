@@ -242,8 +242,9 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .more{font-size:10px;color:var(--tx3);padding-left:6px}
 
 /* ---------- journal ---------- */
-.jwrap{max-width:1180px;margin:0 auto;height:100%;display:flex;flex-direction:column;gap:12px}
-.jbar{display:flex;align-items:center;gap:10px}
+/* nhật ký và ghi chú dùng chung khung hai cột: cột trái danh sách, cột phải trang đang mở */
+.jpage{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px}
+.jbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}   /* cột phải hẹp hơn trước, để thanh ngày xuống dòng thay vì tràn */
 .jbar h2{font-size:18px;font-weight:650}
 .jbar .sub{font-size:12px;color:var(--tx3)}
 .jtabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
@@ -261,10 +262,10 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .jed:focus-within{border-color:#3a4254}
 
 /* ---------- ghi chú ---------- */
-.nwrap{display:flex;gap:16px;height:100%;max-width:1400px;margin:0 auto}
-.nside{width:260px;flex:0 0 260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+.nwrap,.jwrap{display:flex;gap:16px;height:100%;max-width:1400px;margin:0 auto}
+.nside,.jside{width:260px;flex:0 0 260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:12px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
-.nside > .btn{margin:0 4px 6px}
+.nside > .btn,.jside > .btn{margin:0 4px 6px}
 .nlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);padding:12px 8px 5px;font-weight:600}
 .nrow{display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:7px;color:var(--tx2);cursor:pointer;font-size:13px}
 .nrow:hover{background:var(--panel2);color:var(--tx)}
@@ -875,9 +876,8 @@ select.inp:disabled{opacity:.45;cursor:default}
   #side.on{transform:none}
   #board{grid-template-columns:1fr}
   .jedit{flex-direction:column}
-  .jwrap{height:auto}
-  .nwrap{flex-direction:column;height:auto}
-  .nside{width:auto;flex:none;max-height:40vh}
+  .nwrap,.jwrap{flex-direction:column;height:auto}
+  .nside,.jside{width:auto;flex:none;max-height:40vh}
   .npage{padding:18px}
   .fzpage{grid-template-columns:1fr}
 }
