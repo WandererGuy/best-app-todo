@@ -46,7 +46,7 @@ There is also:
 - **Coloured tags, full-text search, filters.**
 - **Trash:** deleted tasks and note pages can be restored.
 
-Every feature described in detail: see [docs/HUONG-DAN.md](docs/HUONG-DAN.md) (Vietnamese).
+Every feature described in detail: see [docs/GUIDE.md](docs/GUIDE.md).
 
 > The screenshots use made-up sample data, not anyone's real data.
 
@@ -165,7 +165,7 @@ These sit under the **Less used** label in the sidebar.
 - **🌐** at the bottom of the sidebar switches the interface between English and Vietnamese.
 - **Export / Import** at the bottom of the sidebar: see [Data and backups](#data-and-backups).
 
-Editor shortcuts and drag-and-drop tips: see [Shortcuts and tips](#shortcuts-and-tips).
+Editor shortcuts and drag-and-drop tips: see [Shortcuts and tips](#shortcuts-and-tips). Every feature in full: [docs/GUIDE.md](docs/GUIDE.md).
 
 ---
 
@@ -321,7 +321,7 @@ Reminders only run while the app is open in some tab. To be told even when you a
 <details>
 <summary><b>I want to wipe everything and start over</b></summary>
 
-Close the app, **rename** the `data/` folder — to `data-old/` for instance, rather than deleting it, in case you want it back — then start the app again. Details in [RUN.md](RUN.md) (Vietnamese).
+Close the app, **rename** the `data/` folder — to `data-old/` for instance, rather than deleting it, in case you want it back — then start the app again. Details in [RUN.md](RUN.md) (Vietnamese only).
 </details>
 
 ---
@@ -351,4 +351,4 @@ docs/                        The detailed guide and the screenshots
 data/                        Your data (never committed)
 ```
 
-The comments in the source and the two long-form documents — [RUN.md](RUN.md) (how the server saves, the startup sequence, rebuilding the editor) and [docs/HUONG-DAN.md](docs/HUONG-DAN.md) (every feature, and the data format) — are written in Vietnamese. The code itself, including identifiers and commit messages, is in English.
+[docs/GUIDE.md](docs/GUIDE.md) covers every feature and the [data format](docs/GUIDE.md#data-format). [RUN.md](RUN.md) — how the server saves, the startup sequence, rebuilding the editor — is still Vietnamese only, as are the comments in the source. The code itself, including identifiers and commit messages, is in English.

@@ -1,6 +1,8 @@
 # Hướng dẫn chi tiết
 
-Mô tả đầy đủ từng tính năng của Trung tâm điều khiển. Cách cài đặt, chạy và sao lưu: xem [README](../README.md).
+Mô tả đầy đủ từng tính năng của Trung tâm điều khiển. Cách cài đặt, chạy và sao lưu: xem [README](../README.vi.md).
+
+*[English](GUIDE.md) · Tiếng Việt*
 
 ## Mục lục
 
@@ -46,6 +48,10 @@ Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhan
 
 Đồng hồ tính theo mốc thời gian chứ không đếm nhịp, nên F5, chuyển tab hay tắt app giữa phiên đều không lệch; phiên hết giờ lúc app đang tắt được ghi nhận khi mở lại. Đồng hồ hiện cả trên tiêu đề tab. Mục Tập trung có tiến độ hôm nay, 7 ngày gần nhất, tuần, tháng, chuỗi dài nhất, và tổng kết trong ngày (phút tập trung, số task, số lần ghi để sau, số lần tạm dừng, điểm tập trung trung bình, danh sách phiên).
 
+**Lịch trình** — khung kỳ vọng của một ngày, khác với danh sách task: ngủ, di chuyển, làm việc, ăn, nghỉ là những khối đời sống nối tiếp nhau chứ không phải event rời. Một ngày được vẽ hai kiểu cùng lúc: **ruy-băng 24 giờ** gom cả ngày vào một cái nhìn và để hở các khoảng trống, và **danh sách dọc** bên dưới để sửa tên, loại và giờ của từng khối. Khối có sáu loại — Ngủ, Bản thân, Di chuyển, Làm việc, Ăn, Nghỉ — mỗi loại một màu, và app cộng tổng số giờ theo loại ngay dưới ruy-băng. Lưới bước 15 phút chứ không 30, vì mốc thật hay rơi vào đúng phần tư giờ.
+
+Khối của một ngày được copy từ **mẫu** lúc mở ngày đó lần đầu, giống cách app tạo trang nhật ký, nên sửa mẫu về sau không viết lại lịch sử ngày đã qua. Mỗi thứ trong tuần trỏ vào một mẫu riêng (**Mẫu theo thứ**), ngày chưa mở lần nào sẽ lấy mẫu của thứ đó. Sửa các khối của ngày đang xem rồi bấm **⤓ Lưu vào mẫu** để ghi ngược lại; những ngày đã mở trước đó giữ nguyên. Mẫu tạo mới, đổi tên và xoá được. **+ Thêm khối** thả một khối vào khoảng trống đầu tiên còn lại trong ngày, và khối nào đè lên khối trước thì bị đánh dấu, vì khối chồng nhau sẽ làm tổng giờ cộng trùng.
+
 **Tag** — danh sách tag dùng chung, mỗi tag một màu riêng. Bấm **Quản lý** cạnh mục Tag ở sidebar để thêm, đổi tên, xoá tag và đổi màu — chọn từ bảng 72 màu hoặc màu bất kỳ (bộ chọn màu / mã hex). Đổi tên trùng một tag có sẵn thì app hỏi gộp hai tag. Khi gắn tag cho task, các tag đã có hiện sẵn để bấm chọn lại; gõ tên mới rồi Enter sẽ tạo tag mới.
 
 **Panel task** — bấm vào task để mở drawer bên phải: sửa mọi trường, tick việc con, viết ghi chú.
@@ -56,13 +62,15 @@ Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhan
 
 **Khung giờ & nhắc việc** — mỗi task đặt được giờ bắt đầu, thời lượng và mốc nhắc trước (mặc định 30 phút), cả trong form tạo lẫn panel chi tiết. Giờ gắn với ngày hạn chót. Đến mốc nhắc thì app hiện toast, thêm thông báo vào **chuông** ở thanh trên và bắn thông báo hệ thống nếu đã cho phép. Nhắc việc chỉ chạy khi app đang mở.
 
-**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do bằng trình soạn thảo giàu định dạng.
+**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do. Cột trái liệt kê những ngày đã viết, gom theo tháng, phía trên có nút **Hôm nay**; bên phải là trang đang mở. Các trang của một ngày hiện thành tab, với **+** để thêm, **✎** để đổi tên và **✕** để bỏ. Đầu trang còn cho biết ngày đó có bao nhiêu task đến hạn.
 
-**Ghi chú** — trang không gắn với ngày, lồng nhau như Notion. Cột trái là cây trang: bấm ▸ để mở trang con, rê chuột vào một trang rồi bấm **+** để thêm trang con. Mỗi trang có tiêu đề, tag (dùng chung với task), nội dung soạn bằng cùng trình soạn thảo, **ngày tạo** và **sửa lần cuối** (cập nhật khi đổi tiêu đề, nội dung hoặc tag). Ghim trang để nó hiện ở mục **Đã ghim** trên đầu cây; **Chuyển vào…** để đưa trang (kèm trang con) vào trang khác hoặc về cấp gốc. Gõ vào ô tìm kiếm hoặc bấm một tag ở sidebar thì cây thành danh sách trang khớp, mới sửa lên đầu. Bỏ một trang thì cả các trang con cùng vào **Thùng rác**, khôi phục cũng khôi phục cả cây.
+**Ghi chú** — trang không gắn với ngày, lồng nhau như Notion. Cột trái là cây trang: bấm ▸ để mở trang con, rê chuột vào một trang rồi bấm **+** để thêm trang con. Mỗi trang có tiêu đề, tag (dùng chung với task), nội dung soạn bằng cùng trình soạn thảo, **ngày tạo** và **sửa lần cuối** (cập nhật khi đổi tiêu đề, nội dung hoặc tag). Ghim trang để nó hiện ở mục **Đã ghim** trên đầu cây; năm trang sửa gần nhất hiện ở mục **Gần đây** ngay dưới đó. **Chuyển vào…** để đưa trang (kèm trang con) vào trang khác hoặc về cấp gốc. Kéo thả làm được đúng việc đó bằng tay: thả một trang vào mép trên hay mép dưới của trang khác để chèn trước hoặc sau nó, thả vào giữa một trang để biến nó thành trang con. Gõ vào ô tìm kiếm hoặc bấm một tag ở sidebar thì cây thành danh sách trang khớp, mới sửa lên đầu. Bỏ một trang thì cả các trang con cùng vào **Thùng rác**, khôi phục cũng khôi phục cả cây.
 
 **Tổng quan** — tỉ lệ hoàn thành, số task trễ hạn, biểu đồ 7 ngày gần nhất, tiến độ trung bình, streak ngày viết nhật ký, và số thói quen đã tick hôm nay.
 
 **Lọc và tìm** — theo tag (sidebar) và tìm toàn văn trên tiêu đề / tag / ghi chú. Riêng Bảng việc và Bảng cuộc sống có thêm nút **Lọc** trên thanh công cụ (hiện số bộ lọc đang bật), bấm vào mở bảng chọn: khoảng thời gian (hôm nay / 7 ngày / tháng này / tất cả), ưu tiên (chọn được nhiều mức), hạn (trễ hạn / hạn hôm nay / chưa có hạn), mảng Công việc / Khác (chỉ ở Bảng việc), và cách sắp xếp thẻ (thủ công / theo ưu tiên / chia nhóm ưu tiên).
+
+**Ngôn ngữ giao diện** — tiếng Việt và tiếng Anh, đổi bằng nút 🌐 ở cuối sidebar. Ngôn ngữ nhớ riêng trong trình duyệt chứ không nằm trong file dữ liệu, nên đổi thì tải lại trang; hai người dùng chung một file dữ liệu vẫn đọc được bằng thứ tiếng của mình. Chuỗi nằm mỗi dòng một câu trong `js/i18n.js`; chuỗi nào chưa có bản dịch thì rơi về tiếng Việt chứ không mất chữ.
 
 ## Trình soạn thảo
 
