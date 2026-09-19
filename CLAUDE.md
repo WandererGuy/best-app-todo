@@ -8,6 +8,13 @@ Mỗi lần sửa xong một thay đổi (code hoặc tài liệu), **không t�
 2. Liệt kê các file sẽ đưa vào commit.
 3. Hỏi mình có muốn commit không. Chỉ commit khi mình đồng ý.
 
+**Commit không được để lộ thông tin riêng của mình.** Ghi chú, nhật ký, task, tên người, chỗ làm, link nội bộ — không có chữ nào của mình được lọt vào commit message, mô tả PR, tên file, comment trong code hay dữ liệu mẫu. Điều này vẫn đúng khi mình vừa dán một đoạn vào chat, hoặc khi mình vừa cho phép đọc một file trong `data/`: cho phép xem không phải là cho phép ghi lại.
+
+- Mô tả thay đổi bằng thuật ngữ của code ("trang ghi chú", "một ngày có nhiều trang"), đừng trích nội dung thật để minh hoạ.
+- Sửa lỗi do một đoạn dữ liệu thật gây ra thì tả **hình dạng** của nó ("trang không có tiêu đề", "html rỗng"), không chép nội dung.
+- Cần dữ liệu mẫu trong code hay test thì bịa ra, đừng lấy từ dữ liệu của mình.
+- Không bao giờ đưa file trong `data/` vào git, kể cả khi mình nhờ commit "hết" — `git add -f` với thư mục đó là không được.
+
 ## Thư mục `data/`
 
 `data/` là dữ liệu thật của mình: task, nhật ký, ghi chú. Nó nằm ngoài git và là chuyện riêng, không phải tài liệu của project.
