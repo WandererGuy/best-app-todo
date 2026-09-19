@@ -21,14 +21,17 @@ const HMARKS = {1:'bắt đầu là phần khó nhất, xong rồi!', 3:'nhịp 
 // tập trung (pomodoro): 3 pha của đồng hồ và cài đặt mặc định.
 // look: nền toàn màn hình theo pha — màu c, ảnh img (mã trong kho ảnh), độ rõ ảnh op (%), lớp phủ dim (âm = sáng, dương = tối)
 const FPHASE = {work:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài'};
-const FCFG = {work:40, short:10, long:15, every:3, buffer:0, auto:false,
+const FCFG = {work:40, short:10, long:15, every:3, buffer:20, auto:false,
   qmax:3, confirmSw:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
   askRate:true, askNext:true,
-  look:{work:{c:'#1e1b4b', img:null, op:70, dim:35}, short:{c:'#064e3b', img:null, op:70, dim:35},
-        long:{c:'#172554', img:null, op:70, dim:35}},
+  look:{work:{c:'#ec4899', img:null, op:76, dim:47}, short:{c:'#7dd3fc', img:null, op:70, dim:35},
+        long:{c:'#a3e635', img:null, op:70, dim:35}},
   sound:true, vol:60, notify:true, tabTitle:true};
 const KEY   = 'dieukhien.v1';
+// cài đặt mặc định cho người mới mở app lần đầu. Sửa ở đây là đổi mặc định cho mọi bản clone;
+// người đã dùng rồi thì giá trị trong file dữ liệu vẫn được giữ, không bị đè.
+const SETTINGS = {jH:560, sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false};
 // trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
 // 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
 const VIEW_KEY = 'dieukhien.view';
@@ -45,65 +48,26 @@ const REMINDS = {0:'Không nhắc', 5:'5 phút', 10:'10 phút', 15:'15 phút', 3
 const PSTEP  = 15;
 const PKINDS = {sleep:{n:'Ngủ',c:'#4f46e5'}, self:{n:'Bản thân',c:'#10b981'}, move:{n:'Di chuyển',c:'#64748b'},
                 work:{n:'Làm việc',c:'#3b82f6'}, eat:{n:'Ăn',c:'#f59e0b'}, rest:{n:'Nghỉ',c:'#a855f7'}};
-// mẫu lịch trình: [giờ đầu, giờ cuối, loại, tên]
+// mẫu lịch trình: [giờ đầu, giờ cuối, loại, tên]. Đây chỉ là mẫu khởi đầu cho người mới:
+// sửa thẳng trên trang Lịch trình rồi bấm "Lưu thành mẫu mới" để có mẫu của riêng mình.
 const PTPL = {
   'Ngày thường': [
-    ['00:00','06:00','sleep','Ngủ'],
-    ['06:00','06:15','self','Thức · ra chỗ có nắng'],
-    ['06:15','07:00','self','Đi bộ / sáng chậm'],
-    ['07:00','07:45','self','Tắm · ăn sáng'],
+    ['00:00','07:00','sleep','Ngủ'],
+    ['07:00','08:00','self','Thức dậy · ăn sáng'],
     ['08:00','08:30','move','Đi làm'],
     ['08:30','12:00','work','Làm việc'],
     ['12:00','13:00','eat','Ăn trưa'],
-    ['13:00','13:20','sleep','Ngủ trưa 20′'],
-    ['13:20','18:15','work','Làm việc'],
-    ['18:15','18:30','work','Gói việc lại'],
-    ['18:30','19:00','move','Về nhà'],
-    ['19:15','19:45','eat','Ăn tối'],
-    ['19:45','21:00','rest','Rảnh — không lên kế hoạch'],
-    ['21:00','21:30','self','Tắm nước ấm'],
-    ['22:00','22:30','self','Cất thiết bị · vệ sinh'],
-    ['22:30','24:00','sleep','Ngủ'],
-  ],
-  'Ngày tập': [
-    ['00:00','06:00','sleep','Ngủ'],
-    ['06:00','06:15','self','Thức · ra chỗ có nắng'],
-    ['06:15','07:15','self','Gym'],
-    ['07:15','08:00','self','Tắm · ăn sáng'],
-    ['08:00','08:30','move','Đi làm'],
-    ['08:30','12:00','work','Làm việc'],
-    ['12:00','13:00','eat','Ăn trưa'],
-    ['13:00','13:20','sleep','Ngủ trưa 20′'],
-    ['13:20','18:15','work','Làm việc'],
-    ['18:15','18:30','work','Gói việc lại'],
-    ['18:30','19:00','move','Về nhà'],
-    ['19:15','19:45','eat','Ăn tối'],
-    ['19:45','21:00','rest','Rảnh — không lên kế hoạch'],
-    ['21:00','21:30','self','Tắm nước ấm'],
-    ['22:00','22:30','self','Cất thiết bị · vệ sinh'],
-    ['22:30','24:00','sleep','Ngủ'],
-  ],
-  // cuối tuần vẫn thức quanh 06:30: lệch giờ thức quá 30 phút là mất cái đều đặn,
-  // thứ dự đoán sức khoẻ tốt hơn cả số giờ ngủ. Bù lại phần giữa ngày để trống hẳn.
-  'Cuối tuần': [
-    ['00:00','06:30','sleep','Ngủ'],
-    ['06:30','06:45','self','Thức · ra chỗ có nắng'],
-    ['06:45','08:00','self','Sáng chậm · ăn sáng'],
-    ['08:00','09:00','self','Gym / đi bộ dài'],
-    ['09:00','12:00','rest','Rảnh'],
-    ['12:00','13:00','eat','Ăn trưa'],
-    ['13:00','13:20','sleep','Ngủ trưa 20′'],
-    ['13:20','18:00','rest','Rảnh — không lên kế hoạch'],
-    ['18:00','19:00','self','Việc nhà · chuẩn bị tuần mới'],
+    ['13:00','17:30','work','Làm việc'],
+    ['17:30','18:00','move','Về nhà'],
+    ['18:00','19:00','self','Vận động'],
     ['19:00','19:45','eat','Ăn tối'],
-    ['19:45','21:00','rest','Rảnh'],
-    ['21:00','21:30','self','Tắm nước ấm'],
-    ['22:00','22:30','self','Cất thiết bị · vệ sinh'],
+    ['19:45','22:00','rest','Rảnh — không lên kế hoạch'],
+    ['22:00','22:30','self','Chuẩn bị đi ngủ'],
     ['22:30','24:00','sleep','Ngủ'],
   ],
 };
 // mẫu mặc định cho từng thứ, theo thứ tự DOW (0 = CN). Ngày mới mở lấy mẫu của thứ đó.
-const PDOW = ['Cuối tuần','Ngày thường','Ngày tập','Ngày thường','Ngày tập','Ngày thường','Cuối tuần'];
+const PDOW = Array(7).fill('Ngày thường');
 const PVER = 2;   // v1 chỉ có 2 mẫu và chưa có dow
 const pNorm = (p = {}) => {
   const tpl = Object.keys(p.tpl || {}).length ? {...p.tpl} : structuredClone(PTPL);
@@ -138,7 +102,7 @@ function fNorm(f = {}){
 }
 
 /* ============ trạng thái ============ */
-let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{jH:560}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
+let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{...SETTINGS}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
 let ui = {view: keptView(), bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
           open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,

@@ -184,7 +184,7 @@ function renderPlan(){
     save(); renderPlan(); toast(`Đã lưu mẫu "${d.tpl}"`);
   };
   // mẫu mới lấy luôn các khối của ngày đang xem làm điểm bắt đầu — sửa một ngày cho vừa ý
-  // rồi cất thành loại ngày, đỡ phải gõ lại 16 khối
+  // rồi cất thành loại ngày, đỡ phải gõ lại cả chục khối
   $('#pNew').onclick = () => {
     const v = prompt('Tên loại ngày mới:', '');
     if(!v || !v.trim()) return;
