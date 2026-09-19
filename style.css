@@ -280,17 +280,21 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .nhit:hover,.nhit.on{background:var(--panel2);color:var(--tx)}
 .nhit .nsub{font-size:11px;color:var(--tx3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .npage{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;
-  padding:22px 40px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+  padding:16px 40px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
 .ncrumb{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-size:12px;color:var(--tx3);min-height:18px}
 .ncrumb button{color:var(--tx3);padding:1px 5px;border-radius:5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ncrumb button:hover{background:var(--panel2);color:var(--tx)}
-.nttl{font-size:30px;font-weight:700;letter-spacing:-.4px;background:none;border:none;outline:none;width:100%}
+.nttl{font-size:26px;font-weight:700;letter-spacing:-.4px;background:none;border:none;outline:none;width:100%}
 .nttl::placeholder{color:var(--tx3)}
-.nmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.nmeta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-bottom:9px;border-bottom:1px solid var(--line)}
 .nacts{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap}
 .nacts .btn{padding:5px 10px;font-size:12px;font-weight:500}
 .nacts .danger{padding:5px 10px;font-size:12px}
 .nacts .nmove{width:auto;max-width:190px;padding:5px 6px;font-size:12px;background:var(--panel2);color:var(--tx2)}   /* .nacts để thắng select.inp */
+/* đầu trang gọn lại để chừa chỗ cho chữ: ô tag thấp hơn, danh sách tag gợi ý chỉ hiện khi đang gắn tag */
+.npage .tagbox{padding:5px 8px}
+.npage .tagsug{display:none}
+.npage .fld:focus-within .tagsug{display:flex}
 .ned{flex:1 0 auto;min-height:320px;padding-top:4px;display:flex;flex-direction:column}
 /* 1 0 auto: giãn cho kín chỗ trống, nhưng bài dài thì cao theo nội dung chứ không co lại — co lại thì chữ tràn ra ngoài hộp */
 .ned .ed{font-size:14.5px;line-height:1.8;min-height:320px;flex:1 0 auto}
