@@ -141,7 +141,9 @@ function drawNoteList(){
   }
   const row = (n, depth, tree) => {
     const kids = tree ? nKids(n.id) : [];
-    return `<div class="nrow${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}" style="padding-left:${2 + depth * 14}px">
+    return `<div class="nrow${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}"
+        ${tree ? `draggable="true" data-tree data-depth="${depth}" title="Kéo để đổi thứ tự"` : ''}
+        style="padding-left:${2 + depth * 14}px">
         ${!tree ? '<span class="ncar">★</span>'
           : kids.length ? `<button class="ncar" data-ntog="${n.id}">${n.open ? '▾' : '▸'}</button>` : '<span class="ncar">·</span>'}
         <span class="nname">${nTitle(n)}</span>
@@ -152,4 +154,49 @@ function drawNoteList(){
   box.innerHTML = (pins.length ? `<div class="nlbl">Đã ghim</div>${pins.map(n => row(n, 0, false)).join('')}` : '')
     + `<div class="nlbl">Tất cả trang</div>`
     + (roots.length ? roots.map(n => row(n, 0, true)).join('') : '<div class="nofil" style="padding:4px 8px">Chưa có trang nào</div>');
+  wireNoteDnD();
+}
+
+/* ============ kéo thả để đổi thứ tự trang ============ */
+// Thả vào khe nào thì trang nhận trang cha của hàng ngay dưới khe đó và nằm trước hàng ấy;
+// thả dưới cùng thì về cấp gốc, cuối danh sách. Chỉ làm ở chế độ cây, lúc đang tìm hay lọc tag thì thôi.
+let nDragId = null, nPh = null;
+function wireNoteDnD(){
+  const box = $('#ntList'); if(!box || box.dataset.dnd) return;
+  box.dataset.dnd = 1;                      // cây vẽ lại nhiều lần, chỉ gắn một lần rồi bắt theo sự kiện nổi lên
+  box.addEventListener('dragstart', e => {
+    const el = e.target.closest('.nrow[data-tree]'); if(!el) return;
+    nDragId = el.dataset.nid; el.classList.add('drag');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', nDragId);
+  });
+  box.addEventListener('dragend', e => { e.target.closest('.nrow')?.classList.remove('drag'); nDragEnd(); });
+  box.addEventListener('dragover', e => {
+    if(!nDragId) return;
+    e.preventDefault();
+    const at = nRowAfter(box, e.clientY);
+    if(!nPh){ nPh = document.createElement('div'); nPh.className = 'drop'; }
+    nPh.style.margin = `2px 8px 2px ${(at ? +at.dataset.depth : 0) * 14 + 8}px`;
+    if(at) box.insertBefore(nPh, at); else box.appendChild(nPh);
+  });
+  box.addEventListener('drop', e => {
+    e.preventDefault();
+    const n = S.notes.find(x => x.id === nDragId);
+    const anchor = nPh && nPh.nextElementSibling ? S.notes.find(x => x.id === nPh.nextElementSibling.dataset.nid) : null;
+    nDragEnd();
+    if(!n || (anchor && nTree(S.notes, n).includes(anchor))) return;   // không thả một trang vào trong chính nó
+    S.notes = S.notes.filter(x => x !== n);
+    n.parent = anchor ? anchor.parent : null;
+    if(anchor){
+      S.notes.splice(S.notes.indexOf(anchor), 0, n);
+      if(n.parent) S.notes.find(x => x.id === n.parent).open = true;
+    } else S.notes.push(n);
+    save(); renderNotes();
+  });
+}
+function nDragEnd(){ nDragId = null; if(nPh) nPh.remove(); nPh = null; }
+// hàng đầu tiên mà con trỏ còn ở nửa trên của nó = hàng sẽ nằm ngay dưới chỗ thả
+function nRowAfter(box, y){
+  return [...box.querySelectorAll('.nrow[data-tree]:not(.drag)')]
+    .find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; }) || null;
 }
