@@ -19,7 +19,8 @@ echo   - Du lieu luu o data\dieukhien.json, sao luu hang ngay o data\backups.
 echo     Xoa cache hay doi tai khoan Chrome deu khong mat.
 echo.
 
-start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
+rem APP_NO_BROWSER=1 (launcher khoi dong cung may dat): khong tu mo trinh duyet, launcher mo Chrome
+if not defined APP_NO_BROWSER start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
 python serve.py
 echo.
 echo   Server da dung.
