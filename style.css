@@ -276,6 +276,7 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .nrow:hover{background:var(--panel2);color:var(--tx)}
 .nrow.on{background:var(--panel2);color:var(--tx);font-weight:600;box-shadow:inset 2px 0 0 var(--acc)}
 .nrow.drag{opacity:.35}
+.nrow.into{background:var(--panel2);color:var(--tx);box-shadow:inset 0 0 0 1.5px var(--acc)}
 .ncar{width:18px;height:18px;flex:0 0 18px;display:grid;place-items:center;border-radius:4px;color:var(--tx3);font-size:11px}
 button.ncar{font-size:16px;color:var(--tx2)}
 button.ncar:hover{background:var(--line);color:var(--tx)}

@@ -346,9 +346,11 @@ const STR = {
   'note.matchTag':  [' tag #{t}', ' tagged #{t}'],
   'note.rowAgo':    ['sửa {a}', 'edited {a}'],
   'note.noMatch':   ['Không có trang nào khớp', 'No page matches'],
-  'note.dragT':     ['Kéo để đổi thứ tự', 'Drag to reorder'],
+  'note.dragT':     ['Kéo để đổi thứ tự, thả vào giữa một trang để thành trang con',
+                     'Drag to reorder, drop onto a page to nest inside it'],
   'note.addKidT':   ['Thêm trang con', 'Add a sub-page'],
   'note.pinned':    ['Đã ghim', 'Pinned'],
+  'note.recent':    ['Gần đây', 'Recent'],
   'note.all':       ['Tất cả trang', 'All pages'],
   'note.none':      ['Chưa có trang nào', 'No pages yet'],
 
