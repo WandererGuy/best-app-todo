@@ -242,7 +242,7 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .more{font-size:10px;color:var(--tx3);padding-left:6px}
 
 /* ---------- journal ---------- */
-.jwrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.jwrap{max-width:1180px;margin:0 auto;height:100%;display:flex;flex-direction:column;gap:12px}
 .jbar{display:flex;align-items:center;gap:10px}
 .jbar h2{font-size:18px;font-weight:650}
 .jbar .sub{font-size:12px;color:var(--tx3)}
@@ -254,8 +254,9 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .jtab.ico{padding:6px 10px;border-radius:8px;border-bottom:1px solid var(--line);color:var(--tx3)}
 .jtab.ico:hover{color:var(--tx);border-color:#3a4254}
 .jed{
+  flex:1;min-height:320px;
   background:var(--panel);border:1px solid var(--line);border-radius:0 11px 11px 11px;
-  padding:24px 28px;overflow:auto;resize:vertical;min-height:240px
+  padding:24px 28px;overflow-y:auto
 }
 .jed:focus-within{border-color:#3a4254}
 
@@ -866,6 +867,7 @@ select.inp:disabled{opacity:.45;cursor:default}
   #side.on{transform:none}
   #board{grid-template-columns:1fr}
   .jedit{flex-direction:column}
+  .jwrap{height:auto}
   .nwrap{flex-direction:column;height:auto}
   .nside{width:auto;flex:none;max-height:40vh}
   .npage{padding:18px}

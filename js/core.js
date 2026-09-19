@@ -31,7 +31,7 @@ const FCFG = {work:40, short:10, long:15, every:3, buffer:20, auto:false,
 const KEY   = 'dieukhien.v1';
 // cài đặt mặc định cho người mới mở app lần đầu. Sửa ở đây là đổi mặc định cho mọi bản clone;
 // người đã dùng rồi thì giá trị trong file dữ liệu vẫn được giữ, không bị đè.
-const SETTINGS = {jH:560, sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false};
+const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false};
 // trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
 // 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
 const VIEW_KEY = 'dieukhien.view';

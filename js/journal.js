@@ -30,7 +30,7 @@ function renderJournal(){
       <div class="sub">${due.length ? `${due.length} task đến hạn hôm nay` : 'Không có task nào đến hạn'}</div></div>
       ${dateBtn('jDp', ui.jDate, 'Chọn ngày', 'width:auto')}
       <button class="btn ghost" id="jTd">Hôm nay</button>
-      <span class="hint">Gõ <b>/</b> để chèn khối · kéo mép dưới để chỉnh chiều cao</span>
+      <span class="hint">Gõ <b>/</b> để chèn khối</span>
     </div>
     <div class="jtabs">
       ${pages.map((t, i) => `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}">${esc(t.name)}</button>`).join('')}
@@ -38,7 +38,7 @@ function renderJournal(){
       <button class="jtab ico" id="jRen" title="Đổi tên trang">✎</button>
       ${pages.length > 1 ? '<button class="jtab ico" id="jDel" title="Xoá trang này">✕</button>' : ''}
     </div>
-    <div class="jed" id="jHost" style="height:${S.settings.jH}px"></div></div>`;
+    <div class="jed" id="jHost"></div></div>`;
 
   const shift = n => { const x = new Date(ui.jDate + 'T00:00:00'); x.setDate(x.getDate() + n); ui.jDate = iso(x); ui.jTab = 0; renderJournal(); };
   $('#pd').onclick = () => shift(-1);
@@ -61,10 +61,4 @@ function renderJournal(){
     if(!confirm(`Xoá trang "${page.name}" của ngày này?`)) return;
     pages.splice(ui.jTab, 1); ui.jTab = 0; save(); renderJournal();
   };
-  // nhớ chiều cao khung sau khi kéo giãn
-  const host = $('#jHost');
-  new ResizeObserver(() => {
-    const h = Math.round(host.getBoundingClientRect().height);
-    if(h && Math.abs(h - S.settings.jH) > 4){ S.settings.jH = h; save(); }
-  }).observe(host);
 }
