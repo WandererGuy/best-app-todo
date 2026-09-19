@@ -1,353 +1,354 @@
-# Trung tâm điều khiển
+# Control Center
 
-**Một app duy nhất để quản lý việc cần làm, thói quen, giờ tập trung, lịch, nhật ký và ghi chú. Chạy ngay trên máy của bạn, không cần tài khoản, không cần internet.**
+**One app for your tasks, habits, focus sessions, calendar, journal and notes. It runs on your own machine — no account, no internet, no cloud.**
 
-![Bảng việc](docs/images/board.png)
+*English · [Tiếng Việt](README.vi.md)*
 
-- **Dữ liệu là của bạn.** Mọi thứ nằm trong một file `data/dieukhien.json` trên máy. Không gửi đi đâu, không có máy chủ đám mây.
-- **Không mất dữ liệu vì xoá cache.** Dữ liệu ghi ra file chứ không nhốt trong trình duyệt, và mỗi ngày app tự sao lưu một bản.
-- **Không cần cài gì phức tạp.** Chỉ cần Python và một trình duyệt. Bấm đúp `run.bat` là chạy.
-- **Tiếng Việt hoặc tiếng Anh.** Đổi ngôn ngữ giao diện bằng nút 🌐 ở cuối sidebar.
+![Work board](docs/images/en/board.png)
 
----
-
-## Mục lục
-
-- [Có những gì](#có-những-gì)
-- [Cài đặt và chạy](#cài-đặt-và-chạy)
-- [Hướng dẫn dùng](#hướng-dẫn-dùng)
-- [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu)
-- [Cập nhật lên bản mới](#cập-nhật-lên-bản-mới)
-- [Phím tắt và mẹo](#phím-tắt-và-mẹo)
-- [Câu hỏi thường gặp](#câu-hỏi-thường-gặp)
-- [Dành cho người muốn sửa code](#dành-cho-người-muốn-sửa-code)
+- **The data is yours.** Everything lives in a single file, `data/dieukhien.json`, on your disk. Nothing is sent anywhere.
+- **Clearing your browser cache does not lose anything.** The data is written to a file rather than trapped in the browser, and the app keeps a daily backup.
+- **Nothing complicated to install.** Python and a browser is the whole list. On Windows, double-click `run.bat`.
+- **English or Vietnamese.** Switch the interface language with the 🌐 button at the bottom of the sidebar.
 
 ---
 
-## Có những gì
+## Contents
+
+- [What's in it](#whats-in-it)
+- [Install and run](#install-and-run)
+- [How to use it](#how-to-use-it)
+- [Data and backups](#data-and-backups)
+- [Updating](#updating)
+- [Shortcuts and tips](#shortcuts-and-tips)
+- [FAQ](#faq)
+- [For people who want to change the code](#for-people-who-want-to-change-the-code)
+
+---
+
+## What's in it
 
 | | |
 |---|---|
-| **Bảng việc & Bảng cuộc sống**<br>Kanban 3 cột kéo thả. Task có ưu tiên, hạn chót, giờ, tag, việc con và ghi chú kiểu Notion. | **Tập trung (pomodoro)**<br>Hàng đợi task, đồng hồ toàn màn hình, chuỗi ngày, thống kê. Mỗi phiên đủ giờ trồng một cây trong khu vườn, chọn được 8 loài. |
-| ![Panel task](docs/images/drawer.png) | ![Tập trung](docs/images/focus.png) |
-| **Thói quen**<br>Lưới theo dõi 12 tuần, chuỗi buổi liên tiếp, thói quen nên làm và nên bỏ. | **Lịch**<br>Xem theo ngày, tuần, tháng kiểu Google Calendar. Bấm khung trống để tạo task. |
-| ![Thói quen](docs/images/habits.png) | ![Lịch](docs/images/cal.png) |
-| **Ghi chú**<br>Trang lồng nhau như Notion, kéo thả để đổi thứ tự hoặc lồng vào trang khác, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
-| ![Ghi chú](docs/images/notes.png) | ![Tổng quan](docs/images/dash.png) |
-| **Lịch trình**<br>Khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ — dựng sẵn thành mẫu cho từng thứ trong tuần. | **Nhật ký**<br>Mỗi ngày một hoặc nhiều trang, viết bằng cùng trình soạn thảo với ghi chú. |
-| ![Lịch trình](docs/images/plan.png) | ![Nhật ký](docs/images/journal.png) |
+| **Work board & Life board**<br>Three-column kanban with drag and drop. Tasks carry priority, due date, time, tags, sub-tasks and a Notion-style note. | **Focus (pomodoro)**<br>A task queue, a full-screen timer, day streaks and stats. Every completed session plants a tree in the garden — eight species to pick from. |
+| ![Task panel](docs/images/en/drawer.png) | ![Focus](docs/images/en/focus.png) |
+| **Habits**<br>A twelve-week tracking grid, session streaks, and habits to keep as well as habits to drop. | **Calendar**<br>Day, week and month views in the style of Google Calendar. Click an empty slot to create a task there. |
+| ![Habits](docs/images/en/habits.png) | ![Calendar](docs/images/en/cal.png) |
+| **Notes**<br>Pages nested inside pages like Notion. Drag to reorder or to nest, pin, tag, paste images and attach files. | **Overview**<br>Completion rate, overdue work, a seven-day chart, and the split by area and priority. |
+| ![Notes](docs/images/en/notes.png) | ![Overview](docs/images/en/dash.png) |
+| **Day plan**<br>The shape of a day — sleep, commute, work, meals, rest — built from a template per weekday. | **Journal**<br>One or more pages per day, written in the same editor as the notes. |
+| ![Day plan](docs/images/en/plan.png) | ![Journal](docs/images/en/journal.png) |
 
-Ngoài ra còn có:
+There is also:
 
-- **Để sau:** chỗ ghi nhanh những việc chưa muốn làm ngay. Chúng không lên bảng, lịch hay thống kê.
-- **Nhắc việc:** toast, chuông trong app và thông báo hệ thống.
-- **Tag có màu, tìm kiếm toàn văn, bộ lọc.**
-- **Thùng rác:** khôi phục được task và ghi chú đã xoá.
-- **Hai ngôn ngữ:** toàn bộ giao diện có tiếng Việt và tiếng Anh, đổi ở cuối sidebar.
+- **Later:** somewhere to jot the things you have not committed to yet. They stay off the board, the calendar and the stats.
+- **Reminders:** a toast, an in-app bell, and a system notification if you allow one.
+- **Coloured tags, full-text search, filters.**
+- **Trash:** deleted tasks and note pages can be restored.
 
-Mô tả chi tiết từng tính năng: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
+Every feature described in detail: see [docs/HUONG-DAN.md](docs/HUONG-DAN.md) (Vietnamese).
 
-> Ảnh chụp dùng dữ liệu minh hoạ, không phải dữ liệu thật.
+> The screenshots use made-up sample data, not anyone's real data.
 
 ---
 
-## Cài đặt và chạy
+## Install and run
 
-### Bước 1: Cài Python (chỉ làm một lần)
+### Step 1: Install Python (once)
 
-App cần **Python 3.7 trở lên** (đã kiểm với 3.12). Nó chỉ dùng thư viện có sẵn của Python, không cần `pip install` gì thêm.
+The app needs **Python 3.7 or newer** (tested on 3.12). It uses only the standard library — there is nothing to `pip install`.
 
-- **Windows:** tải ở [python.org/downloads](https://www.python.org/downloads/). Khi cài, nhớ **tick ô "Add python.exe to PATH"** ở màn hình đầu tiên.
-- **macOS:** thường đã có sẵn `python3`. Nếu chưa, cài từ python.org hoặc `brew install python`.
-- **Linux:** hầu hết các bản đã có sẵn `python3`.
+- **Windows:** download it from [python.org/downloads](https://www.python.org/downloads/). On the first installer screen, **tick "Add python.exe to PATH"**.
+- **macOS:** `python3` is usually already there. If not, install from python.org or run `brew install python`.
+- **Linux:** most distributions ship `python3`.
 
-Kiểm tra bằng cách mở Terminal / Command Prompt rồi gõ `python --version` (hoặc `python3 --version`).
+To check, open a terminal and run `python --version` (or `python3 --version`).
 
-**Trình duyệt:** nên dùng Chrome hoặc Edge, là hai trình duyệt app được dùng và kiểm tra hằng ngày. Tính năng "Liên kết file trên ổ đĩa" chỉ có trên Chrome và Edge.
+**Browser:** Chrome or Edge are the two the app is used and tested on daily. The "Link a file on disk" feature only exists in Chrome and Edge.
 
-**Hệ điều hành:** app được làm và dùng trên Windows. `serve.py` chỉ dùng thư viện chuẩn của Python nên chạy được trên macOS / Linux, nhưng chưa được kiểm kỹ trên hai hệ này.
+**Operating system:** the app is built and used on Windows. `serve.py` only uses the Python standard library, so it runs on macOS and Linux too, but those two are not tested as thoroughly.
 
-### Bước 2: Tải app về
+### Step 2: Get the app
 
-Chọn một trong hai cách:
+Either way works:
 
-- **Không biết Git:** bấm nút xanh **Code → Download ZIP** trên trang GitHub, rồi giải nén.
-- **Dùng Git:**
+- **If you don't use Git:** click the green **Code → Download ZIP** button on GitHub, then unzip it.
+- **With Git:**
   ```bash
   git clone https://github.com/WandererGuy/best-app-todo.git
   ```
 
-> **Đặt thư mục app ở chỗ cố định**, ví dụ `D:\Apps\trung-tam-dieu-khien`. Dữ liệu của bạn sẽ nằm ngay trong thư mục này, nên đừng để nó trong `Downloads` rồi lỡ tay xoá.
+> **Put the folder somewhere permanent**, for example `D:\Apps\control-center`. Your data will live inside this folder, so keep it out of `Downloads` where you might clear it by accident.
 
-### Bước 3: Chạy
+### Step 3: Run it
 
-**Windows:** bấm đúp **`run.bat`**.
+**Windows:** double-click **`run.bat`**.
 
-Một cửa sổ đen hiện ra, và sau vài giây trình duyệt tự mở `http://localhost:8000`.
+A console window opens, and after a few seconds your browser opens `http://localhost:8000`.
 
-**macOS / Linux:** mở Terminal trong thư mục app rồi chạy:
+**macOS / Linux:** open a terminal in the app folder and run:
 
 ```bash
 python3 serve.py
 ```
 
-Sau đó mở trình duyệt vào **http://localhost:8000**.
+Then open **http://localhost:8000**.
 
-### Tắt app
+### Stopping it
 
-- **Windows:** đóng cửa sổ đen.
-- **macOS / Linux:** bấm `Ctrl + C` trong Terminal.
+- **Windows:** close the console window.
+- **macOS / Linux:** press `Ctrl + C` in the terminal.
 
-Nếu lỡ tắt server khi tab còn mở, app sẽ báo đỏ. Thay đổi vẫn được giữ tạm trong trình duyệt và tự gửi lên ở lần mở sau.
+If you stop the server while a tab is still open, the app shows a red warning. Your changes are held in the browser and sent to disk the next time it connects.
 
-### Lần đầu mở
+### The first time you open it
 
-- App tạo sẵn vài task, thói quen và trang nhật ký mẫu để bạn xem thử. Xoá chúng đi khi đã quen.
-- Muốn nhận nhắc việc khi đang ở cửa sổ khác: vào **Tập trung → ⚙ Cài đặt** và bấm **Cho phép thông báo hệ thống**.
-- **Mẹo:** tạo shortcut của `run.bat` ra Desktop để mở nhanh mỗi ngày.
+- The app creates a few sample tasks, habits and a journal page so there is something to look at. Delete them once you have the hang of it.
+- To get reminders while you are in another window, go to **Focus → ⚙ Settings** and click the button that asks for system notification permission.
+- **Tip:** put a shortcut to `run.bat` on your desktop.
 
-> **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `run.bat` hoặc `serve.py`.
-
----
-
-## Hướng dẫn dùng
-
-App mở ra là thấy **Bảng việc**. Phần này đi từ những mục bạn sẽ mở mỗi ngày tới những mục thỉnh thoảng mới cần, nên cứ đọc theo thứ tự.
-
-### Ba việc đầu tiên
-
-1. **Tạo một task thật của bạn.** Bấm **+ Task mới** ở góc trên bên phải, hoặc **Tạo task** ở đầu sidebar. Chỉ cần điền tên là tạo được; mảng, ưu tiên, hạn chót, giờ, tag, việc con để trống cũng không sao, sửa sau lúc nào cũng được. Nếu bạn đặt **giờ**, task sẽ hiện luôn trên lịch ngày ở sidebar và app sẽ nhắc trước khi tới giờ.
-
-2. **Kéo task sang cột Đang làm.** Bảng có 3 cột `Cần làm / Đang làm / Xong`, kéo thẻ qua lại giữa chúng. Bấm vào thẻ để mở panel bên phải: ở đó sửa được mọi trường, tick việc con và viết ghi chú dài.
-
-3. **Chạy thử một phiên tập trung.** Kéo thẻ đang ở cột **Đang làm** thả vào khối **Tập trung** ở sidebar, rồi bấm **▶ Bắt đầu**. Mặc định một phiên là 40 phút. Hết giờ app kêu chuông, hỏi bạn chấm điểm phiên vừa rồi, và trồng một cây vào khu vườn.
-
-Làm xong ba bước này là bạn đã đi qua phần lõi của app. Những mục còn lại đều có thể để hôm khác.
-
-### Những mục dùng hằng ngày
-
-**Bảng việc và Bảng cuộc sống** — hai bảng kanban riêng, cùng một kiểu. Bảng việc giữ mảng Công việc và Khác, Bảng cuộc sống giữ mảng Cuộc sống. Tách ra để việc nhà không trộn lẫn với việc cơ quan, nhưng hai bảng vẫn dùng chung lịch, nhắc việc và tổng quan. Trên thanh công cụ có nút **Lọc** (theo khoảng thời gian, ưu tiên, hạn, mảng) và nút **Zen** khi bạn muốn thẻ chỉ còn tên task.
-
-**Tập trung** — khối nhỏ ở sidebar là chỗ bạn bấm bắt đầu và tạm dừng mỗi ngày; mở hẳn mục Tập trung khi muốn xem hàng đợi, tiến độ và khu vườn. Vài điều đáng biết sớm:
-
-- Hàng đợi **chỉ nhận task ở cột Đang làm**, tối đa 3 task. Đây là chỗ nhiều người vướng lúc đầu: task ở Cần làm thì kéo vào không được.
-- Đang làm mà chợt nhớ việc khác thì gõ vào ô **Ghi để sau** rồi Enter. Việc đó rơi vào mục **Để sau**, bạn không phải dừng phiên.
-- Muốn tắt hẳn thứ khác thì bấm **⤢** để vào toàn màn hình, `Esc` để thoát.
-- Mọi thông số (thời lượng, số phiên trước khi nghỉ dài, âm thanh, thông báo) đổi ở **⚙ Cài đặt** trong mục Tập trung.
-
-**Thói quen** — bạn tick thói quen ngay trên **dải ở đầu Bảng việc**, không cần mở trang Thói quen. Trang riêng chỉ mở khi muốn thêm thói quen mới hoặc xem lưới 12 tuần để biết mình hay đứt vào thứ mấy.
-
-**Lịch ngày ở sidebar** — dòng thời gian 24 giờ của hôm nay. Bấm một ô giờ trống là mở form tạo task với ngày giờ điền sẵn; bấm vào một block là mở đúng task đó.
-
-**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do. Trình soạn thảo giống Notion: gõ `/` để chèn khối, dán được ảnh và file.
-
-**Ghi chú** — những trang không gắn với ngày nào: sổ tay, quy ước, việc cần tra lại. Trang lồng trong trang, kéo thả để đổi thứ tự hoặc thả vào giữa một trang khác để biến nó thành trang con.
-
-### Những mục khi cần mới mở
-
-Nhóm này nằm dưới nhãn **Ít dùng** ở sidebar.
-
-| Mục | Mở khi nào |
-|---|---|
-| **Lịch** | Muốn nhìn cả tuần hoặc cả tháng. Ngày và Tuần là lưới giờ kiểu Google Calendar, bấm khung trống để tạo task đúng giờ đó. |
-| **Lịch trình** | Muốn dựng khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ. Sửa các khối cho khớp ngày thật của bạn rồi bấm **⤓ Lưu vào mẫu**, từ đó mỗi thứ trong tuần có mẫu riêng. |
-| **Thói quen** | Thêm, sửa thói quen, hoặc xem lưới 12 tuần. |
-| **Để sau** | Chỗ đổ những việc chưa cam kết làm. Gõ vào ô trên cùng rồi Enter để ghi nhanh. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. |
-| **Tổng quan** | Cuối tuần nhìn lại: tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
-| **Thùng rác** | Lỡ tay bỏ task hay trang ghi chú thì vào đây khôi phục. |
-
-### Mấy thứ nhỏ nằm rải rác
-
-- **Ô tìm kiếm** trên thanh trên tìm cả tiêu đề, tag, ghi chú và việc con.
-- **Tag** ở sidebar: bấm một tag để lọc, bấm **Quản lý** để thêm, đổi tên, đổi màu.
-- **Chuông** cạnh ô tìm kiếm giữ lại các lời nhắc đã bắn, phòng khi bạn lỡ mất toast. Chưa bật thông báo hệ thống thì bật được ngay trong bảng này.
-- **🌐** ở cuối sidebar đổi giao diện sang tiếng Anh và ngược lại.
-- **Xuất file / Nạp file** ở cuối sidebar: xem [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu).
-
-Phím tắt của trình soạn thảo và các mẹo kéo thả: xem [Phím tắt và mẹo](#phím-tắt-và-mẹo). Mô tả đầy đủ từng tính năng: [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
+> **Don't open `index.html` directly.** The app still works, but then the data only lives in the browser and clearing the cache loses it. Always go through `run.bat` or `serve.py`.
 
 ---
 
-## Dữ liệu và sao lưu
+## How to use it
 
-### Dữ liệu nằm ở đâu
+The app opens on the **Work board**. What follows runs from the parts you will open every day down to the ones you will only need now and then, so it is worth reading in order.
 
-| Đường dẫn | Là gì |
+### The first three things to do
+
+1. **Create a real task.** Click **+ New task** at the top right, or **New task** at the top of the sidebar. A title alone is enough to create it — area, priority, due date, time, tags and sub-tasks can all stay empty and be filled in later. If you do set a **time**, the task appears on the day schedule in the sidebar and the app reminds you before it starts.
+
+2. **Drag it to the Doing column.** The board has three columns, `To do / Doing / Done`, and cards drag between them. Click a card to open the panel on the right, where every field is editable and you can tick sub-tasks and write a longer note.
+
+3. **Run one focus session.** Drag a card out of the **Doing** column and drop it on the **Focus** block in the sidebar, then click **▶ Start**. A session is 40 minutes by default. When the time is up the app chimes, asks you to rate the session, and plants a tree in the garden.
+
+Those three steps cover the core of the app. Everything else can wait for another day.
+
+### The parts you'll use every day
+
+**Work board and Life board** — two separate kanban boards of the same kind. The work board holds the Work and Other areas, the life board holds the Life area. They are split so household errands don't end up mixed in with office work, but both boards share the same calendar, reminders and overview. The toolbar has a **Filter** button (by time range, priority, due state and area) and a **Zen** button for when you want the cards stripped back to just the task name.
+
+**Focus** — the small block in the sidebar is where you start and pause each day; open the full Focus view when you want to see the queue, your progress and the garden. A few things worth knowing early:
+
+- The queue **only accepts tasks in the Doing column**, up to three of them. This trips up most newcomers: a task sitting in To do cannot be dropped in.
+- If something else pops into your head mid-session, type it into the **Save for later** box and press Enter. It lands in **Later**, and you don't have to break the session.
+- Click **⤢** for full screen, `Esc` to come back.
+- Every setting — durations, how many sessions before a long break, sound, notifications — lives under **⚙ Settings** inside the Focus view.
+
+**Habits** — you tick habits on the **strip at the top of the Work board**, without opening the Habits page at all. Open the page itself when you want to add a habit or read the twelve-week grid to see which weekday you keep breaking on.
+
+**Day schedule in the sidebar** — a 24-hour timeline for today. Click an empty slot to open the new-task form with the date and time already filled in; click a block to open that task.
+
+**Journal** — one or more pages per day, written freely. The editor works like Notion's: type `/` to insert a block, and you can paste images and attach files.
+
+**Notes** — pages that aren't tied to a date: handbooks, conventions, things you look up again. Pages nest inside pages; drag one onto the edge of another to reorder, or onto the middle of a page to make it a sub-page.
+
+### The parts you'll open when you need them
+
+These sit under the **Less used** label in the sidebar.
+
+| Where | When to open it |
 |---|---|
-| `data/dieukhien.json` | **Toàn bộ dữ liệu:** task, thói quen, nhật ký, ghi chú, lịch sử tập trung, ảnh đính kèm. |
-| `data/backups/` | Các bản sao lưu tự động. |
+| **Calendar** | When you want a whole week or month at once. Day and Week are hour grids in the style of Google Calendar; click an empty slot to create a task at that hour. |
+| **Day plan** | When you want to lay out the shape of a day — sleep, commute, work, meals, rest. Adjust the blocks to match your real day, then click **⤓ Save to template**; from there each weekday can have its own template. |
+| **Habits** | Adding and editing habits, or reading the twelve-week grid. |
+| **Later** | Where the uncommitted things go. Type in the box at the top and press Enter to jot one down. Tasks here stay off the board, the calendar and the reminders, and don't count towards the overview. |
+| **Overview** | For looking back at the end of a week: completion rate, overdue work, the seven-day chart, and the split by area and priority. |
+| **Trash** | Where a task or note page goes when you delete one, and where you get it back. |
 
-Thư mục `data/` được tạo ở lần chạy đầu tiên. Nó **không được đưa lên Git**, nên dữ liệu của bạn không lọt lên GitHub.
+### The small things scattered around
 
-Mỗi lần bạn sửa gì, app ghi ra file sau khoảng 1 giây. Góc dưới sidebar hiện **Đã lưu vào máy** kèm giờ. Nếu dòng này chuyển đỏ nghĩa là chưa lưu được, xem [Câu hỏi thường gặp](#câu-hỏi-thường-gặp).
+- **The search box** in the top bar covers titles, tags, notes and sub-tasks.
+- **Tags** in the sidebar: click one to filter, or click **Manage** to add, rename and recolour.
+- **The bell** next to the search box keeps the reminders that have already fired, in case you missed a toast. If system notifications are still off, you can turn them on from that panel.
+- **🌐** at the bottom of the sidebar switches the interface between English and Vietnamese.
+- **Export / Import** at the bottom of the sidebar: see [Data and backups](#data-and-backups).
 
-### Sao lưu tự động (không cần làm gì)
-
-App tự cất bản sao vào `data/backups/`:
-
-| Tên file | Khi nào |
-|---|---|
-| `ngay-YYYY-MM-DD.json` | Lần lưu đầu tiên mỗi ngày. **Giữ 30 ngày gần nhất.** |
-| `truoc-khi-nap-*.json` | Ngay trước khi bạn dùng **Nạp file** ghi đè dữ liệu. |
-| `trinh-duyet-*.json` | Dữ liệu trong trình duyệt không được dùng, ví dụ khi hai cửa sổ cùng sửa. |
-
-### Sao lưu thủ công (nên làm thêm)
-
-Sao lưu tự động nằm cùng ổ đĩa với dữ liệu. Nếu hỏng ổ hay mất máy thì mất cả hai, nên hãy giữ thêm **một bản ở chỗ khác**:
-
-1. **Xuất file:** bấm **Xuất file** ở cuối sidebar. Bạn nhận được `dieukhien-<ngày>.json` gồm cả ảnh và file đính kèm. Cất nó vào USB, Google Drive, OneDrive…
-2. **Chép thư mục:** thỉnh thoảng chép cả thư mục `data/` sang chỗ khác.
-3. **Tự động ra đám mây (Chrome/Edge):** bấm **Liên kết file trên ổ đĩa** rồi chọn một file `.json` nằm trong thư mục OneDrive / Google Drive. Từ đó mọi thay đổi tự ghi thêm ra file đó, và dịch vụ đám mây giữ lịch sử phiên bản giúp bạn. Lần mở app sau chỉ cần bấm một nút để kết nối lại.
-
-### Khôi phục từ bản sao lưu
-
-1. Mở app như bình thường.
-2. Bấm **Nạp file** ở cuối sidebar.
-3. Chọn file muốn khôi phục: bản trong `data/backups/` hoặc bản bạn đã xuất.
-4. Xác nhận ghi đè.
-
-Không sợ chọn nhầm: dữ liệu hiện tại được tự cất thành `truoc-khi-nap-*.json` trước khi bị ghi đè.
-
-### Chuyển sang máy khác
-
-1. Cài app trên máy mới theo [Cài đặt và chạy](#cài-đặt-và-chạy).
-2. Chép thư mục `data/` từ máy cũ sang thư mục app ở máy mới, **khi app trên máy mới đang tắt**.
-   Hoặc: bấm **Xuất file** ở máy cũ, rồi **Nạp file** ở máy mới.
-
-### Những gì làm mất dữ liệu
-
-Khi chạy qua `run.bat` / `serve.py`, bạn **không** mất dữ liệu khi: xoá cache trình duyệt, dùng CCleaner, đổi tài khoản Chrome, đổi trình duyệt, tắt máy đột ngột (cùng lắm mất vài giây cuối).
-
-Bạn **sẽ** mất dữ liệu khi:
-
-- Xoá thư mục app hoặc thư mục `data/`.
-- Chạy `git clean -x` (lệnh này xoá cả những file không đưa lên Git, trong đó có `data/`).
-- Hỏng ổ đĩa hoặc mất máy mà không có bản sao lưu ở chỗ khác.
+Editor shortcuts and drag-and-drop tips: see [Shortcuts and tips](#shortcuts-and-tips).
 
 ---
 
-## Cập nhật lên bản mới
+## Data and backups
 
-Dữ liệu nằm riêng trong `data/`, nên cập nhật code không động tới dữ liệu.
+### Where the data lives
 
-**Nếu tải bằng Git:**
+| Path | What it is |
+|---|---|
+| `data/dieukhien.json` | **Everything:** tasks, habits, journal, notes, focus history, attached images. |
+| `data/backups/` | Automatic backups. |
+
+The `data/` folder is created on the first run. It is **not tracked by Git**, so your data never reaches GitHub.
+
+Every change is written to disk about a second later. The bottom of the sidebar shows **Saved to disk at …** with the time. If that line turns red, nothing is being saved — see the [FAQ](#faq).
+
+### Automatic backups (nothing to do)
+
+The app puts copies into `data/backups/` by itself. The names are Vietnamese, since that is the language the app was first written in:
+
+| File name | When |
+|---|---|
+| `ngay-YYYY-MM-DD.json` | On the first save of each day. **The last 30 days are kept.** |
+| `truoc-khi-nap-*.json` | Right before **Import** overwrites your data. |
+| `trinh-duyet-*.json` | Browser-held data that was not used, for instance when two windows edited at once. |
+
+### Manual backups (worth doing as well)
+
+The automatic backups sit on the same disk as the data, so a failed drive or a lost machine takes both. Keep **one copy somewhere else**:
+
+1. **Export:** click **Export** at the bottom of the sidebar. You get `dieukhien-<date>.json`, images and attachments included. Put it on a USB stick, Google Drive, OneDrive…
+2. **Copy the folder:** now and then, copy the whole `data/` folder somewhere else.
+3. **Automatic, to the cloud (Chrome/Edge):** click **Link a file on disk** and pick a `.json` file inside your OneDrive or Google Drive folder. From then on every change is also written there, and the cloud service keeps the version history for you. Next time you open the app, one click reconnects it.
+
+### Restoring from a backup
+
+1. Open the app as usual.
+2. Click **Import** at the bottom of the sidebar.
+3. Pick the file to restore: one from `data/backups/`, or one you exported.
+4. Confirm the overwrite.
+
+Picking the wrong file is not a disaster: the current data is saved as `truoc-khi-nap-*.json` before anything is overwritten.
+
+### Moving to another machine
+
+1. Install the app on the new machine following [Install and run](#install-and-run).
+2. Copy the `data/` folder from the old machine into the app folder on the new one, **while the app on the new machine is closed**.
+   Or: click **Export** on the old machine and **Import** on the new one.
+
+### What does and doesn't lose data
+
+Running through `run.bat` / `serve.py`, you do **not** lose data by: clearing the browser cache, running CCleaner, switching Chrome accounts, switching browsers, or a sudden shutdown (at worst the last few seconds).
+
+You **will** lose data by:
+
+- Deleting the app folder or the `data/` folder.
+- Running `git clean -x` — it removes untracked files, and `data/` is one of them.
+- A failed drive or a lost machine with no backup kept elsewhere.
+
+---
+
+## Updating
+
+The data sits apart in `data/`, so updating the code doesn't touch it.
+
+**If you cloned with Git:**
 
 ```bash
 git pull
 ```
 
-**Nếu tải bằng ZIP:**
+**If you downloaded the ZIP:**
 
-1. Tắt app.
-2. Tải ZIP mới và giải nén ra một thư mục mới.
-3. **Chép thư mục `data/` từ thư mục cũ sang thư mục mới.**
-4. Chạy app từ thư mục mới. Kiểm tra dữ liệu đủ rồi mới xoá thư mục cũ.
+1. Close the app.
+2. Download the new ZIP and unzip it into a new folder.
+3. **Copy the `data/` folder from the old folder into the new one.**
+4. Run the app from the new folder. Check your data is all there before deleting the old folder.
 
-Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
+After updating, press **F5** if the app is still open in a tab.
 
 ---
 
-## Phím tắt và mẹo
+## Shortcuts and tips
 
-**Trong ô ghi chú / nhật ký** (soạn thảo giống Notion):
+**Inside a note or journal page** (the Notion-style editor):
 
-| Gõ | Kết quả |
+| Type | Result |
 |---|---|
-| `/` | Menu chèn khối: tiêu đề, danh sách, trích dẫn, code, ảnh, file… |
-| `# ` `## ` `### ` | Tiêu đề lớn / vừa / nhỏ |
-| `[] ` | Danh sách việc có ô tick |
-| `- ` hoặc `1. ` | Gạch đầu dòng / danh sách đánh số |
-| `> ` | Trích dẫn |
-| ` ``` ` | Khối code |
-| `---` | Đường kẻ ngang |
-| `Ctrl + B` / `I` / `E` / `K` | Đậm / nghiêng / code / chèn link |
-| `Ctrl + V` hoặc kéo thả | Dán ảnh, đính kèm file (tối đa 25MB mỗi file) |
+| `/` | Block menu: headings, lists, quote, code, image, file… |
+| `# ` `## ` `### ` | Large / medium / small heading |
+| `[] ` | Checklist item |
+| `- ` or `1. ` | Bulleted / numbered list |
+| `> ` | Quote |
+| ` ``` ` | Code block |
+| `---` | Horizontal rule |
+| `Ctrl + B` / `I` / `E` / `K` | Bold / italic / inline code / link |
+| `Ctrl + V` or drag and drop | Paste an image, attach a file (25MB each) |
 
-**Khắp app:**
+**Everywhere:**
 
-- `Esc`: đóng panel, menu, bảng chọn, thoát toàn màn hình.
-- Kéo card trên bảng thả **xuống đáy màn hình** để bỏ vào thùng rác, thả vào mục **Để sau** ở sidebar để gác lại, thả vào khối **Tập trung** để đưa vào hàng đợi.
-- Đang trong phiên tập trung mà chợt nhớ việc khác: gõ vào ô **Ghi để sau** rồi Enter. Việc đó vào mục Để sau, bạn quay lại việc đang làm.
-- Bấm khung giờ trống trên lịch (lịch lớn hoặc lịch nhỏ ở sidebar) để tạo task đúng giờ đó.
-- Trong cây ghi chú, kéo một trang thả vào mép trên / mép dưới của trang khác để đổi chỗ, thả vào giữa trang để biến nó thành trang con.
-
----
-
-## Câu hỏi thường gặp
-
-<details>
-<summary><b>Bấm <code>run.bat</code> báo "Khong tim thay Python"</b></summary>
-
-Python chưa được cài, hoặc cài mà quên tick **Add python.exe to PATH**. Cài lại Python và tick ô đó, rồi chạy lại `run.bat`.
-</details>
-
-<details>
-<summary><b>Cổng 8000 đang bị chương trình khác dùng</b></summary>
-
-`run.bat` sẽ báo tên chương trình đang chiếm cổng. Tắt chương trình đó, hoặc đổi sang cổng khác ở cả 3 chỗ:
-
-- `serve.py`: dòng `PORT = 8000`
-- `run.bat`: hai chỗ `http://localhost:8000`
-- `tat-server-cu.ps1`: dòng `$Port = 8000`
-
-Lưu ý: dữ liệu vẫn nằm trong `data/` nên không bị ảnh hưởng. Chỉ những thiết lập nhỏ lưu trong trình duyệt (ví dụ liên kết file) cần làm lại.
-</details>
-
-<details>
-<summary><b>Sidebar báo đỏ "Chưa lưu vào máy"</b></summary>
-
-App không nối được tới server. Kiểm tra cửa sổ đen của `run.bat` còn mở không, rồi chạy lại nếu cần. Thay đổi trong lúc mất kết nối vẫn được giữ trong trình duyệt và tự gửi lên khi server chạy lại.
-</details>
-
-<details>
-<summary><b>Báo "Đã sửa ở cửa sổ khác — tải lại trang"</b></summary>
-
-Bạn đang mở app ở hai tab / cửa sổ, và tab kia đã lưu trước. App không ghi đè để tránh mất thay đổi: bản của tab này được cất vào `data/backups/`. Bấm **F5** để lấy dữ liệu mới nhất.
-</details>
-
-<details>
-<summary><b>Dùng trên điện thoại hoặc máy khác trong mạng được không?</b></summary>
-
-Không. Server chỉ nghe trên chính máy đang chạy (`localhost`), để không ai trong cùng mạng Wi-Fi đọc hay sửa được dữ liệu của bạn.
-</details>
-
-<details>
-<summary><b>Nhắc việc không hiện</b></summary>
-
-Nhắc việc chỉ chạy khi app đang mở, trong một tab bất kỳ. Muốn được báo cả khi đang ở cửa sổ khác thì cho phép thông báo hệ thống trong **Tập trung → ⚙ Cài đặt**.
-</details>
-
-<details>
-<summary><b>Muốn xoá sạch để dùng lại từ đầu</b></summary>
-
-Tắt app, **đổi tên** thư mục `data/` (ví dụ thành `data-cu/`, đừng xoá, phòng khi cần lại), rồi chạy lại app. Chi tiết xem [RUN.md](RUN.md#xoá-sạch-để-test-từ-đầu).
-</details>
+- `Esc` closes panels, menus and pickers, and leaves full screen.
+- Drag a card **to the bottom of the screen** to trash it, onto **Later** in the sidebar to set it aside, or onto the **Focus** block to queue it.
+- Mid-session and something else comes to mind: type it into **Save for later** and press Enter. It goes to Later and you carry on with what you were doing.
+- Click an empty slot on either calendar — the full one or the small one in the sidebar — to create a task at that hour.
+- In the note tree, drop a page on the top or bottom edge of another to reorder it, or in the middle of a page to make it a sub-page.
 
 ---
 
-## Quyền riêng tư
+## FAQ
 
-- Không tài khoản, không theo dõi, không gửi dữ liệu ra internet.
-- Server chỉ nghe `localhost` và chặn các trang web lạ gọi vào.
-- Dữ liệu là file JSON thuần, mở bằng bất kỳ trình soạn thảo nào cũng đọc được.
+<details>
+<summary><b><code>run.bat</code> says "Khong tim thay Python"</b></summary>
+
+That message means Python was not found. Either it isn't installed, or it was installed without **Add python.exe to PATH**. Reinstall Python with that box ticked, then run `run.bat` again.
+</details>
+
+<details>
+<summary><b>Port 8000 is already in use</b></summary>
+
+`run.bat` names the program holding the port. Close that program, or move the app to another port in all three places:
+
+- `serve.py`: the line `PORT = 8000`
+- `run.bat`: two occurrences of `http://localhost:8000`
+- `tat-server-cu.ps1`: the line `$Port = 8000`
+
+Your data stays in `data/` and is unaffected. Only the small settings kept in the browser — the linked file, for instance — need setting up again.
+</details>
+
+<details>
+<summary><b>The sidebar shows a red "Not saved to disk"</b></summary>
+
+The app cannot reach the server. Check whether the `run.bat` console window is still open and start it again if not. Changes made while it was disconnected are kept in the browser and sent once the server is back.
+</details>
+
+<details>
+<summary><b>"Edited in another window — reload the page"</b></summary>
+
+You have the app open in two tabs or windows, and the other one saved first. The app refuses to overwrite it: this tab's version is filed into `data/backups/` instead. Press **F5** to pick up the latest data.
+</details>
+
+<details>
+<summary><b>Can I use it from my phone, or another machine on the network?</b></summary>
+
+No. The server only listens on the machine it runs on (`localhost`), so nobody else on the same Wi-Fi can read or change your data.
+</details>
+
+<details>
+<summary><b>Reminders aren't showing</b></summary>
+
+Reminders only run while the app is open in some tab. To be told even when you are in another window, allow system notifications under **Focus → ⚙ Settings**.
+</details>
+
+<details>
+<summary><b>I want to wipe everything and start over</b></summary>
+
+Close the app, **rename** the `data/` folder — to `data-old/` for instance, rather than deleting it, in case you want it back — then start the app again. Details in [RUN.md](RUN.md) (Vietnamese).
+</details>
 
 ---
 
-## Dành cho người muốn sửa code
+## Privacy
 
-App viết bằng HTML + CSS + JavaScript thuần, không framework và **không có bước build**: sửa file rồi F5 là thấy. Trình soạn thảo dùng [TipTap](https://tiptap.dev/), đã đóng gói sẵn trong `vendor/tiptap.js`. Server là một file Python chỉ dùng thư viện chuẩn.
+- No account, no tracking, nothing sent to the internet.
+- The server listens on `localhost` only, and rejects calls from other web pages.
+- The data is plain JSON — any text editor can read it.
+
+---
+
+## For people who want to change the code
+
+The app is plain HTML, CSS and JavaScript. No framework, and **no build step**: edit a file, press F5, see it. The editor is [TipTap](https://tiptap.dev/), already bundled into `vendor/tiptap.js`. The server is one Python file using only the standard library.
 
 ```
-run.bat, tat-server-cu.ps1   Bấm đúp để chạy (Windows); tắt server cũ còn sót
-serve.py                     Server localhost: phát file tĩnh + API /api/data giữ dữ liệu
-index.html                   Khung HTML
-style.css                    Toàn bộ giao diện
-js/                          Code app, mỗi mục một file (i18n.js rồi core.js nạp đầu, main.js nạp cuối)
-js/i18n.js                   Chữ trong giao diện, mỗi dòng một chuỗi [tiếng Việt, tiếng Anh]
-vendor/tiptap.js             Bundle trình soạn thảo (build sinh ra, không sửa tay)
-build/                       Nguồn và script build lại trình soạn thảo (cần Node)
-docs/                        Hướng dẫn chi tiết và ảnh chụp
-data/                        Dữ liệu của bạn (không đưa lên Git)
+run.bat, tat-server-cu.ps1   Double-click to run (Windows); clears a leftover server
+serve.py                     Localhost server: static files + the /api/data store
+index.html                   The HTML shell
+style.css                    The entire interface
+js/                          App code, one file per area (i18n.js then core.js first, main.js last)
+js/i18n.js                   Every string in the interface, one line each as [Vietnamese, English]
+vendor/tiptap.js             The editor bundle (generated — don't hand-edit)
+build/                       Source and build script for the editor (needs Node)
+docs/                        The detailed guide and the screenshots
+data/                        Your data (never committed)
 ```
 
-Chi tiết kỹ thuật (cách server lưu và chống ghi đè, quy trình khởi động, build lại trình soạn thảo, lưu ý khi sửa code): xem [RUN.md](RUN.md). Định dạng dữ liệu: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.md#định-dạng-dữ-liệu).
+The comments in the source and the two long-form documents — [RUN.md](RUN.md) (how the server saves, the startup sequence, rebuilding the editor) and [docs/HUONG-DAN.md](docs/HUONG-DAN.md) (every feature, and the data format) — are written in Vietnamese. The code itself, including identifiers and commit messages, is in English.
