@@ -54,7 +54,11 @@ button{background:none;border:none;cursor:pointer}
 .sidefoot{margin-top:auto;padding-top:16px;display:flex;gap:6px}
 .sidefoot button{flex:1;font-size:11.5px;padding:7px;border-radius:7px;background:var(--panel2);color:var(--tx2);border:1px solid var(--line)}
 .sidefoot button:hover{color:var(--tx);border-color:#3a4254}
-#langBtn{flex:0 0 40px;letter-spacing:.5px}
+.langrow{display:flex;align-items:center;gap:8px;width:100%}
+.langrow>.ic{font-size:12.5px;opacity:.7;flex:0 0 auto}
+.scope.lang{flex:1;padding:2px}
+.scope.lang button{flex:1;padding:5px 4px;font-size:11.5px;background:none;border:0}
+.scope.lang button.on{background:var(--acc);color:#fff}
 
 /* ---------- topbar ---------- */
 #top{

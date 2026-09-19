@@ -207,9 +207,10 @@ try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
 // ngôn ngữ: dịch phần tĩnh của index.html, nút đổi hiện tên thứ tiếng KIA để bấm là sang đó
 document.documentElement.lang = LANG;
 i18nDom();
-const otherLang = LANG === 'vi' ? 'en' : 'vi';
-$('#langBtn').textContent = otherLang.toUpperCase();
-$('#langBtn').onclick = () => setLang(otherLang);
+// tên mỗi thứ tiếng luôn viết bằng chính nó, khỏi phải đọc được tiếng kia mới tìm ra nút
+$('#langSel').innerHTML = Object.entries(LANGS).map(([k, n]) =>
+  `<button class="${k === LANG ? 'on' : ''}" data-lang="${k}">${n}</button>`).join('');
+$$('[data-lang]').forEach(b => b.onclick = () => setLang(b.dataset.lang));
 paintShell();                    // trước khi boot() nạp xong, khung đã đứng ở đúng trang
 boot().then(msg => {
   ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';

@@ -45,7 +45,9 @@
       <div style="display:flex;gap:6px;width:100%">
         <button id="expBtn" data-i18n="side.export">Xuất file</button>
         <button id="impBtn" data-i18n="side.import">Nạp file</button>
-        <button id="langBtn" data-i18n-title="side.lang.t" title="Đổi ngôn ngữ giao diện"></button>
+      </div>
+      <div class="langrow" data-i18n-title="side.lang.t" title="Đổi ngôn ngữ giao diện">
+        <span class="ic">🌐</span><div class="scope lang" id="langSel"></div>
       </div>
       <input type="file" id="impFile" accept="application/json" hidden>
     </div>
