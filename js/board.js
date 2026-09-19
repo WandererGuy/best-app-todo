@@ -100,7 +100,7 @@ function renderBoard(){
     // cột Xong: mới xong lên đầu, mặc định chỉ hiện DONE_MAX task gần nhất; bật "Hôm nay" thì chỉ giữ task xong hôm nay
     let more = 0;
     if(k === 'done'){
-      if(ui.doneToday) items = items.filter(t => t.done === today());
+      if(S.settings.doneToday) items = items.filter(t => t.done === today());
       items = [...items].sort((a, b) => (b.done || '').localeCompare(a.done || ''));
       more = items.length - DONE_MAX;
     }
@@ -115,14 +115,14 @@ function renderBoard(){
     return `<section class="col" data-col="${k}">
       <div class="colhd"><span class="sw" style="background:${c.c}"></span>${c.n}
         <span class="n">${items.length}</span>
-        ${k === 'done' ? `<button class="dtoday${ui.doneToday ? ' on' : ''}" data-dtoday title="Chỉ hiện task xong hôm nay">Hôm nay</button>` : ''}
+        ${k === 'done' ? `<button class="dtoday${S.settings.doneToday ? ' on' : ''}" data-dtoday title="Chỉ hiện task xong hôm nay">Hôm nay</button>` : ''}
         <button class="add" data-add="${k}" title="Thêm vào cột này">+</button></div>
       ${body}
       ${more > 0 ? `<button class="donemore" data-more>${ui.doneAll ? 'Thu gọn' : `Xem thêm ${more} task`}</button>` : ''}</section>`;
   }).join('') + '</div>';
 
   $$('[data-sort]').forEach(b => b.onclick = () => { S.settings.sort = b.dataset.sort; save(); renderBoard(); });
-  $$('[data-dtoday]').forEach(b => b.onclick = () => { ui.doneToday = !ui.doneToday; renderBoard(); });
+  $$('[data-dtoday]').forEach(b => b.onclick = () => { S.settings.doneToday = !S.settings.doneToday; save(); renderBoard(); });
   $$('[data-more]').forEach(b => b.onclick = () => { ui.doneAll = !ui.doneAll; renderBoard(); });
   $$('[data-zen]').forEach(b => b.onclick = () => { S.settings.zen = !S.settings.zen; save(); renderBoard(); });
   $$('[data-bfbtn]').forEach(b => b.onclick = () => { ui.bfOpen = !ui.bfOpen; renderBoard(); });
@@ -131,9 +131,9 @@ function renderBoard(){
     const [k, v] = b.dataset.bf.split('|');
     if(k === 'prio') f.prio = f.prio.includes(v) ? f.prio.filter(x => x !== v) : [...f.prio, v];
     else f[k] = f[k] === v ? null : v;
-    renderBoard();
+    saveFil(); renderBoard();
   });
-  $$('[data-bfclr]').forEach(b => b.onclick = () => { ui.bf = {prio:[], due:null, area:null}; renderBoard(); });
+  $$('[data-bfclr]').forEach(b => b.onclick = () => { ui.bf = {prio:[], due:null, area:null}; saveFil(); renderBoard(); });
   wireDnD();
 }
 function card(t){

@@ -45,7 +45,7 @@ document.addEventListener('click', e => {
   }
 
   const tag = e.target.closest('.tagf');
-  if(tag){ ui.tag = ui.tag === tag.dataset.tag ? null : tag.dataset.tag; return render(); }
+  if(tag){ ui.tag = ui.tag === tag.dataset.tag ? null : tag.dataset.tag; saveFil(); return render(); }
 
   const add = e.target.closest('[data-add]');
   if(add){ return openForm(add.dataset.add); }
@@ -176,6 +176,7 @@ paintShell();                    // trước khi boot() nạp xong, khung đã �
 boot().then(msg => {
   ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
   if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;
+  loadFil();
   render(); restoreFile(); fBoot();
   if(msg) toast(msg);
   checkReminders();

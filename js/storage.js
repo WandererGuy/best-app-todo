@@ -419,6 +419,7 @@ function importJSON(file){
       for(const [id, url] of Object.entries(d.images || {})) await imgPut(id, await (await fetch(url)).blob());
       applyData(d);
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
+      loadFil();
       srvKeep = true;                          // server cất bản đang có vào data/backups trước khi bị đè
       save(); render();
     }catch(e){ alert('Chưa đọc được file: ' + e.message); }

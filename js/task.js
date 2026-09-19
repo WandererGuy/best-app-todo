@@ -213,6 +213,7 @@ function createFromForm(){
   ui.q = ''; $('#q').value = '';
   if(ui.tag && !t.tags.includes(ui.tag)) ui.tag = null;
   if(!boardMatch(t, t.area === 'life')) ui.bf = {prio:[], due:null, area:null};
+  saveFil();
   nf = blankForm(nf.status); ui.view = t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'); render();
   toast(`Đã tạo: ${t.title}`);
 }

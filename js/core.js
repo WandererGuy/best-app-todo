@@ -141,13 +141,22 @@ function fNorm(f = {}){
 let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{jH:560}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
 let ui = {view: keptView(), bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
-          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, doneToday:false, nOpen:null,
+          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,
           hEdit:null, hPop:null,
           // lịch trình: pDate = ngày đang xem, pOpen = id khối đang mở panel sửa
           pDate:null, pOpen:null,
           // tập trung: fRev = điểm / ghi chú gõ dở của phiên vừa xong,
           // fCheer = các câu mừng đang hiện, fFull = đang toàn màn hình, fCfg = đang mở cài đặt
           fRev:{rate:0, next:''}, fCheer:null, fPop:false, fFull:false, fCfg:false};
+// bộ lọc bảng việc và tag đang lọc: nhớ vào settings để tải lại trang vẫn giữ nguyên, như scope
+const saveFil = () => { S.settings.bf = {...ui.bf, prio:[...ui.bf.prio]}; S.settings.tag = ui.tag; save(); };
+const loadFil = () => {
+  const b = S.settings.bf;
+  if(b) ui.bf = {prio: (b.prio || []).filter(x => PRIOS[x]), due: DUES[b.due] ? b.due : null,
+                 area: AREAS[b.area] ? b.area : null};
+  ui.tag = S.tags[S.settings.tag] ? S.settings.tag : null;
+};
+
 let nf = null;                 // dữ liệu form tạo task
 let lastSave = null;           // thời điểm lưu gần nhất
 let storageOK = true;          // trình duyệt có cho lưu không
