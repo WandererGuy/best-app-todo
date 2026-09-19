@@ -7,6 +7,28 @@ function paintShell(){
   $$('.nav').forEach(b => b.classList.toggle('on', b.dataset.v === ui.view));
   $('#vTitle').textContent = VTITLES[ui.view];
 }
+/* Đổi sang trang khác. Đi qua đây thay vì gán thẳng ui.view rồi gọi render(), để trình duyệt kịp chụp
+   ảnh trang cũ và hoà dần sang trang mới. Chỉ dùng cho việc đổi trang: các lần render khác
+   (lọc, tick thói quen, kéo thả, gõ ô tìm) phải đổi tức thì, thêm animation vào là thành ì.
+   after chạy sau khi trang mới đã dựng xong: lúc có chuyển cảnh thì render() bị hoãn tới khi trình
+   duyệt chụp xong ảnh trang cũ, gọi thẳng ngoài này sẽ chưa thấy phần tử vừa vẽ. */
+function goView(v, after){
+  ui.view = v;
+  const draw = () => { render(); if(after) setTimeout(after, 60); };
+  if(!document.startViewTransition) return draw();   // trình duyệt chưa hỗ trợ: fadeView() lo phần dự phòng
+  document.startViewTransition(draw);
+}
+/* Trang vừa vẽ xong lần trước — chỉ để biết khi nào cần chạy fade dự phòng. */
+let shownView = null;
+function fadeView(){
+  if(ui.view === shownView) return;
+  shownView = ui.view;
+  if(document.startViewTransition) return;
+  const v = $('#view');
+  v.classList.remove('vfade');
+  void v.offsetWidth;            // buộc tính lại layout, nếu không animation sẽ không chạy lại từ đầu
+  v.classList.add('vfade');
+}
 function render(){
   paintShell();
   const onBoard = S.tasks.filter(t => t.status !== 'done' && t.status !== 'backlog');
@@ -33,6 +55,7 @@ function render(){
   else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
     '<div class="banner">⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. ' +
     'Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.</div>');
+  fadeView();
   paintSave(); paintFs(); paintBell(); paintSync();
 }
 
@@ -40,8 +63,7 @@ function render(){
 document.addEventListener('click', e => {
   const nav = e.target.closest('.nav');
   if(nav){
-    ui.view = nav.dataset.v;
-    return render();
+    return goView(nav.dataset.v);
   }
 
   const tag = e.target.closest('.tagf');
@@ -57,7 +79,7 @@ document.addEventListener('click', e => {
   if(ht) return hToggle(ht.dataset.htick, ht.dataset.hday || today());
 
   const hg = e.target.closest('[data-hgo]');
-  if(hg){ ui.view = 'habits'; return render(); }
+  if(hg){ return goView('habits'); }
 
   const c = e.target.closest('.card');
   if(c) return openTask(c.dataset.id);
@@ -108,10 +130,10 @@ const shiftSd = n => { const x = new Date(ui.sDate + 'T00:00:00'); x.setDate(x.g
 $('#sdPrev').onclick = () => shiftSd(-1);
 $('#sdNext').onclick = () => shiftSd(1);
 $('#sdDay').onclick  = () => { ui.sDate = today(); sdScrolled = null; renderSideCal(); };
-$('#sdBig').onclick  = () => { ui.view = 'cal'; ui.calMode = S.settings.calMode = 'week'; ui.calD = ui.sDate; save(); render(); };
+$('#sdBig').onclick  = () => { ui.calMode = S.settings.calMode = 'week'; ui.calD = ui.sDate; save(); goView('cal'); };
 $('#scrim').onclick = closeDrawer;
 $('#newBtn').onclick = () => openForm('todo');
-$('#tagMgr').onclick = () => { ui.view = 'tags'; render(); };
+$('#tagMgr').onclick = () => goView('tags');
 const tz = $('#trashZone');
 tz.addEventListener('dragover', e => {
   e.preventDefault(); tz.classList.add('over');

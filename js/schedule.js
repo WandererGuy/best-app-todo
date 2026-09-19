@@ -119,9 +119,9 @@ function paintNow(){
 }
 // bấm khung trống: đang ở form thì điền giờ vào form, không thì mở form mới
 function pickSlot(date, time){
-  if(ui.view === 'new' && nf){ grabForm(); nf.due = date; nf.time = time; renderForm(); }
-  else { nf = blankForm(); nf.due = date; nf.time = time; ui.view = 'new'; render(); }
-  setTimeout(() => $('#nTitle')?.focus(), 60);
+  const focus = () => $('#nTitle')?.focus();
+  if(ui.view === 'new' && nf){ grabForm(); nf.due = date; nf.time = time; renderForm(); setTimeout(focus, 60); }
+  else { nf = blankForm(); nf.due = date; nf.time = time; goView('new', focus); }
 }
 
 /* --- nhắc việc: chỉ chạy khi app đang mở --- */

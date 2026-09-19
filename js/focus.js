@@ -558,8 +558,8 @@ function fSend(){
   page.html = (hasText(page.html) ? page.html : '') + fSendHTML(list, hasText(page.html));
   list.forEach(e => e.sent = true);
   save();
-  ui.view = 'journal'; ui.jDate = k; ui.jTab = pages.indexOf(page);
-  render();
+  ui.jDate = k; ui.jTab = pages.indexOf(page);
+  goView('journal');
   toast(`Đã đưa ${list.length} phiên sang mục Nhật ký`);
 }
 // bài viết: một dòng tổng ở đầu, rồi mỗi phiên một đoạn. Dùng thẻ thường để sửa lại được bằng tay trong editor.

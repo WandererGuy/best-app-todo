@@ -30,7 +30,8 @@ button{background:none;border:none;cursor:pointer}
 .brand{display:flex;align-items:center;gap:9px;padding:4px 8px 16px;font-weight:700;font-size:15px;letter-spacing:-.2px}
 .brand .dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--acc),#a855f7);flex:0 0 22px}
 .navlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);padding:16px 8px 6px;font-weight:600}
-.nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--tx2);font-weight:500;width:100%;text-align:left}
+.nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--tx2);font-weight:500;width:100%;text-align:left;
+  transition:background-color .15s,color .15s}
 .nav:hover{background:var(--panel2);color:var(--tx)}
 .nav.on{background:var(--acc);color:#fff}
 .nav .ic{width:16px;text-align:center;font-size:14px}
@@ -66,7 +67,21 @@ button{background:none;border:none;cursor:pointer}
 .btn:hover{background:var(--acc2)}
 .btn.ghost{background:var(--panel2);color:var(--tx2);border:1px solid var(--line)}
 .btn.ghost:hover{color:var(--tx)}
-#view{flex:1;overflow:auto;padding:20px}
+#view{flex:1;overflow:auto;padding:20px;scrollbar-gutter:stable;view-transition-name:view}
+
+/* Đổi mục: trình duyệt chụp ảnh trang cũ rồi hoà dần sang trang mới (View Transitions, xem goView
+   ở main.js). Khác với fade thường ở chỗ trang cũ vẫn còn trên màn hình lúc trang mới hiện lên,
+   nên mắt không thấy khoảng trống ở giữa. Khung ngoài (sidebar, tiêu đề) hoà chậm hơn một nhịp. */
+@keyframes vfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes vhide{to{opacity:0}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+::view-transition-old(view){animation:vhide .16s ease-in both}
+::view-transition-new(view){animation:vfade .26s cubic-bezier(.2,0,.2,1) both}
+#view.vfade{animation:vfade .17s cubic-bezier(.2,0,.2,1)}   /* dự phòng cho trình duyệt chưa có View Transitions */
+@media (prefers-reduced-motion:reduce){
+  #view.vfade{animation:none}
+  ::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
 
 /* ---------- board ---------- */
 #board{display:grid;grid-template-columns:repeat(3,minmax(250px,1fr));gap:16px;align-items:start;min-height:100%}

@@ -130,8 +130,7 @@ function blankForm(status = 'todo'){
           tags: ui.tag ? [ui.tag] : [], note:'', subs:[]};
 }
 function openForm(status = 'todo'){
-  nf = blankForm(status); ui.view = 'new'; render();
-  setTimeout(() => $('#nTitle')?.focus(), 60);
+  nf = blankForm(status); goView('new', () => $('#nTitle')?.focus());
 }
 function grabForm(){
   if(!$('#nTitle')) return;
@@ -214,6 +213,6 @@ function createFromForm(){
   if(ui.tag && !t.tags.includes(ui.tag)) ui.tag = null;
   if(!boardMatch(t, t.area === 'life')) ui.bf = {prio:[], due:null, area:null};
   saveFil();
-  nf = blankForm(nf.status); ui.view = t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'); render();
+  nf = blankForm(nf.status); goView(t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'));
   toast(`Đã tạo: ${t.title}`);
 }

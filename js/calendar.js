@@ -117,6 +117,6 @@ function renderMonth(A){
   $$('.cell').forEach(c => c.onclick = e => {
     const ev = e.target.closest('.ev');
     if(ev) return openTask(ev.dataset.id);
-    ui.jDate = c.dataset.day; ui.jTab = 0; ui.view = 'journal'; render();
+    ui.jDate = c.dataset.day; ui.jTab = 0; goView('journal');
   });
 }
