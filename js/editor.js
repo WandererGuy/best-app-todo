@@ -90,6 +90,24 @@ function closeEd(id){
   if(e){ try{ e.destroy(); }catch(err){} EDS.delete(id); }
 }
 function closeEds(){ [...EDS.keys()].forEach(closeEd); closeSlash(); hideFtb(); }
+/* khung cuộn gần nhất bọc lấy vùng soạn thảo (.jed bên nhật ký, .npage bên ghi chú, ngăn kéo task…) */
+function edScroller(el){
+  for(let p = el.parentElement; p; p = p.parentElement){
+    const o = getComputedStyle(p).overflowY;
+    if(o === 'auto' || o === 'scroll') return p;
+  }
+  return null;
+}
+/* gõ tới đáy thì tự cuộn cho con trỏ cách mép dưới một khoảng,
+   khỏi phải Enter mấy lần để đẩy chữ lên chỗ dễ nhìn */
+const CARET_GAP = 70;
+function keepCaretOffBottom(ed){
+  const box = edScroller(ed.view.dom); if(!box) return;
+  const c = TT.caretRect(ed); if(!c) return;
+  const over = c.bottom - (box.getBoundingClientRect().bottom - CARET_GAP);
+  if(over > 1) box.scrollTop += over;
+}
+
 function mountEd(hostId, content, ph, onChange){
   closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
@@ -102,7 +120,7 @@ function mountEd(hostId, content, ph, onChange){
     if(img && img.src) window.open(img.src, '_blank');
   });
   dom.addEventListener('keydown', e => slashKeys(e, ed), true);   // chặn trước ProseMirror
-  ed.on('update',          () => syncMenus(ed));                  // bám theo TipTap, không bám phím
+  ed.on('update',          () => { syncMenus(ed); keepCaretOffBottom(ed); });   // bám theo TipTap, không bám phím
   ed.on('selectionUpdate', () => syncMenus(ed));
   dom.addEventListener('keydown', e => {
     if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); TT.link(ed); }

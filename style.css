@@ -291,13 +291,16 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .nacts .btn{padding:5px 10px;font-size:12px;font-weight:500}
 .nacts .danger{padding:5px 10px;font-size:12px}
 .nacts .nmove{width:auto;max-width:190px;padding:5px 6px;font-size:12px;background:var(--panel2);color:var(--tx2)}   /* .nacts để thắng select.inp */
-.ned{flex:1;min-height:320px;padding-top:4px}
-.ned .ed{font-size:14.5px;line-height:1.8;min-height:320px}
+.ned{flex:1 0 auto;min-height:320px;padding-top:4px;display:flex;flex-direction:column}
+/* 1 0 auto: giãn cho kín chỗ trống, nhưng bài dài thì cao theo nội dung chứ không co lại — co lại thì chữ tràn ra ngoài hộp */
+.ned .ed{font-size:14.5px;line-height:1.8;min-height:320px;flex:1 0 auto}
 
 /* nội dung có định dạng (ProseMirror gắn class .ed vào chính vùng soạn thảo) */
 .ed{line-height:1.72;word-break:break-word;outline:none}
 .ed:focus{outline:none}
 .jed .ed{font-size:14.5px;line-height:1.8;min-height:100%}
+/* chừa khoảng trống sau dòng cuối: viết tới đáy vẫn còn chỗ, và bấm vào đó là con trỏ xuống cuối bài */
+.jed .ed,.ned .ed{padding-bottom:160px}
 .ed p.is-editor-empty:first-child::before{
   content:attr(data-placeholder);color:var(--tx3);float:left;height:0;pointer-events:none
 }
