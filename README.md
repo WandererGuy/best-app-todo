@@ -15,6 +15,7 @@
 
 - [Có những gì](#có-những-gì)
 - [Cài đặt và chạy](#cài-đặt-và-chạy)
+- [Hướng dẫn dùng](#hướng-dẫn-dùng)
 - [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu)
 - [Cập nhật lên bản mới](#cập-nhật-lên-bản-mới)
 - [Phím tắt và mẹo](#phím-tắt-và-mẹo)
@@ -106,6 +107,64 @@ Nếu lỡ tắt server khi tab còn mở, app sẽ báo đỏ. Thay đổi vẫ
 - **Mẹo:** tạo shortcut của `run.bat` ra Desktop để mở nhanh mỗi ngày.
 
 > **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `run.bat` hoặc `serve.py`.
+
+---
+
+## Hướng dẫn dùng
+
+App mở ra là thấy **Bảng việc**. Phần này đi từ những mục bạn sẽ mở mỗi ngày tới những mục thỉnh thoảng mới cần, nên cứ đọc theo thứ tự.
+
+### Ba việc đầu tiên
+
+1. **Tạo một task thật của bạn.** Bấm **+ Task mới** ở góc trên bên phải, hoặc **Tạo task** ở đầu sidebar. Chỉ cần điền tên là tạo được; mảng, ưu tiên, hạn chót, giờ, tag, việc con để trống cũng không sao, sửa sau lúc nào cũng được. Nếu bạn đặt **giờ**, task sẽ hiện luôn trên lịch ngày ở sidebar và app sẽ nhắc trước khi tới giờ.
+
+2. **Kéo task sang cột Đang làm.** Bảng có 3 cột `Cần làm / Đang làm / Xong`, kéo thẻ qua lại giữa chúng. Bấm vào thẻ để mở panel bên phải: ở đó sửa được mọi trường, tick việc con và viết ghi chú dài.
+
+3. **Chạy thử một phiên tập trung.** Kéo thẻ đang ở cột **Đang làm** thả vào khối **Tập trung** ở sidebar, rồi bấm **▶ Bắt đầu**. Mặc định một phiên là 40 phút. Hết giờ app kêu chuông, hỏi bạn chấm điểm phiên vừa rồi, và trồng một cây vào khu vườn.
+
+Làm xong ba bước này là bạn đã đi qua phần lõi của app. Những mục còn lại đều có thể để hôm khác.
+
+### Những mục dùng hằng ngày
+
+**Bảng việc và Bảng cuộc sống** — hai bảng kanban riêng, cùng một kiểu. Bảng việc giữ mảng Công việc và Khác, Bảng cuộc sống giữ mảng Cuộc sống. Tách ra để việc nhà không trộn lẫn với việc cơ quan, nhưng hai bảng vẫn dùng chung lịch, nhắc việc và tổng quan. Trên thanh công cụ có nút **Lọc** (theo khoảng thời gian, ưu tiên, hạn, mảng) và nút **Zen** khi bạn muốn thẻ chỉ còn tên task.
+
+**Tập trung** — khối nhỏ ở sidebar là chỗ bạn bấm bắt đầu và tạm dừng mỗi ngày; mở hẳn mục Tập trung khi muốn xem hàng đợi, tiến độ và khu vườn. Vài điều đáng biết sớm:
+
+- Hàng đợi **chỉ nhận task ở cột Đang làm**, tối đa 3 task. Đây là chỗ nhiều người vướng lúc đầu: task ở Cần làm thì kéo vào không được.
+- Đang làm mà chợt nhớ việc khác thì gõ vào ô **Ghi để sau** rồi Enter. Việc đó rơi vào mục **Để sau**, bạn không phải dừng phiên.
+- Muốn tắt hẳn thứ khác thì bấm **⤢** để vào toàn màn hình, `Esc` để thoát.
+- Mọi thông số (thời lượng, số phiên trước khi nghỉ dài, âm thanh, thông báo) đổi ở **⚙ Cài đặt** trong mục Tập trung.
+
+**Thói quen** — bạn tick thói quen ngay trên **dải ở đầu Bảng việc**, không cần mở trang Thói quen. Trang riêng chỉ mở khi muốn thêm thói quen mới hoặc xem lưới 12 tuần để biết mình hay đứt vào thứ mấy.
+
+**Lịch ngày ở sidebar** — dòng thời gian 24 giờ của hôm nay. Bấm một ô giờ trống là mở form tạo task với ngày giờ điền sẵn; bấm vào một block là mở đúng task đó.
+
+**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do. Trình soạn thảo giống Notion: gõ `/` để chèn khối, dán được ảnh và file.
+
+**Ghi chú** — những trang không gắn với ngày nào: sổ tay, quy ước, việc cần tra lại. Trang lồng trong trang, kéo thả để đổi thứ tự hoặc thả vào giữa một trang khác để biến nó thành trang con.
+
+### Những mục khi cần mới mở
+
+Nhóm này nằm dưới nhãn **Ít dùng** ở sidebar.
+
+| Mục | Mở khi nào |
+|---|---|
+| **Lịch** | Muốn nhìn cả tuần hoặc cả tháng. Ngày và Tuần là lưới giờ kiểu Google Calendar, bấm khung trống để tạo task đúng giờ đó. |
+| **Lịch trình** | Muốn dựng khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ. Sửa các khối cho khớp ngày thật của bạn rồi bấm **⤓ Lưu vào mẫu**, từ đó mỗi thứ trong tuần có mẫu riêng. |
+| **Thói quen** | Thêm, sửa thói quen, hoặc xem lưới 12 tuần. |
+| **Để sau** | Chỗ đổ những việc chưa cam kết làm. Gõ vào ô trên cùng rồi Enter để ghi nhanh. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. |
+| **Tổng quan** | Cuối tuần nhìn lại: tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
+| **Thùng rác** | Lỡ tay bỏ task hay trang ghi chú thì vào đây khôi phục. |
+
+### Mấy thứ nhỏ nằm rải rác
+
+- **Ô tìm kiếm** trên thanh trên tìm cả tiêu đề, tag, ghi chú và việc con.
+- **Tag** ở sidebar: bấm một tag để lọc, bấm **Quản lý** để thêm, đổi tên, đổi màu.
+- **Chuông** cạnh ô tìm kiếm giữ lại các lời nhắc đã bắn, phòng khi bạn lỡ mất toast. Chưa bật thông báo hệ thống thì bật được ngay trong bảng này.
+- **🌐** ở cuối sidebar đổi giao diện sang tiếng Anh và ngược lại.
+- **Xuất file / Nạp file** ở cuối sidebar: xem [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu).
+
+Phím tắt của trình soạn thảo và các mẹo kéo thả: xem [Phím tắt và mẹo](#phím-tắt-và-mẹo). Mô tả đầy đủ từng tính năng: [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
 
 ---
 
