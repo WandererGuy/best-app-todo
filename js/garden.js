@@ -169,41 +169,41 @@ const gTuft = (x, y, s, c) => gS([[-3.4, -5.6, -1.6, -2.6, -2.5, -4.4], [-1.9, -
   .map(([ex, ey, c1x, c1y, c2x, c2y]) => `M${x} ${y}c${gR(c1x * s)} ${gR(c1y * s)} ${gR(c2x * s)} ${gR(c2y * s)} ${gR(ex * s)} ${gR(ey * s)}`).join(''),
   c, gR(1.05 * s), .9);
 const FSP = {
-  pine:{n:'Thông', s:[
+  pine:{n:tr('sp.pine'), s:[
     gShadow(14) + gTrunk(7, 5) + gTier(-5, 26, 12),
     gShadow(22) + gTrunk(11, 7) + gTier(-9, 30, 21) + gTier(-28, 30, 16),
     gShadow(32) + gTrunk(15, 9) + gTier(-13, 36, 31) + gTier(-36, 36, 24) + gTier(-58, 38, 17)
       + gFruit(-15, -18, 2.8, '#9a6437') + gFruit(13, -40, 2.8, '#9a6437')]},
-  oak:{n:'Sồi', s:[
+  oak:{n:tr('sp.oak'), s:[
     gShadow(12) + gSprout('leaf', 'leafD'),
     gShadow(22) + gFall('leafD', 3, 21, 15) + gTrunk(26, 8, 1) + gCrown(0, -45, 23, 20, 'leaf'),
     gShadow(34) + gFall('leafD', 4, 33, 24) + gTrunk(38, 12, 2) + gBranch('M1-28C-5-34-10-38-15-44M2-32C8-38 12-42 16-48', 4.5)
       + gCrown(-17, -56, 21, 18, 'leafD') + gCrown(19, -60, 20, 18, 'leafD') + gCrown(0, -72, 32, 27, 'leaf')
       + gFruit(-20, -48, 3, '#c07a3e') + gFruit(21, -54, 3, '#c07a3e') + gFruit(6, -60, 3, '#c07a3e')]},
-  cherry:{n:'Anh đào', s:[
+  cherry:{n:tr('sp.cherry'), s:[
     gShadow(12) + gSprout('leaf', 'leafD', '#6d4c41') + gFruit(0, -19, 4.2, '#f48fb1'),
     gShadow(22) + gFall('pink', 3, 41, 15) + gTrunk(22, 7, -1, 'bark') + gBranch('M-1-16C-5-22-8-26-10-30M0-19C4-24 7-28 10-32', 3.2, '#6d4c41') + gCrown(0, -42, 23, 18, 'pink'),
     gShadow(34) + gFall('pink', 4, 53, 24) + gTrunk(34, 11, -2) + gBranch('M-1-26C-8-32-14-38-19-46M-1-29C6-36 12-42 17-50', 5, '#6d4c41')
       + gCrown(-18, -56, 20, 17, 'pinkD') + gCrown(19, -58, 20, 17, 'pinkD') + gCrown(0, -72, 30, 24, 'pink')]},
-  maple:{n:'Phong đỏ', s:[
+  maple:{n:tr('sp.maple'), s:[
     gShadow(12) + gSprout('orange', 'red', '#5d4037') + gLeaf(0, -16, -90, .8, 'orange'),
     gShadow(22) + gFall('orange', 3, 61, 15) + gTrunk(22, 7, 1, 'bark') + gCrown(0, -42, 23, 19, 'orange'),
     gShadow(34) + gFall('red', 5, 71, 24) + gTrunk(36, 11, 1) + gCrown(-18, -56, 21, 18, 'red') + gCrown(19, -58, 20, 18, 'orange')
       + gCrown(0, -72, 31, 25, 'red') + gCrown(-8, -80, 14, 11, 'orange')]},
-  birch:{n:'Bạch dương', s:[
+  birch:{n:tr('sp.birch'), s:[
     gShadow(12) + gSprout('lime', 'leaf', '#cfc8b8'),
     gShadow(18) + gBirch(40, 6) + gCrown(0, -54, 15, 23, 'lime', 14),
     gShadow(28) + gFall('lime', 3, 83, 18) + gBirch(58, 8) + gCrown(-12, -62, 13, 21, 'lime', 14) + gCrown(13, -66, 13, 21, 'lime', 14) + gCrown(0, -80, 17, 25, 'lime', 14)]},
-  palm:{n:'Cọ', s:[
+  palm:{n:tr('sp.palm'), s:[
     gShadow(12) + gFronds(0, -4, [[-15, 2], [15, 2], [-6, -13], [7, -13]], 3.5),
     gShadow(20) + (([s, x, y]) => s + gFronds(x, y, [[-28, 8], [28, 8], [-20, -10], [21, -10], [1, -18]], 5.5))(gPalm(34, 4)),
     gShadow(30) + (([s, x, y]) => s + gFronds(x, y, [[-40, 12], [40, 12], [-31, -12], [32, -12], [-11, -24], [13, -24]], 7)
       + gFruit(x - 4, y + 4, 4.2, '#7a5236') + gFruit(x + 4, y + 5, 4.2, '#6b4630') + gFruit(x, y + 8, 4, '#7a5236'))(gPalm(62, 8))]},
-  cactus:{n:'Xương rồng', s:[
+  cactus:{n:tr('sp.cactus'), s:[
     gShadow(11) + gF(gBlob(0, -9, 9, 9, 12, .03, 17), 'cactus') + gS('M-3-4V-14M3-4V-14', GPAL.cactus[0], 1, .55),
     gShadow(16) + gArm(6, -18, 1, 14, 14, 8) + gCactus(0, 44, 16),
     gShadow(24) + gArm(-8, -30, -1, 17, 18, 10) + gArm(8, -42, 1, 17, 16, 10) + gCactus(0, 70, 20) + gFlower(0, -71, 4)]},
-  bamboo:{n:'Tre', s:[
+  bamboo:{n:tr('sp.bamboo'), s:[
     gShadow(10) + gBamboo(0, 20, 5) + gLeaf(2, -14, -30, .9, 'leaf') + gLeaf(-2, -18, -150, .8, 'leafD'),
     gShadow(16) + gBamboo(-5, 46, 6) + gBamboo(6, 36, 6) + gLeaf(-4, -32, -150, 1, 'leafD') + gLeaf(8, -26, -25, 1, 'leaf') + gLeaf(-4, -44, -40, .9, 'leaf'),
     gShadow(24) + gBamboo(-11, 78, 7) + gBamboo(12, 65, 7) + gBamboo(1, 96, 7)
@@ -219,7 +219,7 @@ const fStage   = min => min < 15 ? 1 : min < 40 ? 2 : 3;
 // cây trên đồng hồ: chưa bắt đầu là cây cấp 1, đang chạy thì lên cấp theo số phút đã làm
 function fGrowHTML(){
   const r = S.focus.run, k = r ? r.tree : S.focus.tree, st = r ? fStage(fTreeMs(r) / 6e4) : 1;
-  return `<div class="fztree" title="${fSpecies(k).n} · cấp ${st}"><svg viewBox="-50 -104 100 110">
+  return `<div class="fztree" title="${tr('gd.treeT', {sp: fSpecies(k).n, st})}"><svg viewBox="-50 -104 100 110">
     <g data-ftree data-st="${st}">${fSpecies(k).s[st - 1]}</g></svg></div>`;
 }
 // hàng chọn loài cây trước khi bắt đầu phiên; app nhớ loài chọn lần trước
@@ -227,7 +227,7 @@ function fPickHTML(){
   const cur = S.focus.tree;
   return `<div class="fzsp">${Object.entries(FSP).map(([k, t]) => `<button class="${k === cur ? 'on' : ''}" data-fsp="${k}" title="${t.n}">
       <svg viewBox="-50 -104 100 110">${t.s[2]}</svg></button>`).join('')}</div>
-    <div class="fzhint fzsph">${fSpecies(cur).n} · cấp 2 từ 15 phút, cấp 3 từ 40 phút</div>`;
+    <div class="fzhint fzsph">${tr('gd.stageHint', {sp: fSpecies(cur).n})}</div>`;
 }
 // hình thoi bo góc, đỉnh trên ở (x, y), nửa rộng W, nửa cao H
 const gDia = (x, y, W, H, k) => {
@@ -261,7 +261,11 @@ function fGardenHTML(list, seed){
     const x = gR((i - j) * a + (rnd() - .5) * 34), y = gR((i + j) * b + b + (rnd() - .5) * 16), e = list[n], p = rnd(), sc = gR(.74 + rnd() * .13);
     if(e){
       const sp = fSpecies(e.tree), st = fStage(fGrown(e) / 6e4), dk = iso(new Date(e.a)), m = Math.round(e.ms / 6e4);
-      const tip = `${e.done ? `${sp.n} · cấp ${st}` : `${sp.n} héo`} · ${fHM(e.a)} ${DOW[dowOf(dk)]} ${fmtVN(dk)} · ${e.done ? `${m} phút` : `bỏ dở sau ${m} phút`} · ${e.title.trim() || '(chưa đặt tên)'}`;
+      const tip = tr('gd.tip', {
+        what: e.done ? tr('gd.treeT', {sp: sp.n, st}) : tr('gd.wilted', {sp: sp.n}),
+        hm: fHM(e.a), w: DOW[dowOf(dk)], d: fmtVN(dk),
+        how: tr(e.done ? 'gd.mins' : 'gd.cutAfter', {m}),
+        title: e.title.trim() || tr('task.untitled')});
       return {i, j, svg:`<g class="gt" data-gtip="${esc(tip)}" transform="translate(${(i - j) * a} ${(i + j) * b + b}) scale(${sc})">${e.done ? sp.s[st - 1] : FDEAD}</g>`};
     }
     const svg = p < .24 ? gTuft(x, y, gR(.85 + p * 2), p < .12 ? '#43902f' : '#6bb84e')

@@ -11,10 +11,10 @@ function closeDrawer(){
 function subsHTML(subs, withCb){
   return subs.map(s => `<div class="subitem"><div class="subrow${s.d?' on':''}">
     ${withCb ? `<span class="cb${s.d?' on':''}" data-tog="${s.id}">✓</span>` : ''}
-    <input value="${esc(s.t)}" data-sub="${s.id}" placeholder="Tên việc con">
-    <button class="nt${s.n?' has':''}" data-nsub="${s.id}" title="Mô tả">≡</button>
+    <input value="${esc(s.t)}" data-sub="${s.id}" placeholder="${tr('sub.namePh')}">
+    <button class="nt${s.n?' has':''}" data-nsub="${s.id}" title="${tr('sub.noteT')}">≡</button>
     <button class="del" data-dsub="${s.id}">✕</button></div>
-    <textarea class="subnote" data-subn="${s.id}" placeholder="Mô tả, ghi chú cho việc con…"${s.n?'':' hidden'}>${esc(s.n||'')}</textarea></div>`).join('');
+    <textarea class="subnote" data-subn="${s.id}" placeholder="${tr('sub.notePh')}"${s.n?'':' hidden'}>${esc(s.n||'')}</textarea></div>`).join('');
 }
 // gắn sự kiện gõ chữ; onText chạy sau mỗi lần sửa tên/mô tả
 function bindSubs(root, subs, onText){
@@ -44,39 +44,39 @@ function drawTask(){
       <button class="x" id="dX">✕</button>
     </div>
     <div class="dbody">
-      <input class="tt" id="dT" value="${esc(t.title)}" placeholder="Tên task">
+      <input class="tt" id="dT" value="${esc(t.title)}" placeholder="${tr('td.titlePh')}">
 
-      <div class="fld"><label>Mảng</label><div class="seg">${segs(AREAS, t.area, 'area')}</div></div>
-      <div class="fld"><label>Ưu tiên</label><div class="seg">${segs(PRIOS, t.prio, 'prio')}</div></div>
-      <div class="fld"><label>Trạng thái</label><div class="seg">${segs(STATUSES, t.status, 'st')}</div></div>
+      <div class="fld"><label>${tr('td.area')}</label><div class="seg">${segs(AREAS, t.area, 'area')}</div></div>
+      <div class="fld"><label>${tr('td.prio')}</label><div class="seg">${segs(PRIOS, t.prio, 'prio')}</div></div>
+      <div class="fld"><label>${tr('td.status')}</label><div class="seg">${segs(STATUSES, t.status, 'st')}</div></div>
 
-      <div class="fld"><label>Tiến độ — ${t.pg}%</label>
+      <div class="fld"><label>${tr('td.progress', {n: t.pg})}</label>
         <div class="seg">${[0,25,50,75,100].map(p =>
           `<button class="${t.pg===p?'on':''}" style="${t.pg===p?'background:#6366f1;border-color:#6366f1':''}" data-pg="${p}">${p}%</button>`).join('')}</div>
         <div class="pg" style="margin:2px 0 0"><i style="width:${t.pg}%"></i></div>
       </div>
 
-      <div class="fld"><label>Hạn chót</label>
-        ${dateBtn('dD', t.due, 'Chưa đặt hạn')}</div>
+      <div class="fld"><label>${tr('td.due')}</label>
+        ${dateBtn('dD', t.due, tr('td.duePh'))}</div>
 
-      ${t.status === 'done' ? `<div class="fld"><label>Ngày xong</label>
-        ${dateBtn('dDone', t.done, 'Chưa ghi ngày xong')}</div>` : ''}
+      ${t.status === 'done' ? `<div class="fld"><label>${tr('td.doneDate')}</label>
+        ${dateBtn('dDone', t.done, tr('td.donePh'))}</div>` : ''}
 
-      <div class="fld"><label>Giờ · thời lượng · nhắc trước</label>
+      <div class="fld"><label>${tr('td.slot')}</label>
         ${slotFieldHTML('d', t)}</div>
 
-      <div class="fld"><label>Tag</label>
-        ${tagFieldHTML('tagIn', t.tags||[], 'Chọn tag bên dưới hoặc gõ tag mới rồi Enter')}</div>
+      <div class="fld"><label>${tr('td.tag')}</label>
+        ${tagFieldHTML('tagIn', t.tags||[], tr('td.tagHint'))}</div>
 
-      <div class="fld"><label>Việc con ${(t.subs||[]).length ? `— ${t.subs.filter(s=>s.d).length}/${t.subs.length}` : ''}</label>
+      <div class="fld"><label>${tr('td.subs')} ${(t.subs||[]).length ? `— ${t.subs.filter(s=>s.d).length}/${t.subs.length}` : ''}</label>
         <div id="subs">${subsHTML(t.subs||[], true)}</div>
-        <button class="addsub" id="addSub">+ Thêm việc con</button></div>
+        <button class="addsub" id="addSub">${tr('sub.add')}</button></div>
 
-      <div class="fld"><label>Ghi chú</label><div id="dN"></div></div>
+      <div class="fld"><label>${tr('td.note')}</label><div id="dN"></div></div>
     </div>
     <div class="dfoot">
-      <span class="meta">Tạo ${fmtVN(t.cr) || '—'}</span>
-      <button class="danger" id="dDel" style="margin-left:auto">Chuyển vào thùng rác</button>
+      <span class="meta">${tr('td.created', {d: fmtVN(t.cr) || '—'})}</span>
+      <button class="danger" id="dDel" style="margin-left:auto">${tr('note.toTrash')}</button>
     </div>`;
 
   const D = $('#drawer');
@@ -91,7 +91,7 @@ function drawTask(){
     x[k] = v;
     if(k === 'time' && v){ if(!x.due) x.due = today(); x.dur = x.dur || 60; x.remind = x.remind ?? 30; }
   }));
-  mountEd('dN', t.note, 'Suy nghĩ vụn vặt, link, ý tưởng… Gõ / để chèn khối', v => { t.note = v; save(); });
+  mountEd('dN', t.note, tr('td.notePh'), v => { t.note = v; save(); });
 
   D.querySelectorAll('[data-area]').forEach(b => b.onclick = () => patch(x => x.area = b.dataset.area));
   D.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => patch(x => x.prio = b.dataset.prio));
@@ -138,37 +138,37 @@ function grabForm(){
 }
 function renderForm(){
   if(!nf) nf = blankForm();
-  $('#vSub').textContent = 'Điền vài thông tin rồi bấm Tạo task';
+  $('#vSub').textContent = tr('nf.sub');
   const segs = (obj, cur, act) => Object.entries(obj).map(([k,v]) =>
     `<button class="${cur===k?'on':''}" style="${cur===k?`background:${v.c};border-color:${v.c}`:''}" data-${act}="${k}">${v.n}</button>`).join('');
 
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
-    <input class="fttl" id="nTitle" value="${esc(nf.title)}" placeholder="Mình cần làm gì?" autocomplete="off">
+    <input class="fttl" id="nTitle" value="${esc(nf.title)}" placeholder="${tr('nf.titlePh')}" autocomplete="off">
     <div class="frow">
-      <div class="fld"><label>Mảng</label><div class="seg">${segs(AREAS, nf.area, 'nfarea')}</div></div>
-      <div class="fld"><label>Ưu tiên</label><div class="seg">${segs(PRIOS, nf.prio, 'nfprio')}</div></div>
+      <div class="fld"><label>${tr('td.area')}</label><div class="seg">${segs(AREAS, nf.area, 'nfarea')}</div></div>
+      <div class="fld"><label>${tr('td.prio')}</label><div class="seg">${segs(PRIOS, nf.prio, 'nfprio')}</div></div>
     </div>
     <div class="frow">
-      <div class="fld"><label>Bắt đầu ở cột</label><div class="seg">${segs(STATUSES, nf.status, 'nfst')}</div></div>
-      <div class="fld"><label>Hạn chót</label>
-        ${dateBtn('nDue', nf.due, 'Chưa đặt hạn')}
-        <div class="hint" style="margin:0">Bấm để mở lịch chọn ngày</div></div>
+      <div class="fld"><label>${tr('nf.startCol')}</label><div class="seg">${segs(STATUSES, nf.status, 'nfst')}</div></div>
+      <div class="fld"><label>${tr('td.due')}</label>
+        ${dateBtn('nDue', nf.due, tr('td.duePh'))}
+        <div class="hint" style="margin:0">${tr('nf.dueHint')}</div></div>
     </div>
-    <div class="fld"><label>Giờ · thời lượng · nhắc trước</label>
+    <div class="fld"><label>${tr('td.slot')}</label>
       ${slotFieldHTML('n', nf)}
-      <div class="hint" style="margin:0">Đặt giờ để task hiện ở lịch trong ngày (sidebar) và được nhắc trước khi bắt đầu</div></div>
-    <div class="fld"><label>Tag</label>
-      ${tagFieldHTML('nTagIn', nf.tags, 'Chọn tag bên dưới hoặc gõ tag mới rồi Enter')}</div>
-    <div class="fld"><label>Việc con</label>
+      <div class="hint" style="margin:0">${tr('nf.slotHint')}</div></div>
+    <div class="fld"><label>${tr('td.tag')}</label>
+      ${tagFieldHTML('nTagIn', nf.tags, tr('td.tagHint'))}</div>
+    <div class="fld"><label>${tr('td.subs')}</label>
       <div id="nSubs">${subsHTML(nf.subs, false)}</div>
-      <button class="addsub" id="nAddSub">+ Thêm việc con</button></div>
-    <div class="fld"><label>Ghi chú</label>
+      <button class="addsub" id="nAddSub">${tr('sub.add')}</button></div>
+    <div class="fld"><label>${tr('td.note')}</label>
       <div class="inp fed" id="nNote"></div></div>
     <div class="fbtns">
-      <button class="btn" id="nGo">Tạo task</button>
-      <button class="btn ghost" id="nClr">Xoá form</button>
+      <button class="btn" id="nGo">${tr('nf.create')}</button>
+      <button class="btn ghost" id="nClr">${tr('nf.clear')}</button>
       <span class="hint" id="nErr"></span>
-      <span class="meta" style="margin-left:auto">Ngày tạo ${fmtVN(today())}</span>
+      <span class="meta" style="margin-left:auto">${tr('nf.createdOn', {d: fmtVN(today())})}</span>
     </div>
   </div></div>`;
 
@@ -192,7 +192,7 @@ function renderForm(){
     if(k === 'time' && v && !nf.due) nf.due = today();   // đặt giờ khi chưa có hạn thì lấy hôm nay
     renderForm();
   });
-  mountEd('nNote', nf.note, 'Suy nghĩ, link, bối cảnh… Gõ / để chèn khối', v => { nf.note = v; });
+  mountEd('nNote', nf.note, tr('nf.notePh'), v => { nf.note = v; });
   $('#nTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); createFromForm(); } };
   $('#nGo').onclick = createFromForm;
   $('#nClr').onclick = () => { nf = blankForm(nf.status); renderForm(); };
@@ -200,7 +200,7 @@ function renderForm(){
 function createFromForm(){
   grabForm();
   if(!nf.title.trim()){
-    $('#nErr').innerHTML = '<span class="err">Task này chưa có tên.</span>';
+    $('#nErr').innerHTML = `<span class="err">${tr('nf.noTitle')}</span>`;
     $('#nTitle').focus(); return;
   }
   const t = {id:uid(), title:nf.title.trim(), area:nf.area, prio:nf.prio, status:nf.status,
@@ -214,5 +214,5 @@ function createFromForm(){
   if(!boardMatch(t, t.area === 'life')) ui.bf = {prio:[], due:null, area:null};
   saveFil();
   nf = blankForm(nf.status); goView(t.status === 'backlog' ? 'backlog' : (t.area === 'life' ? 'life' : 'board'));
-  toast(`Đã tạo: ${t.title}`);
+  toast(tr('nf.done', {n: t.title}));
 }

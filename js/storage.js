@@ -7,7 +7,7 @@ function applyData(d){
   syncTags();
   // nhật ký cũ mỗi ngày một trang -> đổi sang dạng nhiều trang
   Object.keys(S.journal).forEach(k => {
-    if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:'Ghi chép', html:S.journal[k]}];
+    if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:tr('journal.firstPage'), html:S.journal[k]}];
   });
 }
 function save(){
@@ -18,13 +18,13 @@ function save(){
 }
 function paintSave(){
   const b = $('#saveBar'); if(!b) return;
-  const msg = !storageOK ? 'Không lưu được — hãy xuất file!'
-    : srvErr === 'conflict' ? 'Đã sửa ở cửa sổ khác — đang lấy bản mới'
-    : srvErr ? 'Chưa lưu vào máy — chỉ trong trình duyệt' : '';
+  const msg = !storageOK ? tr('sv.noStore')
+    : srvErr === 'conflict' ? tr('sv.conflict')
+    : srvErr ? tr('sv.offline') : '';
   b.classList.toggle('bad', !!msg);
   if(msg){ b.innerHTML = `<span class="d"></span>${msg}`; return; }
   const hh = lastSave ? lastSave.toTimeString().slice(0,8) : '—';
-  b.innerHTML = `<span class="d"></span>Đã lưu vào máy ${hh}${fh ? ' · ⇄ file' : ''}`;
+  b.innerHTML = `<span class="d"></span>${tr('sv.saved', {t: hh})}${fh ? ' · ⇄ file' : ''}`;
 }
 
 /* ---- dữ liệu chính nằm ở server: serve.py ghi ra data/dieukhien.json ----
@@ -66,7 +66,7 @@ async function pushSrv(){
       bcSend();
     }else throw new Error(r.status);
   }catch(e){
-    if(!srvErr) toast('Chưa lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.');
+    if(!srvErr) toast(tr('sv.pushFail'));
     srvErr = 'off';
   }
   srvBusy = false;
@@ -119,7 +119,7 @@ async function pullSrv(force){
     render();
     if(ui.open) drawTask();          // render() không vẽ lại panel task đang mở
     if(S.focus.run) fStartTick(); else fStopTick();   // tab khác vừa bắt đầu / dừng phiên: nhịp đồng hồ ở đây theo kịp
-    if(force) toast('Cửa sổ khác vừa sửa dữ liệu. Thay đổi ở đây đã cất vào data/backups, màn hình đang là bản mới nhất.');
+    if(force) toast(tr('sv.pulled'));
   }catch(e){ /* server tắt: pushSrv sẽ báo, ở đây im lặng */ }
   finally{ pullBusy = false; }
 }
@@ -130,11 +130,11 @@ function paintSync(){
 setInterval(() => { if(!document.hidden) pullSrv(); }, POLL_MS);
 document.addEventListener('visibilitychange', () => { if(!document.hidden) pullSrv(); });
 
-const countData = d => `${(d.tasks || []).length} task, ${(d.notes || []).length} ghi chú, ${(d.habits || []).length} thói quen`;
+const countData = d => tr('sv.count', {t: (d.tasks || []).length, n: (d.notes || []).length, h: (d.habits || []).length});
 /* khởi động: ưu tiên server, không có server mới dùng dữ liệu trình duyệt. Trả về lời nhắn cần báo (nếu có) */
 async function boot(){
   let local = null, meta = null, res = null, msg = '';
-  try{ local = JSON.parse(localStorage.getItem(KEY)); }catch(e){ console.warn('Không đọc được dữ liệu cũ:', e); }
+  try{ local = JSON.parse(localStorage.getItem(KEY)); }catch(e){ console.warn(tr('sv.readOld'), e); }
   try{ meta = JSON.parse(localStorage.getItem(SRV_KEY)); }catch(e){}
   if(location.protocol !== 'file:') try{ res = await fetch('/api/data', {cache:'no-store'}); }catch(e){}
 
@@ -148,10 +148,8 @@ async function boot(){
     srvTag = 'none';
     if(!local){ seed(); return ''; }                      // seed() tự save() -> tạo file
     applyData(local);
-    if(confirm(`Chưa có file dữ liệu trên máy (data/dieukhien.json).\n\n` +
-               `Dùng dữ liệu đang có trong trình duyệt này làm dữ liệu chính?\n(${countData(local)})\n\n` +
-               `Bấm Huỷ nếu đây không phải dữ liệu thật — ví dụ đang mở nhầm profile Chrome.`)){
-      save(); return 'Đã đưa dữ liệu vào data/dieukhien.json.';
+    if(confirm(tr('sv.askAdopt', {c: countData(local)}))){
+      save(); return tr('sv.adopted');
     }
     srvOn = false; srvErr = 'off'; srvTag = null;
     return '';
@@ -164,7 +162,7 @@ async function boot(){
   if(local && !(meta && !meta.dirty)){                      // dữ liệu riêng của trình duyệt này, chưa lên server
     applyData(local);
     if(!await stashSrv()){ srvOn = false; srvErr = 'off'; srvTag = null; return ''; }   // bỏ tag: lần sau không được coi là thay đổi của bản server
-    msg = `Trình duyệt này có dữ liệu riêng (${countData(local)}) — đã cất vào data/backups, đang dùng dữ liệu trên máy.`;
+    msg = tr('sv.stashed', {c: countData(local)});
   }
   for(const [id, url] of Object.entries(d.images || {})){
     imgData.set(id, url);
@@ -187,11 +185,11 @@ async function linkFile(){
   try{
     fh = await window.showSaveFilePicker({
       suggestedName: `dieukhien-${today()}.json`,
-      types: [{description:'Dữ liệu Điều khiển', accept:{'application/json':['.json']}}]
+      types: [{description:tr('fs.fileDesc'), accept:{'application/json':['.json']}}]
     });
     await writeFile(); await idbPut(fh);
-    toast('Đã liên kết. Mọi thay đổi sẽ tự ghi ra file này.');
-  }catch(e){ if(e.name !== 'AbortError') toast('Chưa liên kết được file: ' + e.message); }
+    toast(tr('fs.linked'));
+  }catch(e){ if(e.name !== 'AbortError') toast(tr('fs.linkFail', {e: e.message})); }
   paintFs();
 }
 async function writeFile(){
@@ -201,7 +199,7 @@ async function writeFile(){
     const w = await fh.createWritable();
     await w.write(txt);
     await w.close();
-  }catch(e){ fh = null; toast('Mất quyền ghi file — liên kết lại giúp mình.'); }
+  }catch(e){ fh = null; toast(tr('fs.lostPerm')); }
   paintFs(); paintSave();
 }
 function queueFile(){
@@ -212,7 +210,7 @@ function queueFile(){
 function paintFs(){
   const b = $('#fsBtn'); if(!b) return;
   b.hidden = !FS_OK;
-  b.textContent = fh ? `⇄ Đang ghi ra ${fh.name}` : (fhPending ? 'Kết nối lại file dữ liệu' : 'Liên kết file trên ổ đĩa');
+  b.textContent = fh ? tr('fs.writingTo', {n: fh.name}) : tr(fhPending ? 'fs.reconnect' : 'side.linkFile');
 }
 /* lưu file handle qua IndexedDB để lần mở sau chỉ cần 1 cú bấm */
 let fhPending = null;
@@ -245,8 +243,8 @@ async function restoreFile(){
 async function reconnectFile(){
   if(!fhPending) return linkFile();
   if(await fhPending.requestPermission({mode:'readwrite'}) === 'granted'){
-    fh = fhPending; fhPending = null; await writeFile(); toast('Đã kết nối lại file dữ liệu.');
-  }else toast('Chưa được cấp quyền ghi file.');
+    fh = fhPending; fhPending = null; await writeFile(); toast(tr('fs.reconnected'));
+  }else toast(tr('fs.noPerm'));
   paintFs();
 }
 
@@ -306,16 +304,16 @@ async function addImages(ed, files, pos){
   const ids = [];
   for(const f of files){
     try{ const id = 'i' + uid(); await imgPut(id, await shrink(f)); ids.push(id); }
-    catch(e){ toast(`Chưa chèn được ảnh ${f.name}`); }
+    catch(e){ toast(tr('att.imgFail', {n: f.name})); }
   }
   TT.image(ed, ids, pos);
 }
 async function addFiles(ed, files, pos){
   const items = [];
   for(const f of files){
-    if(f.size > FILE_MAX){ toast(`${f.name} nặng hơn ${FILE_MAX / 1024 / 1024}MB nên chưa đính kèm được`); continue; }
+    if(f.size > FILE_MAX){ toast(tr('att.tooBig', {n: f.name, mb: FILE_MAX / 1024 / 1024})); continue; }
     try{ const id = 'f' + uid(); await imgPut(id, f); items.push({file:id, name:f.name, size:f.size}); }
-    catch(e){ toast(`Chưa đính kèm được ${f.name}`); }
+    catch(e){ toast(tr('att.fileFail', {n: f.name})); }
   }
   TT.file(ed, items, pos);
 }
@@ -376,28 +374,28 @@ async function dataJSON(){
 function seed(){
   const d = new Date(); const plus = n => { const x = new Date(); x.setDate(d.getDate()+n); return iso(x); };
   S.tasks = [
-    {id:uid(), title:'Chuẩn bị slide họp team', area:'work', prio:'high', status:'doing', pg:50,
-     tags:['họp'], due:plus(1), note:'<p>Nhấn vào task để mở panel này.</p><p>Ô ghi chú gõ như trang Notion — gõ <strong>/</strong> để chèn khối:</p><ul class="td"><li data-d="1">gõ "[] " thành ô tích việc</li><li data-d="0">gõ "# " thành tiêu đề</li></ul><blockquote>Mọi suy nghĩ vụn vặt về task cứ ném vào đây.</blockquote>',
-     subs:[{id:uid(),t:'Dựng outline',d:true},{id:uid(),t:'Vẽ biểu đồ số liệu',d:false}], cr:today(), done:null},
-    {id:uid(), title:'Review pull request của Minh', area:'work', prio:'med', status:'todo', pg:0,
+    {id:uid(), title:tr('seed.t1'), area:'work', prio:'high', status:'doing', pg:50,
+     tags:[tr('seed.t1tag')], due:plus(1), note:tr('seed.t1note'),
+     subs:[{id:uid(),t:tr('seed.t1s1'),d:true},{id:uid(),t:tr('seed.t1s2'),d:false}], cr:today(), done:null},
+    {id:uid(), title:tr('seed.t2'), area:'work', prio:'med', status:'todo', pg:0,
      tags:['code'], due:plus(0), note:'', subs:[], cr:today(), done:null},
-    {id:uid(), title:'Tập gym 3 buổi tuần này', area:'life', prio:'med', status:'doing', pg:75,
-     tags:['sức khoẻ'], due:plus(3), note:'', subs:[], cr:today(), done:null},
-    {id:uid(), title:'Đặt lịch khám răng', area:'life', prio:'low', status:'todo', pg:0,
-     tags:['sức khoẻ'], due:'', note:'', subs:[], cr:today(), done:null},
-    {id:uid(), title:'Dọn hộp thư đến về 0', area:'other', prio:'low', status:'done', pg:100,
+    {id:uid(), title:tr('seed.t3'), area:'life', prio:'med', status:'doing', pg:75,
+     tags:[tr('seed.t3tag')], due:plus(3), note:'', subs:[], cr:today(), done:null},
+    {id:uid(), title:tr('seed.t4'), area:'life', prio:'low', status:'todo', pg:0,
+     tags:[tr('seed.t3tag')], due:'', note:'', subs:[], cr:today(), done:null},
+    {id:uid(), title:tr('seed.t5'), area:'other', prio:'low', status:'done', pg:100,
      tags:[], due:'', note:'', subs:[], cr:today(), done:today()}
   ];
   S.habits = [
-    {id:uid(), name:'Đọc 20 trang', kind:'good', days:[1,2,3,4,5], cue:'Sau khi ăn tối, ở bàn làm việc',
+    {id:uid(), name:tr('seed.h1'), kind:'good', days:[1,2,3,4,5], cue:tr('seed.h1cue'),
      swap:'', color:'#38bdf8', log:{}, cr:today()},
-    {id:uid(), name:'Đi bộ 20 phút', kind:'good', days:[1,3,5], cue:'Ngay sau giờ tan làm',
+    {id:uid(), name:tr('seed.h2'), kind:'good', days:[1,3,5], cue:tr('seed.h2cue'),
      swap:'', color:'#4ade80', log:{}, cr:today()},
-    {id:uid(), name:'Lướt điện thoại trên giường', kind:'bad', days:[0,1,2,3,4,5,6],
-     cue:'Lúc chuẩn bị đi ngủ', swap:'Cắm sạc điện thoại ngoài phòng, đọc vài trang sách giấy',
+    {id:uid(), name:tr('seed.h3'), kind:'bad', days:[0,1,2,3,4,5,6],
+     cue:tr('seed.h3cue'), swap:tr('seed.h3swap'),
      color:'#fb7185', log:{}, cr:today()}
   ];
-  S.journal[today()] = [{id:uid(), name:'Ghi chép', html:'<h1>Hôm nay</h1><p>Viết bất cứ điều gì trong đầu ở đây.</p><h2>Việc đã làm</h2><ul class="td"><li data-d="1">Mở app lần đầu</li><li data-d="0">Thêm task thật của mình</li></ul><h2>Suy nghĩ</h2><blockquote>Trang này của riêng ngày hôm nay. Đổi ngày ở thanh trên. Bấm + để thêm trang khác trong cùng ngày.</blockquote>'}];
+  S.journal[today()] = [{id:uid(), name:tr('journal.firstPage'), html:tr('seed.journal')}];
   syncTags();
   save();
 }
@@ -414,15 +412,15 @@ function importJSON(file){
   r.onload = async () => {
     try{
       const d = JSON.parse(r.result);
-      if(!Array.isArray(d.tasks)) throw new Error('File không đúng định dạng');
-      if(!confirm(`Nạp ${d.tasks.length} task và ghi đè toàn bộ dữ liệu hiện tại?`)) return;
+      if(!Array.isArray(d.tasks)) throw new Error(tr('imp.badFile'));
+      if(!confirm(tr('imp.ask', {n: d.tasks.length}))) return;
       for(const [id, url] of Object.entries(d.images || {})) await imgPut(id, await (await fetch(url)).blob());
       applyData(d);
       if(SCOPES[S.settings.scope]) ui.scope = S.settings.scope;
       loadFil();
       srvKeep = true;                          // server cất bản đang có vào data/backups trước khi bị đè
       save(); render();
-    }catch(e){ alert('Chưa đọc được file: ' + e.message); }
+    }catch(e){ alert(tr('imp.readFail', {e: e.message})); }
   };
   r.readAsText(file);
 }

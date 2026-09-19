@@ -53,7 +53,7 @@ function hRate(h){
 // không phải số lần lặp — nên lần tick nào cũng có phản hồi.
 function hCheer(h){
   const n = hStreak(h);
-  toast(HMARKS[n] ? `🔥 ${n} buổi · ${HMARKS[n]}` : `✓ ${h.name} · chuỗi ${n} buổi`);
+  toast(HMARKS[n] ? tr('hb.cheerMark', {n, m: HMARKS[n]}) : tr('hb.cheer', {name: h.name, n}));
 }
 function hToggle(id, k){
   const h = S.habits.find(x => x.id === id);
@@ -65,7 +65,7 @@ function hToggle(id, k){
   const inPlan = hOn(h, k);
   ui.hPop = on && inPlan ? h.id : null; render(); ui.hPop = null;
   if(on && inPlan) hCheer(h);
-  else if(on) toast(`Đã ghi buổi làm thêm ${DOW[dowOf(k)]} ${fmtVN(k)} — ngoài lịch nên không tính vào chuỗi`);
+  else if(on) toast(tr('hb.extraLog', {w: DOW[dowOf(k)], d: fmtVN(k)}));
 }
 
 /* dải thói quen hôm nay ở đầu bảng — đặt ngay chỗ mình mở đầu tiên mỗi ngày thì mới thật sự tick */
@@ -76,18 +76,18 @@ function habitStrip(){
   const dec = list.filter(h => !hDone(h, k) && hMiss(h) >= 1).length;
   const chips = list.map(h => {
     const on = hDone(h, k), n = hStreak(h), m = hMiss(h);
-    const tip = [h.kind === 'bad' && h.swap ? `Thay bằng: ${h.swap}` : h.cue,
-                 !on && m === 1 ? 'Đã lỡ 1 buổi — buổi tới là buổi quyết định' : '',
-                 !on && m >= 2 ? `Đã lỡ ${m} buổi liên tiếp` : ''].filter(Boolean).join(' · ');
+    const tip = [h.kind === 'bad' && h.swap ? tr('hb.swapTip', {s: h.swap}) : h.cue,
+                 !on && m === 1 ? tr('hb.miss1') : '',
+                 !on && m >= 2 ? tr('hb.missN', {n: m}) : ''].filter(Boolean).join(' · ');
     return `<button class="hchip${on ? ' on' : ''}${!on && m ? ' miss' : ''}${ui.hPop === h.id ? ' pop' : ''}"
       data-htick="${h.id}"${on ? ` style="background:${h.color}1c;border-color:${h.color}55;color:${h.color}"` : ''}
       title="${esc(tip || h.name)}"><span class="bx"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''}>${on ? '✓' : ''}</span>${esc(h.name)}${n ? `<span class="st">🔥${n}</span>` : ''}</button>`;
   }).join('');
   return `<div class="hstrip">
-    <button class="hshd" data-hgo title="Mở mục Thói quen"><span class="d">Thói quen hôm nay</span><b>${done}/${list.length}</b></button>
+    <button class="hshd" data-hgo title="${tr('hb.stripT')}"><span class="d">${tr('hb.stripHd')}</span><b>${done}/${list.length}</b></button>
     ${chips}
-    ${done === list.length ? '<span class="hsnote ok">Xong cả rồi</span>'
-      : dec ? `<span class="hsnote warn">${dec} việc đang ở buổi quyết định</span>` : ''}</div>`;
+    ${done === list.length ? `<span class="hsnote ok">${tr('hb.allDone')}</span>`
+      : dec ? `<span class="hsnote warn">${tr('hb.decisive', {n: dec})}</span>` : ''}</div>`;
 }
 
 const HWK = [1,2,3,4,5,6,0];   // thứ tự thứ trong mục thói quen: tuần bắt đầu từ T2, CN đứng cạnh T7
@@ -111,15 +111,15 @@ function hGrid(h){
     const cls = k > k0 ? 'fut'
       : hDone(h, k) ? (hOn(h, k) ? 'on' : 'extra')
       : (k < h.cr || !hOn(h, k)) ? 'off' : 'miss';
-    const note = {on:' · đã làm', extra:' · làm thêm ngoài lịch', miss:' · bỏ lỡ', off:' · ngoài lịch'}[cls] || '';
+    const note = {on:tr('hb.cellOn'), extra:tr('hb.cellExtra'), miss:tr('hb.cellMiss'), off:tr('hb.cellOff')}[cls] || '';
     cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}">${+k.slice(8)}</i>`;
   }
   return `<div class="hgwrap">
     <span></span><div class="hgmon">${mons.map(m => `<span>${m}</span>`).join('')}</div>
     <div class="hglbl">${HWK.map(i => `<span class="${h.days.includes(i) ? 'on' : ''}">${DOW[i]}</span>`).join('')}</div>
     <div class="hgrid">${cells}</div>
-    <div class="hgleg"><i class="on"></i>đã làm<i class="extra"></i>làm thêm<i class="miss"></i>bỏ lỡ<i class="off"></i>ngoài lịch
-      <span style="margin-left:auto">${HWEEKS} tuần gần nhất</span></div>
+    <div class="hgleg"><i class="on"></i>${tr('hb.legOn')}<i class="extra"></i>${tr('hb.legExtra')}<i class="miss"></i>${tr('hb.legMiss')}<i class="off"></i>${tr('hb.legOff')}
+      <span style="margin-left:auto">${tr('hb.legWeeks', {n: HWEEKS})}</span></div>
   </div>`;
 }
 
@@ -127,13 +127,13 @@ function hGrid(h){
    Trạng thái mở / gập nằm trong chính thói quen nên mở lại app vẫn đúng như lúc rời đi. */
 function hWhy(h){
   if(h.open) return `<div class="hwhy on">
-    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▾</span><span class="l">Lý do</span></button>
+    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▾</span><span class="l">${tr('hb.why')}</span></button>
     <div class="hwbox"><div id="hWhy-${h.id}"></div></div></div>`;
   const txt = plain(h.why);
   const peek = txt ? (txt.length > 72 ? txt.slice(0, 72) + '…' : txt)
-                   : (hasText(h.why) ? '…' : 'chưa viết — bấm để thêm');
+                   : (hasText(h.why) ? '…' : tr('hb.whyEmpty'));
   return `<div class="hwhy">
-    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▸</span><span class="l">Lý do</span>
+    <button class="hwt" data-hwhy="${h.id}"><span class="cv">▸</span><span class="l">${tr('hb.why')}</span>
       <span class="pk${txt || hasText(h.why) ? '' : ' none'}">${esc(peek)}</span></button></div>`;
 }
 
@@ -143,42 +143,44 @@ function hCard(h){
   // luật "không bỏ hai lần": bỏ một buổi gần như không ảnh hưởng đến quá trình thành tự động,
   // bỏ liên tiếp mới là lúc nhịp phai dần — nên app chỉ lên tiếng đúng lúc đó.
   const nudge = on || !m ? ''
-    : m >= 2 ? `<div class="hnudge cold">Mình đã lỡ <b>${m} buổi liên tiếp</b> rồi. Lỡ một buổi thì gần như không mất gì — lỡ liên tiếp mới làm nhịp phai dần. Hôm nay chỉ cần làm bản dễ nhất của nó là đã được tính.</div>`
-    : `<div class="hnudge warn">Buổi gần nhất mình lỡ mất. <b>${due ? 'Hôm nay' : 'Buổi tới'} là buổi quyết định</b> — ${h.grace ? 'chuỗi vẫn được giữ, bỏ tiếp buổi này thì về 0' : 'làm được thì coi như nhịp chưa đứt'}.</div>`;
+    : m >= 2 ? `<div class="hnudge cold">${tr('hb.nudgeCold', {n: m})}</div>`
+    : `<div class="hnudge warn">${tr('hb.nudgeWarn', {
+        when: tr(due ? 'hb.nudgeToday' : 'hb.nudgeNext'),
+        tail: tr(h.grace ? 'hb.nudgeGrace' : 'hb.nudgePlain')})}</div>`;
   return `<div class="hcard" id="hc-${h.id}" style="--hc:${h.color}">
     <div class="hhd">
-      ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
-             : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
+      ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${tr(on ? 'hb.untick' : 'hb.tick')}">${on ? '✓' : ''}</button>`
+             : `<span class="hbx off" title="${tr('hb.notToday')}"></span>`}
       <span class="hnm">${esc(h.name)}</span>
       <span class="pill" style="background:${kind.c}22;color:${kind.c}">${kind.n}</span>
-      <span class="hstat" title="Số buổi liên tiếp${h.grace ? ' (cho phép lỡ một buổi)' : ''}">🔥 ${n}</span>
-      <span class="hstat" title="Chuỗi dài nhất từng đạt">🏆 ${hRecord(h)}</span>
-      <span class="hstat" title="Tỉ lệ làm được trong ${HWEEKS} tuần qua">${hRate(h)}%</span>
-      <button class="btn ghost hsm" data-hedit="${h.id}">Sửa</button>
+      <span class="hstat" title="${tr('hb.streakT')}${h.grace ? tr('hb.streakGr') : ''}">🔥 ${n}</span>
+      <span class="hstat" title="${tr('hb.recordT')}">🏆 ${hRecord(h)}</span>
+      <span class="hstat" title="${tr('hb.rateT', {n: HWEEKS})}">${hRate(h)}%</span>
+      <button class="btn ghost hsm" data-hedit="${h.id}">${tr('hb.edit')}</button>
     </div>
-    ${h.cue ? `<div class="hmeta"><span class="l">Khi nào</span>${esc(h.cue)}</div>` : ''}
-    ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">Thay bằng</span>${esc(h.swap)}</div>` : ''}
+    ${h.cue ? `<div class="hmeta"><span class="l">${tr('hb.cueLbl')}</span>${esc(h.cue)}</div>` : ''}
+    ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">${tr('hb.swapLbl')}</span>${esc(h.swap)}</div>` : ''}
     ${hWhy(h)}
     ${nudge}
     ${hGrid(h)}</div>`;
 }
 
 /* tóm tắt đầu mục: nhìn một lượt là biết có những thói quen gì, hôm nay cần làm gì — khỏi cuộn qua từng thẻ */
-const hSched = days => days.length === 7 ? 'Mỗi ngày'
-  : days.join() === '1,2,3,4,5' ? 'T2–T6'
+const hSched = days => days.length === 7 ? tr('hb.everyDay')
+  : days.join() === '1,2,3,4,5' ? tr('hb.weekdays')
   : HWK.filter(i => days.includes(i)).map(i => DOW[i]).join(', ');
 function hSum(){
   const k = today();
   return `<div class="hsum">${S.habits.map(h => {
     const on = hDone(h, k), due = hOn(h, k);
     return `<div class="hsr" style="--hc:${h.color}">
-      ${due ? `<button class="hbx${on ? ' on' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${on ? 'Bỏ đánh dấu hôm nay' : 'Đánh dấu đã làm hôm nay'}">${on ? '✓' : ''}</button>`
-             : '<span class="hbx off" title="Hôm nay không nằm trong lịch"></span>'}
-      <button class="hsn" data-hjump="${h.id}" title="Tới thẻ thói quen">${esc(h.name)}</button>
+      ${due ? `<button class="hbx${on ? ' on' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${tr(on ? 'hb.untick' : 'hb.tick')}">${on ? '✓' : ''}</button>`
+             : `<span class="hbx off" title="${tr('hb.notToday')}"></span>`}
+      <button class="hsn" data-hjump="${h.id}" title="${tr('hb.jumpT')}">${esc(h.name)}</button>
       <span class="hstat">${hSched(h.days)}</span>
-      <span class="hstat" title="Số buổi liên tiếp">🔥 ${hStreak(h)}</span>
-      <span class="hstat" title="Chuỗi dài nhất từng đạt">🏆 ${hRecord(h)}</span>
-      <span class="hstat" title="Tỉ lệ làm được trong ${HWEEKS} tuần qua">${hRate(h)}%</span></div>`;
+      <span class="hstat" title="${tr('hb.streakT')}">🔥 ${hStreak(h)}</span>
+      <span class="hstat" title="${tr('hb.recordT')}">🏆 ${hRecord(h)}</span>
+      <span class="hstat" title="${tr('hb.rateT', {n: HWEEKS})}">${hRate(h)}%</span></div>`;
   }).join('')}</div>`;
 }
 
@@ -186,32 +188,32 @@ function hForm(){
   const d = hd;
   return `<div class="hcard edit" id="hEdit" style="--hc:${d.color}">
     <div class="hhd">
-      <button class="hsw" id="hSw" data-hpal style="background:${d.color}" title="Đổi màu"></button>
+      <button class="hsw" id="hSw" data-hpal style="background:${d.color}" title="${tr('hb.recolor')}"></button>
       <input class="fttl" id="hName" value="${esc(d.name)}" autocomplete="off"
-        placeholder="${d.kind === 'bad' ? 'Thói quen muốn bỏ, ví dụ: lướt điện thoại trên giường' : 'Thói quen muốn giữ, ví dụ: đọc 20 trang'}">
+        placeholder="${tr(d.kind === 'bad' ? 'hb.phBad' : 'hb.phGood')}">
     </div>
-    <div class="fld"><label>Loại</label><div class="seg">${Object.entries(HKINDS).map(([k, v]) =>
+    <div class="fld"><label>${tr('hb.kindLbl')}</label><div class="seg">${Object.entries(HKINDS).map(([k, v]) =>
       `<button class="${d.kind === k ? 'on' : ''}" style="${d.kind === k ? `background:${v.c};border-color:${v.c}` : ''}" data-hkind="${k}">${v.n}</button>`).join('')}</div></div>
-    <div class="fld"><label>Những ngày nào trong tuần</label>
+    <div class="fld"><label>${tr('hb.daysLbl')}</label>
       <div class="hpick">${HWK.map(i => `<button class="${d.days.includes(i) ? 'on' : ''}" data-hdow="${i}">${DOW[i]}</button>`).join('')}</div>
-      <div class="hint" style="margin:0">Cùng thứ, cùng giờ, cùng chỗ thì não sớm tự chạy mà không cần nhớ.
-        <button class="hpre" data-hpre="all">Mỗi ngày</button><button class="hpre" data-hpre="wd">T2–T6</button></div></div>
-    <div class="fld"><label>Chuỗi</label>
-      <label class="hgrace"><input type="checkbox" id="hGrace"${d.grace ? ' checked' : ''}>Cho phép lỡ một buổi</label>
-      <div class="hint" style="margin:0">Bỏ một buổi thì chuỗi giữ nguyên, chỉ không cộng thêm. Bỏ 2 buổi liên tiếp mới về 0.</div></div>
-    <div class="fld"><label>Ý định thực hiện</label>
-      <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="Sau khi ăn sáng, ở bàn làm việc" autocomplete="off">
-      <div class="hint" style="margin:0">Nên ghi rõ <b>sau việc gì</b> và <b>ở đâu</b>. Riêng việc viết ra câu này đã làm tỉ lệ thực hiện tăng gần gấp đôi trong các nghiên cứu.</div></div>
-    <div class="fld" id="hSwapFld"${d.kind === 'bad' ? '' : ' hidden'}><label>Thay bằng hành vi nào</label>
-      <input class="inp" id="hSwap" value="${esc(d.swap)}" placeholder="Cắm sạc điện thoại ngoài phòng, đọc sách giấy" autocomplete="off">
-      <div class="hint" style="margin:0">Cơn thèm vẫn sẽ đến, thứ đổi được là phản ứng. Mỗi ngày dùng được hành vi thay thế thì tick.</div></div>
-    <div class="fld"><label>Lý do</label>
+      <div class="hint" style="margin:0">${tr('hb.daysHint')}
+        <button class="hpre" data-hpre="all">${tr('hb.everyDay')}</button><button class="hpre" data-hpre="wd">${tr('hb.weekdays')}</button></div></div>
+    <div class="fld"><label>${tr('hb.streakLbl')}</label>
+      <label class="hgrace"><input type="checkbox" id="hGrace"${d.grace ? ' checked' : ''}>${tr('hb.graceLbl')}</label>
+      <div class="hint" style="margin:0">${tr('hb.graceHint')}</div></div>
+    <div class="fld"><label>${tr('hb.cueFld')}</label>
+      <input class="inp" id="hCue" value="${esc(d.cue)}" placeholder="${tr('hb.cuePh')}" autocomplete="off">
+      <div class="hint" style="margin:0">${tr('hb.cueHint')}</div></div>
+    <div class="fld" id="hSwapFld"${d.kind === 'bad' ? '' : ' hidden'}><label>${tr('hb.swapFld')}</label>
+      <input class="inp" id="hSwap" value="${esc(d.swap)}" placeholder="${tr('hb.swapPh')}" autocomplete="off">
+      <div class="hint" style="margin:0">${tr('hb.swapHint')}</div></div>
+    <div class="fld"><label>${tr('hb.why')}</label>
       <div class="hwbox"><div id="hWhyEd"></div></div>
-      <div class="hint" style="margin:0">Vì sao thói quen này đáng làm — thứ bạn sẽ cần đọc lại vào đúng hôm không muốn làm. Gõ <b>/</b> để chèn khối.</div></div>
+      <div class="hint" style="margin:0">${tr('hb.whyHint')}</div></div>
     <div class="hact">
-      <button class="btn" data-hsave>${d.id ? 'Lưu' : 'Thêm thói quen'}</button>
-      <button class="btn ghost" data-hcancel>Huỷ</button>
-      ${d.id ? `<button class="danger" data-hdel="${d.id}" style="margin-left:auto">Xoá thói quen</button>` : ''}
+      <button class="btn" data-hsave>${tr(d.id ? 'hb.save' : 'hb.addNew')}</button>
+      <button class="btn ghost" data-hcancel>${tr('hb.cancel')}</button>
+      ${d.id ? `<button class="danger" data-hdel="${d.id}" style="margin-left:auto">${tr('hb.del')}</button>` : ''}
     </div></div>`;
 }
 
@@ -228,9 +230,7 @@ function hSync(){
   });
   $$('[data-hdow]').forEach(b => b.classList.toggle('on', hd.days.includes(+b.dataset.hdow)));
   $('#hSwapFld').hidden = hd.kind !== 'bad';
-  $('#hName').placeholder = hd.kind === 'bad'
-    ? 'Thói quen muốn bỏ, ví dụ: lướt điện thoại trên giường'
-    : 'Thói quen muốn giữ, ví dụ: đọc 20 trang';
+  $('#hName').placeholder = tr(hd.kind === 'bad' ? 'hb.phBad' : 'hb.phGood');
 }
 
 function hOpen(h){
@@ -249,20 +249,20 @@ function hGrab(){
 }
 function hSave(){
   hGrab();
-  if(!hd.name.trim()) return toast('Thói quen này chưa có tên');
-  if(!hd.days.length) return toast('Thói quen cần ít nhất một ngày trong tuần');
+  if(!hd.name.trim()) return toast(tr('hb.noName'));
+  if(!hd.days.length) return toast(tr('hb.noDays'));
   hd.name = hd.name.trim(); hd.cue = hd.cue.trim(); hd.swap = hd.swap.trim();
   if(hd.id) Object.assign(S.habits.find(x => x.id === hd.id), hd);
   else { hd.id = uid(); S.habits.push(hd); }
   const name = hd.name;
-  hd = null; ui.hEdit = null; save(); render(); toast(`Đã lưu: ${name}`);
+  hd = null; ui.hEdit = null; save(); render(); toast(tr('hb.saved', {n: name}));
 }
 function hDel(id){
   const h = S.habits.find(x => x.id === id); if(!h) return;
   const n = Object.keys(h.log).length;
-  if(!confirm(`Xoá thói quen "${h.name}"? ${n} ngày đã đánh dấu sẽ mất theo và không khôi phục lại được.`)) return;
+  if(!confirm(tr('hb.askDel', {n: h.name, k: n}))) return;
   S.habits = S.habits.filter(x => x.id !== id);
-  hd = null; ui.hEdit = null; save(); render(); toast('Đã xoá thói quen');
+  hd = null; ui.hEdit = null; save(); render(); toast(tr('hb.deleted'));
 }
 
 function renderHabits(){
@@ -270,25 +270,25 @@ function renderHabits(){
   const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
   const best = S.habits.reduce((a, h) => Math.max(a, hRecord(h)), 0);
   $('#vSub').textContent = S.habits.length
-    ? `${S.habits.length} thói quen · hôm nay ${done}/${due.length} · chuỗi dài nhất ${best} buổi`
-    : 'Chưa có thói quen nào';
+    ? tr('hb.sub', {n: S.habits.length, a: done, b: due.length, best})
+    : tr('hb.subNone');
   $('#view').innerHTML = `<div class="tb">
-      <span class="hint" style="margin:0">Bấm ô trong lưới để đánh dấu hoặc bỏ đánh dấu một ngày</span>
-      <button class="btn" data-hnew style="margin-left:auto"${ui.hEdit ? ' hidden' : ''}>+ Thói quen mới</button></div>
+      <span class="hint" style="margin:0">${tr('hb.gridHint')}</span>
+      <button class="btn" data-hnew style="margin-left:auto"${ui.hEdit ? ' hidden' : ''}>${tr('hb.new')}</button></div>
     <div class="hlist">
       ${S.habits.length ? hSum() : ''}
       ${ui.hEdit === 'new' ? hForm() : ''}
       ${S.habits.map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
-      ${!S.habits.length && ui.hEdit !== 'new' ? '<div class="empty">Chưa có thói quen nào.<br>Bắt đầu bằng một thứ nhỏ đến mức khó mà bỏ — hạ ngưỡng khởi động nhẹ nhàng hơn nhiều so với việc gồng ý chí.</div>' : ''}
+      ${!S.habits.length && ui.hEdit !== 'new' ? `<div class="empty">${tr('hb.empty')}</div>` : ''}
     </div>`;
   wireHabits();
   S.habits.forEach(h => {
     if(h.open && ui.hEdit !== h.id)
-      mountEd('hWhy-' + h.id, h.why || '', 'Vì sao thói quen này đáng làm? Gõ / để chèn khối',
+      mountEd('hWhy-' + h.id, h.why || '', tr('hb.whyPh'),
               v => { h.why = v; save(); });
   });
   // trong form thì ghi vào bản nháp, chỉ vào dữ liệu thật khi bấm Lưu
-  if(hd) mountEd('hWhyEd', hd.why || '', 'Vì sao thói quen này đáng làm? Gõ / để chèn khối',
+  if(hd) mountEd('hWhyEd', hd.why || '', tr('hb.whyPh'),
                  v => { hd.why = v; });
 }
 function wireHabits(){

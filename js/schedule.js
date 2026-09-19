@@ -33,10 +33,10 @@ function drawDP(){
   }
   $('#dpEl').innerHTML = `
     <div class="dphd"><button class="dpnav" data-mv="-1">‹</button>
-      <b>Tháng ${m+1} / ${y}</b><button class="dpnav" data-mv="1">›</button></div>
+      <b>${tr('cal.monthTitle', {m: m + 1, M: tr(`mon.${m + 1}`), y})}</b><button class="dpnav" data-mv="1">›</button></div>
     <div class="dpg">${DOW.map(d => `<div class="w">${d}</div>`).join('')}${cells}</div>
-    <div class="dpft"><button data-pick="${today()}">Hôm nay</button>
-      ${dp.clear ? '<button data-pick="">Xoá hạn</button>' : ''}</div>`;
+    <div class="dpft"><button data-pick="${today()}">${tr('common.today')}</button>
+      ${dp.clear ? `<button data-pick="">${tr('dp.clearDue')}</button>` : ''}</div>`;
 
   $('#dpEl').querySelectorAll('[data-mv]').forEach(b => b.onclick = () => {
     dp.month = new Date(dp.month.getFullYear(), dp.month.getMonth() + (+b.dataset.mv), 1); drawDP();
@@ -49,7 +49,8 @@ function drawDP(){
 /* ============ khung giờ & nhắc việc ============ */
 // giờ của task gắn với ngày hạn chót: có t.due và t.time thì task hiện trên lịch trong ngày
 const toMin  = s => +s.slice(0,2) * 60 + +s.slice(3,5);
-const fmtDur = m => m < 60 ? `${m} phút` : (m % 60 ? `${Math.floor(m/60)}g${m % 60}` : `${m/60} giờ`);
+const fmtDur = m => m < 60 ? tr('dur.min', {m})
+  : (m % 60 ? tr('dur.hm', {h: Math.floor(m/60), m: m % 60}) : tr('dur.h', {h: m/60}));
 
 // ô chọn giờ / thời lượng / nhắc trước: dùng chung cho panel chi tiết và form tạo task
 function slotFieldHTML(pre, x){
@@ -57,10 +58,10 @@ function slotFieldHTML(pre, x){
   const off = x.time ? '' : ' disabled';
   const times = x.time && !TIMES.includes(x.time) ? [x.time, ...TIMES].sort() : TIMES;   // giờ lẻ (sửa tay trong file) vẫn hiện đúng
   return `<div class="slot">
-    <select class="inp" id="${pre}Time" title="Giờ bắt đầu">${opt('', 'Không đặt giờ', x.time || '')}${times.map(v => opt(v, v, x.time)).join('')}</select>
-    <select class="inp" id="${pre}Dur" title="Thời lượng"${off}>${DURS.map(m => opt(m, fmtDur(m), x.dur || 60)).join('')}</select>
-    <select class="inp" id="${pre}Rem" title="Nhắc trước"${off}>${Object.entries(REMINDS).map(([m, n]) =>
-      opt(m, +m ? 'Nhắc trước ' + n : n, x.remind ?? 30)).join('')}</select>
+    <select class="inp" id="${pre}Time" title="${tr('slot.timeT')}">${opt('', tr('slot.noTime'), x.time || '')}${times.map(v => opt(v, v, x.time)).join('')}</select>
+    <select class="inp" id="${pre}Dur" title="${tr('slot.durT')}"${off}>${DURS.map(m => opt(m, fmtDur(m), x.dur || 60)).join('')}</select>
+    <select class="inp" id="${pre}Rem" title="${tr('slot.remT')}"${off}>${Object.entries(REMINDS).map(([m, n]) =>
+      opt(m, +m ? tr('slot.remPre', {n}) : n, x.remind ?? 30)).join('')}</select>
   </div>`;
 }
 function bindSlotField(root, pre, set){
@@ -92,7 +93,7 @@ let sdScrolled = null;  // ngày đã tự cuộn tới — vẽ lại cùng ng�
 function renderSideCal(){
   if(!ui.sDate) ui.sDate = today();
   const d = new Date(ui.sDate + 'T00:00:00');
-  $('#sdDay').textContent = ui.sDate === today() ? 'Hôm nay' : `${DOW[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
+  $('#sdDay').textContent = ui.sDate === today() ? tr('common.today') : `${DOW[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}`;
   const evs = dayLayout(S.tasks.filter(t => t.status !== 'backlog'), ui.sDate);
 
   const box = $('#sdCal'), keep = box.scrollTop;
@@ -136,8 +137,9 @@ function checkReminders(){
     if(now < start - t.remind * 6e4 || now >= start + (t.dur || 60) * 6e4) return;
     t.rmd = key; hit++;
     S.notis.unshift({id:uid(), tid:t.id, title:t.title, start:`${t.due}T${t.time}`, at:new Date().toISOString(), read:false});
-    const when = start > now ? `bắt đầu lúc ${t.time} (còn ${Math.round((start - now) / 6e4)} phút)` : `đã bắt đầu lúc ${t.time}`;
-    toast(`◷ ${t.title} — ${when}`);
+    const when = start > now ? tr('noti.soon', {t: t.time, n: Math.round((start - now) / 6e4)})
+      : tr('noti.started', {t: t.time});
+    toast(tr('noti.toast', {title: t.title, when}));
     sysNotify(t, when);
   });
   if(hit){ S.notis = S.notis.slice(0, 50); save(); paintBell(); if(!$('#bellP').hidden) drawBell(); }
@@ -145,7 +147,7 @@ function checkReminders(){
 function sysNotify(t, body){
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
   try{
-    const n = new Notification(t.title || 'Nhắc việc', {body, tag:t.id});
+    const n = new Notification(t.title || tr('noti.title'), {body, tag:t.id});
     n.onclick = () => { window.focus(); openTask(t.id); n.close(); };
   }catch(e){}
 }
@@ -156,21 +158,22 @@ function paintBell(){
   b.hidden = !n; b.textContent = n > 9 ? '9+' : n;
 }
 function drawBell(){
-  const when = s => { const [d, h] = s.split('T'); return d === today() ? `hôm nay ${h}` : `${fmtVN(d)} ${h}`; };
+  const when = s => { const [d, h] = s.split('T');
+    return d === today() ? tr('bell.whenToday', {h}) : tr('bell.when', {d: fmtVN(d), h}); };
   const ask = 'Notification' in window && Notification.permission === 'default';
-  $('#bellP').innerHTML = `<div class="bphd"><b>Thông báo</b>
-      ${S.notis.length ? '<button class="lblbtn" id="bClr">Xoá hết</button>' : ''}</div>
-    ${ask ? '<button class="bperm" id="bPerm">Bật thông báo hệ thống — để được nhắc cả khi đang ở cửa sổ khác</button>' : ''}
+  $('#bellP').innerHTML = `<div class="bphd"><b>${tr('bell.head')}</b>
+      ${S.notis.length ? `<button class="lblbtn" id="bClr">${tr('bell.clear')}</button>` : ''}</div>
+    ${ask ? `<button class="bperm" id="bPerm">${tr('bell.perm')}</button>` : ''}
     <div class="bplist">${S.notis.length
-      ? S.notis.map(x => `<button class="bpi${x.read ? '' : ' new'}" data-noti="${x.tid}"><b>${esc(x.title || '(chưa đặt tên)')}</b>
-          <span>Bắt đầu ${when(x.start)} · nhắc lúc ${new Date(x.at).toTimeString().slice(0,5)}</span></button>`).join('')
-      : '<div class="nofil" style="padding:14px">Chưa có thông báo. Task có đặt giờ sẽ được nhắc ở đây.</div>'}</div>`;
+      ? S.notis.map(x => `<button class="bpi${x.read ? '' : ' new'}" data-noti="${x.tid}"><b>${esc(x.title || tr('task.untitled'))}</b>
+          <span>${tr('bell.item', {when: when(x.start), at: new Date(x.at).toTimeString().slice(0,5)})}</span></button>`).join('')
+      : `<div class="nofil" style="padding:14px">${tr('bell.none')}</div>`}</div>`;
   const P = $('#bellP');
   P.querySelector('#bClr')?.addEventListener('click', () => { S.notis = []; save(); paintBell(); drawBell(); });
   P.querySelector('#bPerm')?.addEventListener('click', async () => { try{ await Notification.requestPermission(); }catch(e){} drawBell(); });
   P.querySelectorAll('[data-noti]').forEach(b => b.onclick = () => {
     closeBell();
-    if(S.tasks.some(t => t.id === b.dataset.noti)) openTask(b.dataset.noti); else toast('Task này đã bị xoá.');
+    if(S.tasks.some(t => t.id === b.dataset.noti)) openTask(b.dataset.noti); else toast(tr('bell.gone'));
   });
 }
 function toggleBell(){

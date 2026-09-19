@@ -1,26 +1,23 @@
 /* ============ hằng số ============ */
-const AREAS = {work:{n:'Công việc',c:'#3b82f6'}, life:{n:'Cuộc sống',c:'#a855f7'}, other:{n:'Khác',c:'#64748b'}};
-const PRIOS = {low:{n:'Thấp',c:'#22c55e'}, med:{n:'Trung bình',c:'#f59e0b'}, high:{n:'Cao',c:'#f43f5e'}};
-const COLS  = {todo:{n:'Cần làm',c:'#64748b'}, doing:{n:'Đang làm',c:'#6366f1'}, done:{n:'Xong',c:'#22c55e'}};
+const AREAS = {work:{n:tr('area.work'),c:'#3b82f6'}, life:{n:tr('area.life'),c:'#a855f7'}, other:{n:tr('area.other'),c:'#64748b'}};
+const PRIOS = {low:{n:tr('prio.low'),c:'#22c55e'}, med:{n:tr('prio.med'),c:'#f59e0b'}, high:{n:tr('prio.high'),c:'#f43f5e'}};
+const COLS  = {todo:{n:tr('col.todo'),c:'#64748b'}, doing:{n:tr('col.doing'),c:'#6366f1'}, done:{n:tr('col.done'),c:'#22c55e'}};
 // "Để sau": việc chưa cam kết làm — không lên bảng, lịch, nhắc việc, thống kê
-const STATUSES = {backlog:{n:'Để sau',c:'#94a3b8'}, ...COLS};
-const SCOPES = {today:'Hôm nay', week:'7 ngày', month:'Tháng này', all:'Tất cả'};
-const DUES   = {over:'Trễ hạn', today:'Hạn hôm nay', none:'Chưa có hạn'};
+const STATUSES = {backlog:{n:tr('status.backlog'),c:'#94a3b8'}, ...COLS};
+const SCOPES = {today:tr('scope.today'), week:tr('scope.week'), month:tr('scope.month'), all:tr('scope.all')};
+const DUES   = {over:tr('due.over'), today:tr('due.today'), none:tr('due.none')};
 const DONE_MAX = 10;   // số task hiện sẵn ở cột Xong
-const SORTS  = {manual:'Thủ công', prio:'Theo ưu tiên', group:'Chia nhóm ưu tiên'};
+const SORTS  = {manual:tr('sort.manual'), prio:tr('sort.prio'), group:tr('sort.group')};
 const PRIO_ORDER = ['high', 'med', 'low'];
-const DOW   = ['CN','T2','T3','T4','T5','T6','T7'];
+const DOW   = Array.from({length:7}, (_, i) => tr(`dow.${i}`));
 // thói quen: good = việc muốn giữ, bad = việc muốn bỏ (tick = hôm nay đã dùng hành vi thay thế)
-const HKINDS = {good:{n:'Nên làm', c:'#22c55e'}, bad:{n:'Nên bỏ', c:'#f43f5e'}};
+const HKINDS = {good:{n:tr('hkind.good'), c:'#22c55e'}, bad:{n:tr('hkind.bad'), c:'#f43f5e'}};
 const HWEEKS = 12;   // số tuần hiện trên lưới theo dõi thói quen
 // câu mừng theo mốc chuỗi; 66 là số ngày trung bình để một hành vi thành tự động (Lally, 2010)
-const HMARKS = {1:'bắt đầu là phần khó nhất, xong rồi!', 3:'nhịp đang hình thành.',
-  7:'một tuần liền!', 14:'hai tuần liền, đã thành nếp.', 21:'21 buổi liền!',
-  30:'30 buổi liền, rất đáng nể.', 66:'mốc trung bình để một hành vi thành tự động!',
-  100:'100 buổi liền 🎉'};
+const HMARKS = Object.fromEntries([1, 3, 7, 14, 21, 30, 66, 100].map(n => [n, tr(`hmark.${n}`)]));
 // tập trung (pomodoro): 3 pha của đồng hồ và cài đặt mặc định.
 // look: nền toàn màn hình theo pha — màu c, ảnh img (mã trong kho ảnh), độ rõ ảnh op (%), lớp phủ dim (âm = sáng, dương = tối)
-const FPHASE = {work:'Tập trung', short:'Nghỉ ngắn', long:'Nghỉ dài'};
+const FPHASE = {work:tr('fphase.work'), short:tr('fphase.short'), long:tr('fphase.long')};
 const FCFG = {work:40, short:10, long:15, every:3, buffer:20, auto:false,
   qmax:3, confirmSw:true, pauseAsk:2,
   goal:2, miss:1, weekend:true,
@@ -42,32 +39,32 @@ const keptView = () => {
 // khung giờ: bước 30 phút; nhắc trước tính bằng phút, 0 = không nhắc
 const TIMES   = Array.from({length:48}, (_, i) => `${String(i >> 1).padStart(2,'0')}:${i % 2 ? '30' : '00'}`);
 const DURS    = [15, 30, 45, 60, 90, 120, 180, 240];
-const REMINDS = {0:'Không nhắc', 5:'5 phút', 10:'10 phút', 15:'15 phút', 30:'30 phút', 60:'1 giờ', 1440:'1 ngày'};
+const REMINDS = Object.fromEntries([0, 5, 10, 15, 30, 60, 1440].map(n => [n, tr(`remind.${n}`)]));
 // lịch trình trong ngày (xem plan.js): khối đời sống nối tiếp nhau, không phải event rời như task.
 // bước 15 phút chứ không 30 như TIMES, vì mốc thật hay lệch 15 phút.
 const PSTEP  = 15;
-const PKINDS = {sleep:{n:'Ngủ',c:'#4f46e5'}, self:{n:'Bản thân',c:'#10b981'}, move:{n:'Di chuyển',c:'#64748b'},
-                work:{n:'Làm việc',c:'#3b82f6'}, eat:{n:'Ăn',c:'#f59e0b'}, rest:{n:'Nghỉ',c:'#a855f7'}};
+const PKINDS = {sleep:{n:tr('pkind.sleep'),c:'#4f46e5'}, self:{n:tr('pkind.self'),c:'#10b981'}, move:{n:tr('pkind.move'),c:'#64748b'},
+                work:{n:tr('pkind.work'),c:'#3b82f6'}, eat:{n:tr('pkind.eat'),c:'#f59e0b'}, rest:{n:tr('pkind.rest'),c:'#a855f7'}};
 // mẫu lịch trình: [giờ đầu, giờ cuối, loại, tên]. Đây chỉ là mẫu khởi đầu cho người mới:
 // sửa thẳng trên trang Lịch trình rồi bấm "Lưu thành mẫu mới" để có mẫu của riêng mình.
 const PTPL = {
-  'Ngày thường': [
-    ['00:00','07:00','sleep','Ngủ'],
-    ['07:00','08:00','self','Thức dậy · ăn sáng'],
-    ['08:00','08:30','move','Đi làm'],
-    ['08:30','12:00','work','Làm việc'],
-    ['12:00','13:00','eat','Ăn trưa'],
-    ['13:00','17:30','work','Làm việc'],
-    ['17:30','18:00','move','Về nhà'],
-    ['18:00','19:00','self','Vận động'],
-    ['19:00','19:45','eat','Ăn tối'],
-    ['19:45','22:00','rest','Rảnh — không lên kế hoạch'],
-    ['22:00','22:30','self','Chuẩn bị đi ngủ'],
-    ['22:30','24:00','sleep','Ngủ'],
+  [tr('ptpl.weekday')]: [
+    ['00:00','07:00','sleep',tr('ptpl.sleep')],
+    ['07:00','08:00','self',tr('ptpl.wake')],
+    ['08:00','08:30','move',tr('ptpl.commuteIn')],
+    ['08:30','12:00','work',tr('ptpl.work')],
+    ['12:00','13:00','eat',tr('ptpl.lunch')],
+    ['13:00','17:30','work',tr('ptpl.work')],
+    ['17:30','18:00','move',tr('ptpl.commuteOut')],
+    ['18:00','19:00','self',tr('ptpl.exercise')],
+    ['19:00','19:45','eat',tr('ptpl.dinner')],
+    ['19:45','22:00','rest',tr('ptpl.free')],
+    ['22:00','22:30','self',tr('ptpl.winddown')],
+    ['22:30','24:00','sleep',tr('ptpl.sleep')],
   ],
 };
 // mẫu mặc định cho từng thứ, theo thứ tự DOW (0 = CN). Ngày mới mở lấy mẫu của thứ đó.
-const PDOW = Array(7).fill('Ngày thường');
+const PDOW = Array(7).fill(tr('ptpl.weekday'));
 const PVER = 2;   // v1 chỉ có 2 mẫu và chưa có dow
 const pNorm = (p = {}) => {
   const tpl = Object.keys(p.tpl || {}).length ? {...p.tpl} : structuredClone(PTPL);

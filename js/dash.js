@@ -40,39 +40,39 @@ function renderDash(){
       <div class="bk"><i style="width:${total?Math.round(v/total*100):0}%;background:${c}"></i></div></div>`).join('')
   }</div></div>`;
 
-  $('#vSub').textContent = `${total} task trong phạm vi đang lọc`;
+  $('#vSub').textContent = tr('dash.sub', {n: total});
   $('#view').innerHTML = `
     <div class="grid stats">
-      ${stat('Chưa xong', total - done, `${by('doing')} đang làm · ${by('todo')} chờ`)}
-      ${stat('Xong tuần này', week, 'trong 7 ngày gần nhất', '#22c55e')}
-      ${stat('Trễ hạn', overdue, overdue ? 'cần xử lý ngay' : 'không có việc nào trễ', overdue ? '#f43f5e' : null)}
-      ${stat('Tỷ lệ hoàn thành', rate + '%', `${done}/${total} task`)}
-      ${stat('Tiến độ trung bình', avgPg + '%', 'trên toàn bộ task')}
-      ${stat('Chuỗi viết nhật ký', streak, streak ? `${streak} ngày liên tiếp` : 'hôm nay chưa viết', streak ? '#818cf8' : null)}
-      ${S.habits.length ? stat('Thói quen hôm nay', `${hOkN}/${hDueL.length}`,
-        hBest ? `chuỗi dài nhất ${hBest} buổi` : 'chưa có chuỗi nào',
+      ${stat(tr('dash.open'), total - done, tr('dash.openD', {a: by('doing'), b: by('todo')}))}
+      ${stat(tr('dash.weekDone'), week, tr('dash.weekDoneD'), '#22c55e')}
+      ${stat(tr('dash.overdue'), overdue, tr(overdue ? 'dash.overdueD' : 'dash.overdueOk'), overdue ? '#f43f5e' : null)}
+      ${stat(tr('dash.rate'), rate + '%', tr('dash.rateD', {a: done, b: total}))}
+      ${stat(tr('dash.avg'), avgPg + '%', tr('dash.avgD'))}
+      ${stat(tr('dash.jStreak'), streak, streak ? tr('dash.jStreakD', {n: streak}) : tr('dash.jStreakNo'), streak ? '#818cf8' : null)}
+      ${S.habits.length ? stat(tr('dash.habits'), `${hOkN}/${hDueL.length}`,
+        hBest ? tr('dash.habitsD', {n: hBest}) : tr('dash.habitsNo'),
         hDueL.length && hOkN === hDueL.length ? '#22c55e' : null) : ''}
     </div>
     <div class="grid panes">
-      <div class="pane"><h3>Phân bố trạng thái</h3><div class="donut">
+      <div class="pane"><h3>${tr('dash.byStatus')}</h3><div class="donut">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r="52" fill="none" stroke="#2a2f3c" stroke-width="15"/>
           ${arcs}
           <text x="60" y="56" text-anchor="middle" fill="#e7e9ef" font-size="21" font-weight="700">${rate}%</text>
-          <text x="60" y="74" text-anchor="middle" fill="#646d80" font-size="10">hoàn thành</text>
+          <text x="60" y="74" text-anchor="middle" fill="#646d80" font-size="10">${tr('dash.donutSub')}</text>
         </svg>
         <div class="lg">${seg.map(([k,v]) =>
           `<div class="lgi"><span class="sw" style="background:${COLS[k].c}"></span>${COLS[k].n}<b>${v}</b></div>`).join('')}</div>
       </div></div>
 
-      <div class="pane"><h3>Việc hoàn thành 7 ngày qua</h3>
+      <div class="pane"><h3>${tr('dash.week')}</h3>
         <div class="wk">${wk.map(d => `<div class="wkd">
           <div class="wkv">${d.v || ''}</div>
           <div class="wktrack"><div class="wkb" style="height:${Math.max(3, Math.round(d.v/mx*100))}%;opacity:${d.v?1:.25}"></div></div>
           <div class="wkl">${d.l}</div></div>`).join('')}</div>
       </div>
 
-      ${barPane('Theo mảng', Object.entries(AREAS).map(([k,a]) => [a.n, list.filter(t => t.area === k).length, a.c]))}
-      ${barPane('Theo ưu tiên', Object.entries(PRIOS).reverse().map(([k,p]) => [p.n, list.filter(t => t.prio === k).length, p.c]))}
+      ${barPane(tr('dash.byArea'), Object.entries(AREAS).map(([k,a]) => [a.n, list.filter(t => t.area === k).length, a.c]))}
+      ${barPane(tr('dash.byPrio'), Object.entries(PRIOS).reverse().map(([k,p]) => [p.n, list.filter(t => t.prio === k).length, p.c]))}
     </div>`;
 }

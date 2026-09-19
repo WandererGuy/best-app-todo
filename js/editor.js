@@ -1,6 +1,6 @@
 /* ============ markdown ============ */
 function md(src){
-  if(!src || !src.trim()) return '<p class="ph">Chưa có nội dung.</p>';
+  if(!src || !src.trim()) return `<p class="ph">${tr('ed.empty')}</p>`;
   const blocks = [];
   let t = src.replace(/\r\n/g,'\n').replace(/```([\s\S]*?)```/g, (m,code) => {
     blocks.push(code.replace(/^\n/,'').replace(/\n$/,''));
@@ -51,18 +51,18 @@ const plain   = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g,
 const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=/i.test(h || '');
 
 const BLOCKS = [
-  {k:'p',   n:'Văn bản',            ic:'¶',  key:''},
-  {k:'h1',  n:'Tiêu đề lớn',        ic:'H1', key:'# '},
-  {k:'h2',  n:'Tiêu đề vừa',        ic:'H2', key:'## '},
-  {k:'h3',  n:'Tiêu đề nhỏ',        ic:'H3', key:'### '},
-  {k:'td',  n:'Danh sách việc',     ic:'✓',  key:'[] '},
-  {k:'ul',  n:'Gạch đầu dòng',      ic:'•',  key:'- '},
-  {k:'ol',  n:'Danh sách đánh số',  ic:'1.', key:'1. '},
-  {k:'q',   n:'Trích dẫn',          ic:'❝',  key:'> '},
-  {k:'pre', n:'Khối code',          ic:'‹›', key:'```'},
-  {k:'hr',  n:'Đường kẻ ngang',     ic:'—',  key:'---'},
-  {k:'img', n:'Ảnh',                ic:'▣',  key:'Ctrl+V'},
-  {k:'file', n:'File đính kèm',      ic:'📎', key:'kéo thả'},
+  {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
+  {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
+  {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
+  {k:'h3',  n:tr('blk.h3'),  ic:'H3', key:'### '},
+  {k:'td',  n:tr('blk.td'),  ic:'✓',  key:'[] '},
+  {k:'ul',  n:tr('blk.ul'),  ic:'•',  key:'- '},
+  {k:'ol',  n:tr('blk.ol'),  ic:'1.', key:'1. '},
+  {k:'q',   n:tr('blk.q'),   ic:'❝',  key:'> '},
+  {k:'pre', n:tr('blk.pre'), ic:'‹›', key:'```'},
+  {k:'hr',  n:tr('blk.hr'),  ic:'—',  key:'---'},
+  {k:'img', n:tr('blk.img'), ic:'▣',  key:'Ctrl+V'},
+  {k:'file', n:tr('blk.file'), ic:'📎', key:tr('blk.fileKey')},
 ];
 
 /* dữ liệu cũ (markdown, hoặc HTML do bản tự viết sinh ra) -> định dạng TipTap hiểu */
@@ -145,7 +145,7 @@ function openSlash(ed, info){
   }
   el.innerHTML = hit.length
     ? hit.map((b, i) => `<button class="${i ? '' : 'on'}" data-b="${b.k}"><span class="ic3">${b.ic}</span>${b.n}<span class="k">${b.key}</span></button>`).join('')
-    : '<div class="none">Không có lệnh nào khớp</div>';
+    : `<div class="none">${tr('ed.noCmd')}</div>`;
   el.querySelectorAll('[data-b]').forEach(b =>
     b.onmousedown = e => { e.preventDefault(); pickSlash(b.dataset.b); });
 
@@ -180,11 +180,11 @@ function slashKeys(e, ed){
 
 /* --- thanh công cụ nổi khi bôi đen --- */
 const MARKS = [
-  {k:'bold',   l:'<b>B</b>',  t:'Đậm (Ctrl+B)'},
-  {k:'italic', l:'<i>I</i>',  t:'Nghiêng (Ctrl+I)'},
-  {k:'strike', l:'<s>S</s>',  t:'Gạch ngang'},
-  {k:'code',   l:'‹›',        t:'Code (Ctrl+E)'},
-  {k:'link',   l:'↗',         t:'Chèn link (Ctrl+K)'},
+  {k:'bold',   l:'<b>B</b>',  t:tr('mark.bold')},
+  {k:'italic', l:'<i>I</i>',  t:tr('mark.italic')},
+  {k:'strike', l:'<s>S</s>',  t:tr('mark.strike')},
+  {k:'code',   l:'‹›',        t:tr('mark.code')},
+  {k:'link',   l:'↗',         t:tr('mark.link')},
 ];
 function showFtb(ed, r){
   let el = document.getElementById('ftbEl');

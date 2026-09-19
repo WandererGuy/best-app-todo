@@ -54,6 +54,7 @@ button{background:none;border:none;cursor:pointer}
 .sidefoot{margin-top:auto;padding-top:16px;display:flex;gap:6px}
 .sidefoot button{flex:1;font-size:11.5px;padding:7px;border-radius:7px;background:var(--panel2);color:var(--tx2);border:1px solid var(--line)}
 .sidefoot button:hover{color:var(--tx);border-color:#3a4254}
+#langBtn{flex:0 0 40px;letter-spacing:.5px}
 
 /* ---------- topbar ---------- */
 #top{

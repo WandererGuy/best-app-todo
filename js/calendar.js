@@ -1,5 +1,5 @@
 /* ============ lịch ============ */
-const CAL_MODES = {day:'Ngày', week:'Tuần', month:'Tháng'};
+const CAL_MODES = {day:tr('cal.day'), week:tr('cal.week'), month:tr('cal.month')};
 function renderCal(){
   if(!ui.calD) ui.calD = today();
   if(!CAL_MODES[ui.calMode]) ui.calMode = 'month';
@@ -22,7 +22,7 @@ function renderCal(){
 const calBar = (title, hint) => `<div class="calbar">
     <button class="nvb" id="pm">‹</button><button class="nvb" id="nm">›</button>
     <h2>${title}</h2>
-    <button class="btn ghost" id="tdy">Hôm nay</button>
+    <button class="btn ghost" id="tdy">${tr('common.today')}</button>
     <div class="scope" id="calModes"></div>
     <span class="meta" style="margin-left:auto">${hint}</span>
   </div>`;
@@ -41,19 +41,19 @@ function renderTimeGrid(A){
     : `${a.getDate()}/${a.getMonth()+1} – ${b.getDate()}/${b.getMonth()+1}/${b.getFullYear()}`;
   const timed = list.filter(t => t.time && keys.includes(t.due)).length;
   const allDay = list.filter(t => !t.time && keys.includes(t.due)).length;
-  $('#vSub').textContent = `${timed} task có giờ · ${allDay} task cả ngày`;
+  $('#vSub').textContent = tr('cal.subGrid', {a: timed, b: allDay});
 
   const old = $('#wvBox'), keep = old ? old.scrollTop : 0;
   const cols = `style="--cols:${n}"`;
-  $('#view').innerHTML = calBar(title, 'Bấm khung giờ trống để tạo task · bấm tên ngày để xem riêng ngày đó') + `
+  $('#view').innerHTML = calBar(title, tr('cal.hintGrid')) + `
     <div class="wv" id="wvBox">
       <div class="wvhead">
         <div class="wvrow" ${cols}><div></div>${days.map((d, i) => `<div class="wvdh${keys[i] === today() ? ' today' : ''}" data-cday="${keys[i]}">
           <div class="w">${DOW[d.getDay()]}</div><div class="n"><span>${d.getDate()}</span></div></div>`).join('')}</div>
-        <div class="wvrow wvall" ${cols}><div class="wvlbl">Cả ngày</div>${keys.map(k => {
+        <div class="wvrow wvall" ${cols}><div class="wvlbl">${tr('cal.allDay')}</div>${keys.map(k => {
           const evs = list.filter(t => t.due === k && !t.time);
           return `<div class="wvallc">${evs.slice(0, 3).map(t => `<div class="ev${t.status === 'done' ? ' done' : ''}" style="border-left-color:${AREAS[t.area].c}" data-id="${t.id}">${esc(t.title)}</div>`).join('')}
-            ${evs.length > 3 ? `<div class="more" data-cday="${k}">+${evs.length - 3} nữa</div>` : ''}</div>`;
+            ${evs.length > 3 ? `<div class="more" data-cday="${k}">${tr('cal.more', {n: evs.length - 3})}</div>` : ''}</div>`;
         }).join('')}</div>
       </div>
       <div class="wvgrid" ${cols}>
@@ -65,7 +65,7 @@ function renderTimeGrid(A){
               style="top:${e.a / 60 * GH}px;height:${Math.max(20, (e.b - e.a) / 60 * GH - 2)}px;
                      left:calc((100% - 6px) * ${e.lane} / ${e.w} + 2px);width:calc((100% - 6px) / ${e.w} - 2px);
                      border-left-color:${c};background:${c}33">
-              <b>${esc(e.t.title) || '<span class="ph">(chưa đặt tên)</span>'}</b><span class="tm">${e.t.time} · ${fmtDur(e.b - e.a)}</span></div>`; }).join('')}
+              <b>${esc(e.t.title) || `<span class="ph">${tr('task.untitled')}</span>`}</b><span class="tm">${e.t.time} · ${fmtDur(e.b - e.a)}</span></div>`; }).join('')}
           ${k === today() ? `<div class="sdnow" data-now="${GH}"></div>` : ''}
         </div>`).join('')}
       </div>
@@ -106,12 +106,12 @@ function renderMonth(A){
     cells += `<div class="cell${off?' off':''}${key===today()?' today':''}" data-day="${key}">
       <div class="cellhd"><span class="dn">${d.getDate()}</span>${hasJ?'<span class="jdot">✎</span>':''}</div>
       ${evs.slice(0,3).map(t => `<div class="ev${t.status==='done'?' done':''}" style="border-left-color:${AREAS[t.area].c}" data-id="${t.id}">${t.time ? `<b>${t.time}</b> ` : ''}${esc(t.title)}</div>`).join('')}
-      ${evs.length > 3 ? `<div class="more">+${evs.length-3} nữa</div>` : ''}
+      ${evs.length > 3 ? `<div class="more">${tr('cal.more', {n: evs.length - 3})}</div>` : ''}
     </div>`;
   }
   const withDue = list.filter(t => t.due && t.due.startsWith(`${y}-${String(m+1).padStart(2,'0')}`)).length;
-  $('#vSub').textContent = `${withDue} task có hạn trong tháng này`;
-  $('#view').innerHTML = calBar(`Tháng ${m+1} / ${y}`, 'Bấm vào ngày để mở nhật ký · bấm task để xem chi tiết') + `
+  $('#vSub').textContent = tr('cal.subMonth', {n: withDue});
+  $('#view').innerHTML = calBar(tr('cal.monthTitle', {m: m + 1, M: tr(`mon.${m + 1}`), y}), tr('cal.hintMonth')) + `
     <div class="cal">${DOW.map(d => `<div class="dow">${d}</div>`).join('')}${cells}</div>`;
 
   $$('.cell').forEach(c => c.onclick = e => {

@@ -14,8 +14,8 @@ function syncTags(){ [...S.tasks, ...S.notes].forEach(t => (t.tags || []).forEac
 function delTag(name){
   const n = S.tasks.filter(t => (t.tags || []).includes(name)).length;
   const m = S.notes.filter(t => (t.tags || []).includes(name)).length;
-  const used = [n && `${n} task`, m && `${m} trang ghi chú`].filter(Boolean).join(' và ');
-  if(!confirm(used ? `Xoá tag "#${name}"? Tag sẽ bị gỡ khỏi ${used}.` : `Xoá tag "#${name}"?`)) return;
+  const used = [n && tr('tag.useTask', {n}), m && tr('tag.useNote', {n: m})].filter(Boolean).join(tr('tag.useJoin'));
+  if(!confirm(used ? tr('tag.askDelUsed', {n: name, u: used}) : tr('tag.askDel', {n: name}))) return;
   delete S.tags[name];
   [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash].forEach(t => { if(t.tags) t.tags = t.tags.filter(x => x !== name); });
   if(nf) nf.tags = nf.tags.filter(x => x !== name);
@@ -24,10 +24,10 @@ function delTag(name){
 }
 // đổi tên: nếu trùng một tag khác thì hỏi gộp (giữ màu của tag đích)
 function renameTag(old){
-  const v = (prompt('Tên mới cho tag:', old) || '').trim().replace(/^#/,'');
+  const v = (prompt(tr('tag.askName'), old) || '').trim().replace(/^#/,'');
   if(!v || v === old) return;
   const hit = Object.keys(S.tags).find(n => n !== old && n.toLowerCase() === v.toLowerCase());
-  if(hit && !confirm(`Tag "#${hit}" đã có. Gộp "#${old}" vào "#${hit}"?`)) return;
+  if(hit && !confirm(tr('tag.askMerge', {h: hit, o: old}))) return;
   const to = hit || v;
   if(!hit) S.tags[to] = S.tags[old];
   delete S.tags[old];
@@ -50,7 +50,7 @@ function bindTagField(root, id, cur, onAdd, onRm){
   const paint = () => {   // gợi ý tag có sẵn, lọc theo chữ đang gõ
     const q = inp.value.trim().replace(/^#/,'').toLowerCase();
     sug.innerHTML = tagNames().filter(n => !cur.includes(n) && n.toLowerCase().includes(q))
-      .map(n => `<button class="tgx" style="${tagStyle(n)}" data-addtag="${esc(n)}" title="Gắn tag này">#${esc(n)}</button>`).join('');
+      .map(n => `<button class="tgx" style="${tagStyle(n)}" data-addtag="${esc(n)}" title="${tr('tag.attach')}">#${esc(n)}</button>`).join('');
     sug.querySelectorAll('[data-addtag]').forEach(b => b.onclick = () => onAdd(b.dataset.addtag));
   };
   inp.oninput = paint; paint();
@@ -69,9 +69,9 @@ function openPal(anchor, cur, onPick){
   const el = document.createElement('div'); el.className = 'pal'; el.id = 'palEl';
   el.innerHTML = TAG_PAL.flat().map(c =>
     `<button class="${c === cur ? 'on' : ''}" style="background:${c}" data-pc="${c}"></button>`).join('')
-    + `<div class="palft"><span>Màu khác</span>
-        <input type="color" class="palpick" value="${cur || '#818cf8'}" title="Chọn màu bất kỳ">
-        <input class="palhex" value="${cur || ''}" placeholder="#rrggbb" maxlength="7" title="Gõ mã màu rồi Enter"></div>`;
+    + `<div class="palft"><span>${tr('tag.otherColor')}</span>
+        <input type="color" class="palpick" value="${cur || '#818cf8'}" title="${tr('tag.pickColor')}">
+        <input class="palhex" value="${cur || ''}" placeholder="#rrggbb" maxlength="7" title="${tr('tag.hexHint')}"></div>`;
   document.body.appendChild(el);
   const r = anchor.getBoundingClientRect(), h = el.offsetHeight, w = el.offsetWidth;
   el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
@@ -101,28 +101,28 @@ function renderTags(){
   const names = tagNames();
   const count = n => S.tasks.filter(t => (t.tags || []).includes(n)).length;
   const nCount = n => S.notes.filter(t => (t.tags || []).includes(n)).length;
-  $('#vSub').textContent = `${names.length} tag · bấm ô màu để đổi màu, bấm tên để đổi tên`;
+  $('#vSub').textContent = tr('tag.sub', {n: names.length});
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
-    <div class="fld"><label>Thêm tag mới</label>
+    <div class="fld"><label>${tr('tag.addNew')}</label>
       <div style="display:flex;gap:8px">
-        <input class="inp" id="tgNew" placeholder="Tên tag, ví dụ: học" autocomplete="off">
-        <button class="btn" id="tgAdd">Thêm</button></div>
-      <div class="hint" style="margin:0">Tag mới được tự gán một màu chưa dùng — đổi được bất cứ lúc nào.</div></div>
-    <div class="fld"><label>Tag đã có</label>
+        <input class="inp" id="tgNew" placeholder="${tr('tag.newPh')}" autocomplete="off">
+        <button class="btn" id="tgAdd">${tr('tag.add')}</button></div>
+      <div class="hint" style="margin:0">${tr('tag.addHint')}</div></div>
+    <div class="fld"><label>${tr('tag.existing')}</label>
       ${names.length ? `<div>${names.map(n => `<div class="tgrow">
-          <button class="tgsw" data-pal="${esc(n)}" style="background:${S.tags[n]}" title="Đổi màu"></button>
-          <button class="tgx" data-rentag="${esc(n)}" style="${tagStyle(n)};padding:2px 8px" title="Đổi tên">#${esc(n)}</button>
-          <span class="meta">${count(n)} task${nCount(n) ? ` · ${nCount(n)} trang` : ''}</span>
-          <button class="btn ghost" data-rentag="${esc(n)}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">Đổi tên</button>
-          <button class="danger" data-deltag="${esc(n)}">Xoá</button></div>`).join('')}</div>`
-        : '<div class="empty">Chưa có tag nào</div>'}</div>
+          <button class="tgsw" data-pal="${esc(n)}" style="background:${S.tags[n]}" title="${tr('tag.recolor')}"></button>
+          <button class="tgx" data-rentag="${esc(n)}" style="${tagStyle(n)};padding:2px 8px" title="${tr('tag.rename')}">#${esc(n)}</button>
+          <span class="meta">${tr('tag.count', {n: count(n)})}${nCount(n) ? tr('tag.countNote', {n: nCount(n)}) : ''}</span>
+          <button class="btn ghost" data-rentag="${esc(n)}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">${tr('tag.rename')}</button>
+          <button class="danger" data-deltag="${esc(n)}">${tr('tag.del')}</button></div>`).join('')}</div>`
+        : `<div class="empty">${tr('tag.none')}</div>`}</div>
   </div></div>`;
 
   const add = () => {
     const v = $('#tgNew').value.trim().replace(/^#/,'');
     if(!v) return;
     const n = ensureTag(v); save(); render();
-    toast(n === v ? `Đã thêm tag #${n}` : `Tag #${n} đã có sẵn`);
+    toast(tr(n === v ? 'tag.added' : 'tag.already', {n}));
     setTimeout(() => $('#tgNew')?.focus(), 0);
   };
   $('#tgAdd').onclick = add;

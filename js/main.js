@@ -1,5 +1,7 @@
 /* ============ render khung ============ */
-const VTITLES = {board:'Bảng việc', life:'Bảng cuộc sống', backlog:'Để sau', habits:'Thói quen', focus:'Tập trung', plan:'Lịch trình', cal:'Lịch', journal:'Nhật ký', notes:'Ghi chú', dash:'Tổng quan', new:'Tạo task', tags:'Quản lý tag', trash:'Thùng rác'};
+const VTITLES = {board:tr('nav.board'), life:tr('nav.life'), backlog:tr('nav.backlog'), habits:tr('nav.habits'),
+  focus:tr('nav.focus'), plan:tr('nav.plan'), cal:tr('nav.cal'), journal:tr('nav.journal'), notes:tr('nav.notes'),
+  dash:tr('nav.dash'), new:tr('nav.new'), tags:tr('view.tags'), trash:tr('nav.trash')};
 /* nav + tiêu đề: vẽ được ngay từ ui.view, không cần dữ liệu. Gọi sớm lúc tải trang để khung
    hiện đúng trang đang xem luôn, thay vì loé qua "Bảng việc" rồi nhảy khi boot() nạp xong. */
 function paintShell(){
@@ -51,18 +53,16 @@ function render(){
   $('#tagFil').innerHTML = tags.length
     ? tags.map(t => `<button class="tagf${ui.tag===t?' on':''}" data-tag="${esc(t)}"
         style="color:${S.tags[t]}${ui.tag===t ? `;background:${S.tags[t]}22;border-color:${S.tags[t]}` : ''}">#${esc(t)}</button>`).join('')
-    : '<div class="nofil">Chưa có tag nào</div>';
+    : `<div class="nofil">${tr('side.noTag')}</div>`;
   renderSideCal();
 
   closeEds(); closePal();
   ({board:renderBoard, life:renderBoard, backlog:renderBacklog, habits:renderHabits, focus:renderFocus, plan:renderPlan, cal:renderCal, journal:renderJournal, notes:renderNotes, dash:renderDash, new:renderForm, tags:renderTags, trash:renderTrash})[ui.view]();
   fSide(); fFullPaint(); fPaintTime(); ui.fPop = false;
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
-    '<div class="banner">⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. ' +
-    'Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.</div>');
+    `<div class="banner">${tr('warn.noStore')}</div>`);
   else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
-    '<div class="banner">⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. ' +
-    'Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.</div>');
+    `<div class="banner">${tr('warn.noServer')}</div>`);
   restoreScroll();
   fadeView();
   paintSave(); paintFs(); paintBell(); paintSync();
@@ -204,6 +204,12 @@ document.addEventListener('keydown', e => {
 });
 
 try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}
+// ngôn ngữ: dịch phần tĩnh của index.html, nút đổi hiện tên thứ tiếng KIA để bấm là sang đó
+document.documentElement.lang = LANG;
+i18nDom();
+const otherLang = LANG === 'vi' ? 'en' : 'vi';
+$('#langBtn').textContent = otherLang.toUpperCase();
+$('#langBtn').onclick = () => setLang(otherLang);
 paintShell();                    // trước khi boot() nạp xong, khung đã đứng ở đúng trang
 boot().then(msg => {
   ui.scope = SCOPES[S.settings.scope] ? S.settings.scope : 'today';
@@ -215,6 +221,6 @@ boot().then(msg => {
 });
 setInterval(() => {
   checkReminders(); paintNow();
-  $$('[data-ago]').forEach(el => el.textContent = 'Sửa lần cuối ' + fmtAgo(el.dataset.ago));
+  $$('[data-ago]').forEach(el => el.textContent = tr('note.modPre', {a: fmtAgo(el.dataset.ago)}));
 }, 30000);
 document.addEventListener('visibilitychange', () => { if(!document.hidden) checkReminders(); });

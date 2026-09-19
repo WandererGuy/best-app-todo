@@ -9,7 +9,8 @@ const PDAY = 1440;
 const pHM  = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const PTIMES = Array.from({length: PDAY / PSTEP + 1}, (_, i) => pHM(i * PSTEP));
 const pHrs = m => !m ? '—' : (m % 60 ? (m / 60).toFixed(1).replace('.', ',') : m / 60) + 'g';
-const pDur = m => m < 60 ? `${m} phút` : (m % 60 ? `${Math.floor(m / 60)}g${m % 60}` : `${m / 60} giờ`);
+const pDur = m => m < 60 ? tr('dur.min', {m})
+  : (m % 60 ? tr('dur.hm', {h: Math.floor(m / 60), m: m % 60}) : tr('dur.h', {h: m / 60}));
 
 /* --- dữ liệu --- */
 // mẫu -> khối thật; mỗi lần gọi sinh id mới vì mỗi ngày giữ một bản copy riêng
@@ -73,7 +74,7 @@ function pHole(segs){
 function pGapRow(it, pos){
   return `<div class="plr gap${pos}"><span class="tm">${it.a}</span>
     <i class="rail k"></i>
-    <div class="bd"><span class="nm">trống ${pDur(it.gap)}</span></div></div>`;
+    <div class="bd"><span class="nm">${tr('plan.gap', {d: pDur(it.gap)})}</span></div></div>`;
 }
 function pRow(s, pos, over){
   // --c trên cả dòng: chấm mang màu loại khối
@@ -83,7 +84,7 @@ function pRow(s, pos, over){
     <i class="rail k"></i><i class="dot k"></i>
     <div class="bd"><span class="nm">${esc(s.n)}</span>
       <span class="du">${pDur(toMin(s.b) - toMin(s.a))}</span>
-      ${over ? `<span class="dv ov" title="Khối này đè lên khối trước — tổng giờ đang cộng trùng">⚠ chồng ${over}′</span>` : ''}
+      ${over ? `<span class="dv ov" title="${tr('plan.overT')}">${tr('plan.over', {n: over})}</span>` : ''}
     </div></div>${ui.pOpen === s.id ? pEdit(s) : ''}`;
 }
 
@@ -92,11 +93,11 @@ function pEdit(s){
   const sel = (id, v) => `<select class="inp" id="${id}">${PTIMES.map(t =>
     `<option value="${t}"${t === v ? ' selected' : ''}>${t}</option>`).join('')}</select>`;
   return `<div class="ped">
-    <div class="r"><input class="inp" id="pName" value="${esc(s.n)}" placeholder="Tên khối">
+    <div class="r"><input class="inp" id="pName" value="${esc(s.n)}" placeholder="${tr('plan.namePh')}">
       <select class="inp" id="pKind">${Object.entries(PKINDS).map(([k, x]) =>
         `<option value="${k}"${k === s.k ? ' selected' : ''}>${x.n}</option>`).join('')}</select></div>
-    <div class="r"><span class="lb">Kỳ vọng</span>${sel('pKvA', s.a)}<span class="ar">→</span>${sel('pKvB', s.b)}</div>
-    <div class="r end"><button class="lblbtn del" id="pDel">Xoá khối này</button></div></div>`;
+    <div class="r"><span class="lb">${tr('plan.expect')}</span>${sel('pKvA', s.a)}<span class="ar">→</span>${sel('pKvB', s.b)}</div>
+    <div class="r end"><button class="lblbtn del" id="pDel">${tr('plan.delBlock')}</button></div></div>`;
 }
 
 /* --- tổng giờ theo loại: phần "nhìn tổng thể" mà bảng giờ đơn lẻ không cho --- */
@@ -112,7 +113,7 @@ function renderPlan(){
   if(!ui.pDate) ui.pDate = today();
   const date = ui.pDate, d = pDay(date), dt = new Date(date + 'T00:00:00');
   const segs = pSorted(d), dirty = pDirty(d, segs);
-  $('#vSub').textContent = Object.keys(S.plan.days).length + ' ngày đã lên lịch';
+  $('#vSub').textContent = tr('plan.sub', {n: Object.keys(S.plan.days).length});
 
   const items = pRows(d);
   const rows = items.map((it, i) => {
@@ -124,32 +125,31 @@ function renderPlan(){
     <div class="jbar">
       <button class="nvb" id="pPd">‹</button><button class="nvb" id="pNd">›</button>
       <div><h2>${DOW[dt.getDay()]}, ${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}</h2>
-        <div class="sub">${segs.length} khối trong ngày</div></div>
-      ${dateBtn('pDp', date, 'Chọn ngày', 'width:auto')}
-      <button class="btn ghost" id="pTd">Hôm nay</button>
+        <div class="sub">${tr('plan.blockCount', {n: segs.length})}</div></div>
+      ${dateBtn('pDp', date, tr('common.pickDate'), 'width:auto')}
+      <button class="btn ghost" id="pTd">${tr('common.today')}</button>
     </div>
 
     <div class="ptpl">
-      <span class="lb">Mẫu ngày này</span>
-      <select class="inp" id="pTpl" title="Đổi mẫu sẽ thay toàn bộ khối của ngày này">
+      <span class="lb">${tr('plan.tplLbl')}</span>
+      <select class="inp" id="pTpl" title="${tr('plan.tplT')}">
         ${pTplNames().map(n => `<option${n === d.tpl ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>
-      <button class="lblbtn" id="pNew" title="Tạo mẫu mới từ các khối của ngày đang xem">+ Mẫu mới</button>
-      <button class="lblbtn" id="pRen" title="Đổi tên mẫu đang chọn">✎ Đổi tên</button>
-      <button class="lblbtn" id="pDelT" title="Xoá mẫu đang chọn">✕ Xoá mẫu</button>
+      <button class="lblbtn" id="pNew" title="${tr('plan.tplNewT')}">${tr('plan.tplNew')}</button>
+      <button class="lblbtn" id="pRen" title="${tr('plan.tplRenT')}">${tr('plan.tplRen')}</button>
+      <button class="lblbtn" id="pDelT" title="${tr('plan.tplDelT')}">${tr('plan.tplDel')}</button>
       <button class="lblbtn sv${dirty ? ' hot' : ''}" id="pSave"
-        title="${dirty ? `Ghi ${segs.length} khối của ngày này đè lên mẫu "${esc(d.tpl)}"`
-                       : 'Ngày này đang giống hệt mẫu, chưa có gì để lưu'}">
-        ${dirty ? '● ' : ''}⤓ Lưu vào mẫu</button>
+        title="${dirty ? tr('plan.saveT', {n: segs.length, tpl: esc(d.tpl)}) : tr('plan.saveClean')}">
+        ${dirty ? '● ' : ''}${tr('plan.save')}</button>
       <span class="shint${dirty ? ' hot' : ''}">${dirty
-        ? `Ngày này đang khác mẫu — lưu thì các ngày sau mới theo, không lưu thì đổi chỉ áp cho hôm nay`
-        : `Đang khớp mẫu “${esc(d.tpl)}”`}</span>
+        ? tr('plan.dirty')
+        : tr('plan.clean', {tpl: esc(d.tpl)})}</span>
     </div>
 
-    <div class="pdow"><span class="lb">Mẫu theo thứ</span>
+    <div class="pdow"><span class="lb">${tr('plan.dowLbl')}</span>
       ${DOW.map((w, i) => `<label${i === dt.getDay() ? ' class="td"' : ''}>${w}
         <select class="inp" data-pdw="${i}">${pTplNames().map(n =>
           `<option${n === S.plan.dow[i] ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>`).join('')}
-      <span class="hint">Ngày chưa mở lần nào sẽ lấy mẫu của thứ đó</span></div>
+      <span class="hint">${tr('plan.dowHint')}</span></div>
 
     <div class="pbn">
       <div class="ax">${Array.from({length:9}, (_, i) => `<span style="left:${i / 8 * 100}%">${i * 3}</span>`).join('')}</div>
@@ -159,8 +159,8 @@ function renderPlan(){
     <div class="psum">${pSum(d)}</div>
 
     <div class="plhd">
-      <button class="pbtn" id="pAdd" title="Thêm một khối vào khoảng trống đầu tiên còn lại trong ngày">+ Thêm khối</button>
-      <span class="hint">Bấm một dòng bên dưới để sửa tên, loại và giờ của khối đó</span>
+      <button class="pbtn" id="pAdd" title="${tr('plan.addT')}">${tr('plan.add')}</button>
+      <span class="hint">${tr('plan.listHint')}</span>
     </div>
     <div class="plist">${rows}</div>
   </div>`;
@@ -174,32 +174,32 @@ function renderPlan(){
   }, false);
   $('#pTpl').onchange = e => {
     const n = e.target.value;
-    if(!confirm(`Thay toàn bộ khối của ngày này bằng mẫu "${n}"?`)) return renderPlan();
+    if(!confirm(tr('plan.askSwap', {n}))) return renderPlan();
     d.tpl = n; d.kv = pSegs(n); S.plan.last = n; ui.pOpen = null; save(); renderPlan();
   };
   $('#pSave').onclick = () => {
-    if(!dirty) return toast(`Ngày này đang giống hệt mẫu "${d.tpl}", chưa có gì để lưu`);
-    if(!confirm(`Ghi ${segs.length} khối của ngày này vào mẫu "${d.tpl}"? Các ngày đã mở trước đó không đổi.`)) return;
+    if(!dirty) return toast(tr('plan.cleanToast', {tpl: d.tpl}));
+    if(!confirm(tr('plan.askSave', {n: segs.length, tpl: d.tpl}))) return;
     S.plan.tpl[d.tpl] = segs.map(pFlat);
-    save(); renderPlan(); toast(`Đã lưu mẫu "${d.tpl}"`);
+    save(); renderPlan(); toast(tr('plan.saved', {tpl: d.tpl}));
   };
   // mẫu mới lấy luôn các khối của ngày đang xem làm điểm bắt đầu — sửa một ngày cho vừa ý
   // rồi cất thành loại ngày, đỡ phải gõ lại cả chục khối
   $('#pNew').onclick = () => {
-    const v = prompt('Tên loại ngày mới:', '');
+    const v = prompt(tr('plan.askNewName'), '');
     if(!v || !v.trim()) return;
     const n = v.trim();
-    if(S.plan.tpl[n]) return toast(`Đã có mẫu "${n}"`);
+    if(S.plan.tpl[n]) return toast(tr('plan.exists', {n}));
     S.plan.tpl[n] = segs.map(pFlat);
     d.tpl = n; S.plan.last = n; save(); renderPlan();
-    toast(`Đã tạo mẫu "${n}" từ ngày ${fmtVN(date)}`);
+    toast(tr('plan.created', {n, d: fmtVN(date)}));
   };
   // đổi tên: kéo theo mọi chỗ đang trỏ vào tên cũ
   $('#pRen').onclick = () => {
-    const v = prompt('Tên mẫu:', d.tpl);
+    const v = prompt(tr('plan.askTplName'), d.tpl);
     if(!v || !v.trim() || v.trim() === d.tpl) return;
     const n = v.trim(), old = d.tpl;
-    if(S.plan.tpl[n]) return toast(`Đã có mẫu "${n}"`);
+    if(S.plan.tpl[n]) return toast(tr('plan.exists', {n}));
     S.plan.tpl = Object.fromEntries(Object.entries(S.plan.tpl).map(([k, x]) => [k === old ? n : k, x]));
     S.plan.dow = S.plan.dow.map(x => x === old ? n : x);
     Object.values(S.plan.days).forEach(x => { if(x.tpl === old) x.tpl = n; });
@@ -207,9 +207,9 @@ function renderPlan(){
     save(); renderPlan();
   };
   $('#pDelT').onclick = () => {
-    if(pTplNames().length < 2) return toast('Phải còn ít nhất một mẫu');
+    if(pTplNames().length < 2) return toast(tr('plan.needOne'));
     const old = d.tpl;
-    if(!confirm(`Xoá mẫu "${old}"? Các ngày đã lên lịch giữ nguyên khối của chúng.`)) return;
+    if(!confirm(tr('plan.askDelTpl', {n: old}))) return;
     const rest = pTplNames().find(n => n !== old);
     delete S.plan.tpl[old];
     S.plan.dow = S.plan.dow.map(x => x === old ? rest : x);
@@ -220,13 +220,13 @@ function renderPlan(){
   $$('[data-pdw]').forEach(el => el.onchange = e => {
     const i = +el.dataset.pdw;
     S.plan.dow[i] = e.target.value; save();
-    toast(`${DOW[i]} sẽ dùng mẫu "${e.target.value}"`);
+    toast(tr('plan.dowSet', {w: DOW[i], n: e.target.value}));
   });
   // khối mới rơi vào khoảng trống đầu tiên, không đè lên khối đang có
   $('#pAdd').onclick = () => {
     const h = pHole(segs);
-    if(!h) return toast('Ngày đã kín giờ — thu ngắn hoặc xoá một khối trước đã');
-    const s = {id:uid(), a:pHM(h[0]), b:pHM(Math.min(h[1], h[0] + 60)), k:'rest', n:'Khối mới'};
+    if(!h) return toast(tr('plan.dayFull'));
+    const s = {id:uid(), a:pHM(h[0]), b:pHM(Math.min(h[1], h[0] + 60)), k:'rest', n:tr('plan.newBlock')};
     d.kv.push(s); ui.pOpen = s.id; save(); renderPlan();
   };
 
@@ -241,13 +241,13 @@ function renderPlan(){
 function pBindEdit(d, s){
   if(!s) return;
   const set = (k, v) => { s[k] = v; save(); renderPlan(); };
-  $('#pName').onchange = e => set('n', e.target.value.trim() || 'Khối mới');
+  $('#pName').onchange = e => set('n', e.target.value.trim() || tr('plan.newBlock'));
   $('#pKind').onchange = e => set('k', e.target.value);
   // đổi giờ: giữ đúng thứ tự đầu < cuối
   $('#pKvA').onchange = e => { s.a = e.target.value; if(toMin(s.b) <= toMin(s.a)) s.b = pHM(Math.min(PDAY, toMin(s.a) + PSTEP)); save(); renderPlan(); };
   $('#pKvB').onchange = e => { s.b = e.target.value; if(toMin(s.b) <= toMin(s.a)) s.a = pHM(Math.max(0, toMin(s.b) - PSTEP)); save(); renderPlan(); };
   $('#pDel').onclick  = () => {
-    if(!confirm(`Xoá khối "${s.n}" khỏi ngày này?`)) return;
+    if(!confirm(tr('plan.askDelBlk', {n: s.n}))) return;
     d.kv = d.kv.filter(x => x.id !== s.id);
     ui.pOpen = null; save(); renderPlan();
   };

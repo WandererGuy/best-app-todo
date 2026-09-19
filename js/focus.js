@@ -11,14 +11,14 @@
 const FGROUPS = {time:['work','short','long','every','buffer','auto'], queue:['qmax','confirmSw'], pause:['pauseAsk'],
   streak:['goal','miss','weekend'], ask:['askRate','askNext'],
   look:['look'], sound:['sound','vol','notify','tabTitle']};
-const FRATE = {1:'Rất phân tán', 2:'Hay bị kéo đi', 3:'Tạm được', 4:'Khá sâu', 5:'Rất sâu'};
+const FRATE = Object.fromEntries([1, 2, 3, 4, 5].map(i => [i, tr(`fz.rate${i}`)]));
 // giờ nghỉ nên rời màn hình: vận động nhẹ hồi sức tốt hơn lướt điện thoại, thứ kéo đầu sang việc khác
-const FREST = {short:['Đứng dậy vươn vai', 'Uống một cốc nước', 'Nhìn ra xa 20 giây cho mắt nghỉ', 'Hít thở chậm vài nhịp', 'Đi lại vài bước, để điện thoại ở lại bàn'],
-               long:['Đi bộ một vòng, ra chỗ có ánh sáng', 'Ăn nhẹ và uống nước', 'Nhắm mắt nghỉ vài phút', 'Giãn cổ, vai và lưng']};
+const FREST = {short:[1, 2, 3, 4, 5].map(i => tr(`fz.restS${i}`)),
+               long:[1, 2, 3, 4].map(i => tr(`fz.restL${i}`))};
 const FTITLE = document.title;
 
 const fTask   = id => S.tasks.find(t => t.id === id);
-const fName   = t => t.title.trim() ? esc(t.title) : '<span class="ph">(chưa đặt tên)</span>';
+const fName   = t => t.title.trim() ? esc(t.title) : `<span class="ph">${tr('task.untitled')}</span>`;
 const fLeft   = r => r.dur - r.acc - (r.since ? Date.now() - r.since : 0);
 const fWorked = r => r.acc + (r.since ? Date.now() - r.since : 0);
 // phần bù: fOver = đã làm thêm bao lâu, fBuf = còn được làm thêm bao lâu (0 là tới lúc khép phiên)
@@ -119,10 +119,11 @@ function fPaintTime(){
     if(!r.since) $$('[data-fpaused]').forEach(el => {
       const m = Math.floor((Date.now() - r.pAt) / 6e4), long = m >= c.pauseAsk;
       el.classList.toggle('long', long);
-      el.textContent = `Đang tạm dừng ${m ? m + ' phút' : 'chưa tới 1 phút'}${long ? ' — mình làm tiếp, hay dừng ở đây?' : ''}`;
+      el.textContent = tr('fz.pausedFor', {t: m ? tr('fz.pausedMin', {m}) : tr('fz.pausedShort')})
+        + (long ? tr('fz.pausedLong') : '');
     });
   }
-  document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fShow(r)} · ${FPHASE[r.phase]}${r.rang ? ' bù' : ''}` : FTITLE;
+  document.title = r && c.tabTitle ? `${r.since ? '' : '⏸ '}${fShow(r)} · ${FPHASE[r.phase]}${r.rang ? tr('fz.tabOver') : ''}` : FTITLE;
 }
 
 /* --- âm báo tự tổng hợp, khỏi kèm file: hết phiên thì đi lên, hết nghỉ thì đi xuống --- */
@@ -146,10 +147,10 @@ function fChime(phase, force){
 }
 function fNotify(phase, over){
   if(!S.focus.cfg.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-  const body = over ? 'Cây đã xong. Làm nốt rồi bấm kết thúc, hoặc để đó cho đồng hồ tự ngừng.'
-    : phase === 'work' ? `Tới giờ ${FPHASE[S.focus.next].toLowerCase()}.` : 'Sẵn sàng cho phiên tiếp theo.';
+  const body = over ? tr('fz.notiOverB')
+    : phase === 'work' ? tr('fz.notiWorkB', {p: FPHASE[S.focus.next].toLowerCase()}) : tr('fz.notiRestB');
   try{
-    const n = new Notification(over ? '✓ Đủ giờ phiên tập trung' : phase === 'work' ? '✓ Xong phiên tập trung' : 'Hết giờ nghỉ', {body, tag:'focus'});
+    const n = new Notification(tr(over ? 'fz.notiOver' : phase === 'work' ? 'fz.notiWork' : 'fz.notiRest'), {body, tag:'focus'});
     n.onclick = () => { window.focus(); n.close(); };
   }catch(e){}
 }
@@ -160,7 +161,7 @@ function fNotify(phase, over){
 function fStart(phase, tid, solo){
   const f = S.focus, c = f.cfg, now = Date.now();
   if(phase === 'work'){
-    if(!fTask(tid)) return toast('Hàng đợi đang trống — thêm một task rồi bắt đầu');
+    if(!fTask(tid)) return toast(tr('fz.queueEmpty'));
     ui.fCheer = null;
   }
   f.run = {phase, tid:phase === 'work' ? tid : null, tree:f.tree, dur:c[phase] * 6e4, a:now, acc:0, since:now, pAt:null, paused:0, pause:0, cap:0, sw:0, solo:!!solo,
@@ -222,7 +223,7 @@ function fEnd(){
 function fCancel(){
   const f = S.focus, r = f.run; if(!r) return;
   const ms = fWorked(r);
-  if(!confirm(`Dừng hẳn phiên này? ${Math.floor(ms / 6e4)} phút vừa rồi vẫn được ghi lại, chỉ là chưa tính thành một phiên đạt, và cây đang trồng sẽ héo.`)) return;
+  if(!confirm(tr('fz.askCancel', {m: Math.floor(ms / 6e4)}))) return;
   if(ms >= 6e4) fLog(r, Date.now(), ms);   // bấm nhầm rồi huỷ ngay thì không ghi
   f.run = null; fStopTick(); save(); fPaint();
 }
@@ -242,8 +243,8 @@ function fReview(keep){
 // mừng lúc xong phiên; chạm mục tiêu ngày thì nói rõ
 function fCheer(){
   const c = S.focus.cfg, n = fCount()[today()] || 0, e = fWorks().pop();
-  const msg = [`🌳 Trồng xong cây ${fSpecies(e.tree).n} cấp ${fStage(fGrown(e) / 6e4)} · hôm nay ${n}/${c.goal}`];
-  if(n === c.goal) msg.push(`🔥 Đạt mục tiêu hôm nay · chuỗi ${fRun().cur} ngày`);
+  const msg = [tr('fz.cheerTree', {sp: fSpecies(e.tree).n, lv: fStage(fGrown(e) / 6e4), n, goal: c.goal})];
+  if(n === c.goal) msg.push(tr('fz.cheerGoal', {n: fRun().cur}));
   ui.fCheer = msg;
   ui.fPop = true;
   toast(ui.fCheer[ui.fCheer.length - 1]);
@@ -252,12 +253,12 @@ function fCheer(){
 /* --- hàng đợi --- */
 function fAdd(tid){
   const f = S.focus, t = fTask(tid); if(!t) return;
-  if(t.status !== 'doing') return toast('Hàng đợi chỉ nhận task ở cột Đang làm — kéo task sang đó rồi thêm lại');
+  if(t.status !== 'doing') return toast(tr('fz.onlyDoing'));
   const q = fQueue();
-  if(q.includes(tid)) return toast('Task này đã có trong hàng đợi rồi');
-  if(q.length >= f.cfg.qmax) return toast(`Hàng đợi đã đủ ${f.cfg.qmax} task — làm xong hoặc bỏ bớt một task rồi thêm tiếp`);
+  if(q.includes(tid)) return toast(tr('fz.already'));
+  if(q.length >= f.cfg.qmax) return toast(tr('fz.queueFull', {n: f.cfg.qmax}));
   q.push(tid); save(); fPaint();
-  toast(`Đã thêm vào hàng đợi: ${t.title.trim() || '(chưa đặt tên)'}`);
+  toast(tr('fz.added', {n: t.title.trim() || tr('task.untitled')}));
 }
 // chọn task cho phiên: đưa lên đầu hàng. Đang giữa phiên thì là đổi task — một lần chuyển ngữ cảnh,
 // trừ khi task cũ đã xong (làm xong sớm thì chuyển sang việc tiếp là đúng)
@@ -266,7 +267,7 @@ function fPick(tid){
   if(r && r.phase === 'work' && r.tid !== tid){
     const old = fTask(r.tid);
     if(old && old.status !== 'done'){
-      if(f.cfg.confirmSw && !confirm('Đổi sang task khác giữa phiên? Lần đổi này sẽ được ghi lại là một lần chuyển ngữ cảnh.')) return;
+      if(f.cfg.confirmSw && !confirm(tr('fz.askSwitch'))) return;
       r.sw++;
     }
     r.tid = tid;
@@ -278,7 +279,7 @@ function fDone(tid){
   const t = fTask(tid); if(!t) return;
   t.status = 'done'; t.pg = 100; t.done = today();
   save(); render();
-  toast(`✓ Xong task: ${t.title.trim() || '(chưa đặt tên)'}`);
+  toast(tr('fz.taskDone', {n: t.title.trim() || tr('task.untitled')}));
 }
 // chợt nhớ việc khác giữa phiên: ghi vào Để sau rồi quay lại, không làm ngay
 function fCapture(title){
@@ -288,7 +289,7 @@ function fCapture(title){
   if(r && r.phase === 'work') r.cap++;
   save();
   $('#ctK').textContent = S.tasks.filter(t => t.status === 'backlog').length;
-  toast('Đã ghi vào Để sau — mình quay lại việc đang làm nhé');
+  toast(tr('fz.captured'));
 }
 
 /* --- khung đồng hồ: dùng chung cho sidebar (side), mục Tập trung (page) và toàn màn hình (full) --- */
@@ -296,74 +297,73 @@ function fPanel(mode){
   const f = S.focus, c = f.cfg, r = f.run, q = fQueue(), big = mode !== 'side', full = mode === 'full';
   const phase = r ? r.phase : f.next, n = fCount()[today()] || 0;
   const dots = Array.from({length:Math.min(12, Math.max(c.goal, n))}, (_, i) => i < n ? '●' : '○').join('');
-  let h = `<div class="fzph"><span class="d"></span>${FPHASE[phase]}${r && r.rang ? ' · phần bù' : ''}
-    <span class="fzdots" title="Hôm nay ${n}/${c.goal} phiên">${dots}</span>
-    ${mode === 'full' ? '<button class="fzic" data-ffull="0" title="Thoát toàn màn hình (Esc)">✕</button>'
-                      : '<button class="fzic" data-ffull="1" title="Toàn màn hình">⤢</button>'}</div>`;
+  let h = `<div class="fzph"><span class="d"></span>${FPHASE[phase]}${r && r.rang ? tr('fz.overSfx') : ''}
+    <span class="fzdots" title="${tr('fz.dotsT', {n, goal: c.goal})}">${dots}</span>
+    ${mode === 'full' ? `<button class="fzic" data-ffull="0" title="${tr('fz.exitFullT')}">✕</button>`
+                      : `<button class="fzic" data-ffull="1" title="${tr('fz.fullT')}">⤢</button>`}</div>`;
   if(big && phase === 'work') h += fGrowHTML();
   if(ui.fCheer) h += `<div class="fzcheer${ui.fPop ? ' pop' : ''}"><span>${ui.fCheer.map(esc).join('<br>')}</span>
-    <button class="fzic" data-fcheer title="Đóng">✕</button></div>`;
+    <button class="fzic" data-fcheer title="${tr('fz.close')}">✕</button></div>`;
   if(f.rev) h += fRevHTML();
 
   if(!r){
     h += `<div class="fzclock">${fClock(c[phase] * 6e4)}</div>`;
     if(phase !== 'work') return h + `<div class="fzrest">${fRest(phase)}</div>
-      <div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu nghỉ</button><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
+      <div class="fzbtns"><button class="btn" data-fstart>${tr('fz.startRest')}</button><button class="btn ghost" data-fskip>${tr('fz.skipRest')}</button></div>`;
     // nghỉ ngoài chu kỳ: vừa họp xong hay vừa huỷ phiên thì bấm nghỉ luôn, không phải chạy hết một phiên trước
-    const solo = `<button class="fzsolo" data-fsolo title="Nghỉ ${c.short} phút, không tính vào chu kỳ">☕ Nghỉ ngắn ${c.short}′</button>`;
+    const solo = `<button class="fzsolo" data-fsolo title="${tr('fz.soloT', {n: c.short})}">${tr('fz.solo', {n: c.short})}</button>`;
     const t = fTask(q[0]);
-    if(!t) return h + `<div class="fzempty">${big ? 'Hàng đợi đang trống — thêm một task ở cột Đang làm vào đây để bắt đầu' : 'Kéo card ở cột Đang làm thả vào đây'}</div>
+    if(!t) return h + `<div class="fzempty">${tr(big ? 'fz.emptyBig' : 'fz.emptySide')}</div>
       <div class="fzbtns">${solo}</div>`;
     return h + (full ? '' : fTaskHTML(t, false)) + (big ? fPickHTML() : '')
-      + `<div class="fzbtns"><button class="btn" data-fstart>▶ Bắt đầu</button>${solo}</div>`;
+      + `<div class="fzbtns"><button class="btn" data-fstart>${tr('fz.start')}</button>${solo}</div>`;
   }
 
   h += `<div class="fzclock" data-fclock>${fShow(r)}</div><div class="fzbar"><i data-fbar></i></div>`;
   if(r.phase !== 'work') return h + `<div class="fzrest">${fRest(r.phase)}</div>
-    <div class="fzbtns"><button class="btn ghost" data-fskip>Bỏ nghỉ</button></div>`;
+    <div class="fzbtns"><button class="btn ghost" data-fskip>${tr('fz.skipRest')}</button></div>`;
   if(!full) h += fTaskHTML(fTask(r.tid), true);
   // phần bù: phiên đã đạt rồi nên không còn nút huỷ, chỉ còn kết thúc
-  if(r.rang) h += `<div class="fzover">Đã đủ ${r.dur / 6e4}′ — cây đã xong, phần làm thêm vẫn tính giờ tập trung.
-    Tự ngừng sau ${r.buf / 6e4}′.</div>`;
+  if(r.rang) h += `<div class="fzover">${tr('fz.overNote', {n: r.dur / 6e4, b: r.buf / 6e4})}</div>`;
   h += r.since
     ? r.rang
-      ? `<div class="fzbtns"><button class="btn" data-fend>✓ Kết thúc phiên</button>
-          <button class="btn ghost" data-fpause>⏸ Tạm dừng</button></div>`
-      : `<div class="fzbtns"><button class="btn ghost" data-fpause>⏸ Tạm dừng</button>
-          <button class="fzic" data-fcancel title="Huỷ phiên">■</button></div>`
+      ? `<div class="fzbtns"><button class="btn" data-fend>${tr('fz.end')}</button>
+          <button class="btn ghost" data-fpause>${tr('fz.pause')}</button></div>`
+      : `<div class="fzbtns"><button class="btn ghost" data-fpause>${tr('fz.pause')}</button>
+          <button class="fzic" data-fcancel title="${tr('fz.cancelT')}">■</button></div>`
     : `<div class="fzpaused" data-fpaused></div>
-       <div class="fzbtns"><button class="btn" data-fresume>▶ Làm tiếp</button>
-         ${r.rang ? '<button class="btn ghost" data-fend>Kết thúc phiên</button>' : '<button class="btn ghost" data-fcancel>Huỷ phiên</button>'}</div>`;
+       <div class="fzbtns"><button class="btn" data-fresume>${tr('fz.resume')}</button>
+         <button class="btn ghost" data-f${r.rang ? 'end' : 'cancel'}>${tr(r.rang ? 'fz.endPlain' : 'fz.cancelT')}</button></div>`;
   return mode === 'page' ? h + fCapHTML(true) : h;
 }
 // tên task và ghi chú của phiên trước; task xong ngay giữa phiên thì mời chọn task tiếp trong hàng
 function fTaskHTML(t, running){
   if(running && (!t || t.status === 'done')){
     const nextId = fQueue().find(id => !t || id !== t.id);
-    return `<div class="fzempty">${t ? 'Task đã xong' : 'Chưa gắn task'} — chọn task tiếp trong hàng đợi
-      ${nextId ? `<button class="btn ghost" data-fpick="${nextId}">Làm: ${fName(fTask(nextId))}</button>` : ''}</div>`;
+    return `<div class="fzempty">${tr(t ? 'fz.taskDoneLbl' : 'fz.noTask')}${tr('fz.pickNext')}
+      ${nextId ? `<button class="btn ghost" data-fpick="${nextId}">${tr('fz.pickBtn', {n: fName(fTask(nextId))})}</button>` : ''}</div>`;
   }
   const nx = fLastNext(t.id);
-  return `<div class="fztask">${fName(t)}</div>${nx ? `<div class="fznext">Ghi chú phiên trước: ${esc(nx)}</div>` : ''}`;
+  return `<div class="fztask">${fName(t)}</div>${nx ? `<div class="fznext">${tr('fz.prevNote', {n: esc(nx)})}</div>` : ''}`;
 }
-const fCapHTML = big => `<input class="fzin cap" data-fcap placeholder="${big ? '+ Chợt nhớ việc khác? Ghi vào Để sau rồi Enter' : '+ Ghi để sau (Enter)'}" autocomplete="off">`;
+const fCapHTML = big => `<input class="fzin cap" data-fcap placeholder="${tr(big ? 'fz.capBig' : 'fz.capSmall')}" autocomplete="off">`;
 // toàn màn hình: task và ô ghi để sau nằm trong ngăn nhỏ bên trái, gập lại được — giữa màn hình chỉ còn đồng hồ
 function fLeftHTML(){
   const r = S.focus.run, running = !!r && r.phase === 'work';
   const t = fTask(running ? r.tid : fQueue()[0]);
-  if(!S.settings.fzLeft) return `<button class="fzltab" data-fleft title="Mở task và ô ghi để sau">▸ <span>${t ? fName(t) : 'Task'}</span></button>`;
-  return `<div class="fzlhd">Task<button class="fzic" data-fleft title="Thu gọn">◂</button></div>
-    ${t || running ? fTaskHTML(t, running) : '<div class="fznext">Hàng đợi trống</div>'}
+  if(!S.settings.fzLeft) return `<button class="fzltab" data-fleft title="${tr('fz.openLeftT')}">▸ <span>${t ? fName(t) : tr('fz.taskLbl')}</span></button>`;
+  return `<div class="fzlhd">${tr('fz.taskLbl')}<button class="fzic" data-fleft title="${tr('fz.collapseT')}">◂</button></div>
+    ${t || running ? fTaskHTML(t, running) : `<div class="fznext">${tr('fz.queueEmptyS')}</div>`}
     ${fCapHTML(false)}`;
 }
 function fRevHTML(){
   const f = S.focus, c = f.cfg, e = f.log.find(x => x.id === f.rev);
   if(!e) return '';
-  return `<div class="fzrev"><div class="fzrevh">Xong phiên${e.title.trim() ? ` · ${esc(e.title)}` : ''}</div>
-    ${c.askRate ? `<div class="fzrate"><span>Tập trung</span>${[1, 2, 3, 4, 5].map(i =>
+  return `<div class="fzrev"><div class="fzrevh">${tr('fz.revHead')}${e.title.trim() ? ` · ${esc(e.title)}` : ''}</div>
+    ${c.askRate ? `<div class="fzrate"><span>${tr('fz.revFocus')}</span>${[1, 2, 3, 4, 5].map(i =>
       `<button class="${ui.fRev.rate === i ? 'on' : ''}" data-frate="${i}" title="${FRATE[i]}">${i}</button>`).join('')}</div>` : ''}
-    ${c.askNext ? `<input class="fzin" data-fin="next" value="${esc(ui.fRev.next)}" placeholder="Ghi chú sau phiên…" autocomplete="off">` : ''}
-    <div class="fzbtns"><button class="btn" data-frev="1">Lưu</button><button class="btn ghost" data-frev="0">Bỏ qua</button></div></div>`;
+    ${c.askNext ? `<input class="fzin" data-fin="next" value="${esc(ui.fRev.next)}" placeholder="${tr('fz.revNextPh')}" autocomplete="off">` : ''}
+    <div class="fzbtns"><button class="btn" data-frev="1">${tr('fz.revSave')}</button><button class="btn ghost" data-frev="0">${tr('fz.revSkip')}</button></div></div>`;
 }
 
 /* --- vẽ --- */
@@ -378,11 +378,11 @@ function fSide(){
   const el = $('#fzSide'); if(!el) return;
   const f = S.focus, r = f.run, min = !!S.settings.fzMin;
   el.className = `fz side ${fCls()}${min ? ' mini' : ''}`;
-  $('#fzMinBtn').textContent = min ? 'Mở' : 'Thu gọn';
+  $('#fzMinBtn').textContent = tr(min ? 'fz.expand' : 'side.fzmin');
   // thu gọn: chỉ còn một dòng mảnh, bấm vào để mở lại
   el.innerHTML = min
-    ? `<button class="fzmini" data-fmin title="Mở khối tập trung"><span class="d"></span>${FPHASE[r ? r.phase : f.next]}
-        ${f.rev ? '<em>· chấm điểm</em>' : ''}<b${r ? ' data-fclock' : ''}>${r ? fShow(r) : fClock(f.cfg[f.next] * 6e4)}</b></button>`
+    ? `<button class="fzmini" data-fmin title="${tr('fz.openBlockT')}"><span class="d"></span>${FPHASE[r ? r.phase : f.next]}
+        ${f.rev ? tr('fz.miniRev') : ''}<b${r ? ' data-fclock' : ''}>${r ? fShow(r) : fClock(f.cfg[f.next] * 6e4)}</b></button>`
     : fPanel('side');
   $('#ctF').textContent = `${fCount()[today()] || 0}/${S.focus.cfg.goal}`;
 }
@@ -418,7 +418,7 @@ function renderFocus(){
 }
 function fPaintPage(){
   const f = S.focus, n = fCount()[today()] || 0;
-  $('#vSub').textContent = `Hôm nay ${n}/${f.cfg.goal} phiên · chuỗi ${fRun().cur} ngày`;
+  $('#vSub').textContent = tr('fz.pageSub', {n, goal: f.cfg.goal, s: fRun().cur});
   $('#fzMain').className = 'fz page ' + fCls();
   $('#fzMain').innerHTML = fPanel('page');
   $('#fzQ').innerHTML = fQueueHTML();
@@ -436,26 +436,26 @@ function fQueueHTML(){
   const cur = r && r.phase === 'work' ? r.tid : q[0];
   const pool = S.tasks.filter(t => t.status === 'doing' && !q.includes(t.id));
   const pill = t => `<span class="pill" style="background:${PRIOS[t.prio].c}22;color:${PRIOS[t.prio].c}">${PRIOS[t.prio].n}</span>`;
-  return `<div class="fzh">Hàng đợi<span class="n">${q.length}/${c.qmax}</span></div>
+  return `<div class="fzh">${tr('fz.queueH')}<span class="n">${q.length}/${c.qmax}</span></div>
     ${q.length ? `<div>${q.map(id => {
       const t = fTask(id), on = id === cur, nx = fLastNext(id);
       return `<div class="fzqi${on ? ' on' : ''}">
         <span class="sw" style="background:${AREAS[t.area].c}"></span>
-        <div class="fzqt"><button class="fzqn" data-fopen="${id}" title="Mở task">${fName(t)}</button> ${pill(t)}
-          ${nx ? `<div class="fznext">Ghi chú phiên trước: ${esc(nx)}</div>` : ''}</div>
-        ${on ? `<span class="meta">${r && r.phase === 'work' ? 'đang làm' : 'phiên tới'}</span>`
-             : `<button class="btn ghost" data-fpick="${id}">Chọn</button>`}
-        <button class="btn ghost" data-fdone="${id}" title="Đánh dấu task đã xong">✓ Xong</button>
-        <button class="fzic" data-fdrop="${id}" title="Bỏ khỏi hàng đợi">✕</button></div>`;
+        <div class="fzqt"><button class="fzqn" data-fopen="${id}" title="${tr('fz.openTaskT')}">${fName(t)}</button> ${pill(t)}
+          ${nx ? `<div class="fznext">${tr('fz.prevNote', {n: esc(nx)})}</div>` : ''}</div>
+        ${on ? `<span class="meta">${tr(r && r.phase === 'work' ? 'fz.nowDoing' : 'fz.upNext')}</span>`
+             : `<button class="btn ghost" data-fpick="${id}">${tr('fz.pick')}</button>`}
+        <button class="btn ghost" data-fdone="${id}" title="${tr('fz.markDoneT')}">${tr('fz.markDone')}</button>
+        <button class="fzic" data-fdrop="${id}" title="${tr('fz.dropT')}">✕</button></div>`;
     }).join('')}</div>`
-      : '<div class="empty">Hàng đợi đang trống. Kéo card ở cột Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn task ở dưới.</div>'}
+      : `<div class="empty">${tr('fz.queueEmptyB')}</div>`}
     ${q.length < c.qmax
       // chia nhóm theo ưu tiên, cao lên đầu — chọn được việc quan trọng nhất trước
-      ? pool.length ? `<select class="inp" id="fzPick"><option value="">+ Thêm task Đang làm vào hàng đợi…</option>
-          ${PRIO_ORDER.map(p => { const g = pool.filter(t => t.prio === p); return g.length ? `<optgroup label="Ưu tiên ${PRIOS[p].n}">
-            ${g.map(t => `<option value="${t.id}">${esc(t.title.trim() || '(chưa đặt tên)')}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`
-        : '<div class="fzhint">Không còn task nào ở cột Đang làm để thêm. Kéo một task sang Đang làm trên bảng rồi quay lại đây.</div>'
-      : `<div class="fzhint">Hàng đợi đã đủ ${c.qmax} task. Ít việc đang mở thì đầu cũng ít chỗ để nhảy sang.</div>`}`;
+      ? pool.length ? `<select class="inp" id="fzPick"><option value="">${tr('fz.pickPh')}</option>
+          ${PRIO_ORDER.map(p => { const g = pool.filter(t => t.prio === p); return g.length ? `<optgroup label="${tr('fz.prioGroup', {n: PRIOS[p].n})}">
+            ${g.map(t => `<option value="${t.id}">${esc(t.title.trim() || tr('task.untitled'))}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`
+        : `<div class="fzhint">${tr('fz.poolEmpty')}</div>`
+      : `<div class="fzhint">${tr('fz.queueFullH', {n: c.qmax})}</div>`}`;
 }
 function fStatsHTML(){
   const c = S.focus.cfg, k = today(), m = fCount(), n = m[k] || 0, run = fRun();
@@ -464,21 +464,21 @@ function fStatsHTML(){
   const rated = list.filter(e => e.rate);
   const bar = (v, goal) => `<div class="bk"><i style="width:${goal ? Math.min(100, v / goal * 100) : 0}%;background:${goal && v >= goal ? 'var(--ok)' : 'var(--acc)'}"></i></div>`;
   const days = Array.from({length:7}, (_, i) => dShift(k, i - 6));
-  return `<div class="fzh">Tiến độ</div>
+  return `<div class="fzh">${tr('fz.statsH')}</div>
     <div class="fzbig">
-      <div><b>${n}/${c.goal}</b><span>phiên hôm nay</span></div>
-      <div><b>🔥 ${run.cur}</b><span>ngày liên tiếp</span></div>
-      <div><b>🏆 ${run.best}</b><span>chuỗi dài nhất</span></div></div>
+      <div><b>${n}/${c.goal}</b><span>${tr('fz.statToday')}</span></div>
+      <div><b>🔥 ${run.cur}</b><span>${tr('fz.statStreak')}</span></div>
+      <div><b>🏆 ${run.best}</b><span>${tr('fz.statBest')}</span></div></div>
     ${bar(n, c.goal)}
     <div class="fzdays">${days.map(d => { const v = m[d] || 0; return `<div class="${v >= c.goal ? 'ok' : v ? 'part' : ''}${d === k ? ' td' : ''}"
-      title="${DOW[dowOf(d)]} ${fmtVN(d)} · ${v} phiên"><b>${v || ''}</b><span>${DOW[dowOf(d)]}</span></div>`; }).join('')}</div>
-    <div class="fzh">Hôm nay</div>
+      title="${tr('fz.dayTip', {w: DOW[dowOf(d)], d: fmtVN(d), n: v})}"><b>${v || ''}</b><span>${DOW[dowOf(d)]}</span></div>`; }).join('')}</div>
+    <div class="fzh">${tr('fz.todayH')}</div>
     <div class="fzsum">
-      <div><b>${Math.round(add('ms') / 6e4)}</b><span>phút tập trung</span></div>
-      <div><b>${new Set(list.map(e => e.tid)).size}</b><span>task đã làm</span></div>
-      <div><b>${add('cap')}</b><span>lần ghi để sau</span></div>
-      <div><b>${add('pause')}</b><span>lần tạm dừng</span></div>
-      <div><b>${rated.length ? (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1) : '—'}</b><span>điểm tập trung</span></div></div>`;
+      <div><b>${Math.round(add('ms') / 6e4)}</b><span>${tr('fz.statMins')}</span></div>
+      <div><b>${new Set(list.map(e => e.tid)).size}</b><span>${tr('fz.statTasks')}</span></div>
+      <div><b>${add('cap')}</b><span>${tr('fz.statCaps')}</span></div>
+      <div><b>${add('pause')}</b><span>${tr('fz.statPauses')}</span></div>
+      <div><b>${rated.length ? (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1) : '—'}</b><span>${tr('fz.statRate')}</span></div></div>`;
 }
 
 /* --- nhật ký hôm nay: mọi phiên và giờ nghỉ xếp theo dòng thời gian, nối thành một mạch như git log --graph.
@@ -505,8 +505,8 @@ function fDayLog(){
 // một dòng: cột giờ, đường nối, rồi phần thân. Phiên work có thêm dòng con cho điểm và ghi chú cuối phiên.
 function fJournalHTML(){
   const rows = fDayLog();
-  if(!rows.length) return `<div class="fzh">Nhật ký hôm nay</div>
-    <div class="fzhint">Hôm nay chưa có phiên nào. Xong một phiên là có một dòng ở đây.</div>`;
+  if(!rows.length) return `<div class="fzh">${tr('fj.head')}</div>
+    <div class="fzhint">${tr('fj.empty')}</div>`;
   const mins = ms => Math.round(ms / 6e4);
   const html = rows.map((e, i) => {
     const work = e.k === 'work', cut = !e.live && !e.done;
@@ -515,43 +515,43 @@ function fJournalHTML(){
     const rail = `<span class="rail${i === 0 ? ' first' : ''}${tail ? ' last' : ''}"></span>`;
     const railNote = `<span class="rail${i === rows.length - 1 ? ' last' : ''}"></span>`;
     if(e.gap) return `<div class="fzjr gap"><span class="tm">${fHM(e.a)}</span>${rail}<span class="dot"></span>
-      <div class="bd"><span class="nm">Rời bàn ${fHours(e.gap)}</span></div></div>`;
+      <div class="bd"><span class="nm">${tr('fj.away', {d: fHours(e.gap)})}</span></div></div>`;
     const meta = [];
     if(work){
-      if(e.ms > e.plan * 6e4) meta.push(`bù thêm ${mins(e.ms - e.plan * 6e4)}′`);
-      if(e.pause) meta.push(`${e.pause} lần dừng`);
-      if(e.sw) meta.push(`${e.sw} lần đổi task`);
-      if(e.cap) meta.push(`${e.cap} lần ghi để sau`);
+      if(e.ms > e.plan * 6e4) meta.push(tr('fj.extra', {n: mins(e.ms - e.plan * 6e4)}));
+      if(e.pause) meta.push(tr('fj.pauses', {n: e.pause}));
+      if(e.sw) meta.push(tr('fj.switches', {n: e.sw}));
+      if(e.cap) meta.push(tr('fj.caps', {n: e.cap}));
     }
     // ghi chú cuối phiên treo dưới dòng, vẫn dính vào đường nối
     const note = work && !e.live && (e.rate || e.next) ? `<div class="fzjr note"><span></span>${railNote}
       <div class="bd">${e.rate ? `<span class="rate" title="${FRATE[e.rate]}">${'★'.repeat(e.rate)}${'☆'.repeat(5 - e.rate)}</span>` : ''}
-        ${e.next ? `<span class="nx">Ghi chú sau phiên: ${esc(e.next)}</span>` : ''}</div></div>` : '';
+        ${e.next ? `<span class="nx">${tr('fj.noteAfter', {n: esc(e.next)})}</span>` : ''}</div></div>` : '';
     return `<div class="fzjr ${work ? 'work' : 'rest'}${cut ? ' cut' : ''}${e.live ? ' live' : ''}">
       <span class="tm">${fHM(e.a)}</span>${rail}<span class="dot"></span>
       <div class="bd">
         <span class="nm">${FPHASE[e.k]}${work && e.title.trim() ? ` · ${esc(e.title)}` : ''}</span>
-        <span class="du">${e.live ? `đang chạy · ${mins(e.ms)}′` : cut ? `bỏ dở · ${mins(e.ms)}′/${e.plan}′` : `${mins(e.ms)}′`}</span>
+        <span class="du">${e.live ? tr('fj.live', {n: mins(e.ms)}) : cut ? tr('fj.cut', {n: mins(e.ms), p: e.plan}) : tr('fj.plain', {n: mins(e.ms)})}</span>
         ${meta.length ? `<span class="mt">${meta.join(' · ')}</span>` : ''}
       </div></div>${note}`;
   }).join('');
   const work = rows.filter(e => e.k === 'work'), rest = rows.filter(e => e.k === 'short' || e.k === 'long');
   const sum = l => l.reduce((s, e) => s + (e.ms || 0), 0);
   const left = fToSend().length;
-  return `<div class="fzh">Nhật ký hôm nay<span class="n">${fHours(sum(work))} làm · ${fHours(sum(rest))} nghỉ</span>
-      ${left ? `<button class="lblbtn" data-fsend title="Viết ${left} phiên chưa đưa sang vào trang Tập trung của mục Nhật ký">→ Đưa vào Nhật ký</button>`
-             : '<span class="lblbtn off" title="Mọi phiên hôm nay đã có trong mục Nhật ký">✓ đã đưa vào Nhật ký</span>'}</div>
+  return `<div class="fzh">${tr('fj.head')}<span class="n">${tr('fj.summary', {w: fHours(sum(work)), r: fHours(sum(rest))})}</span>
+      ${left ? `<button class="lblbtn" data-fsend title="${tr('fj.sendT', {n: left})}">${tr('fj.send')}</button>`
+             : `<span class="lblbtn off" title="${tr('fj.sentT')}">${tr('fj.sent')}</span>`}</div>
     <div class="fzjrs">${html}</div>`;
 }
 
 /* --- đưa sang mục Nhật ký: gom phiên hôm nay thành một bài viết, nối vào cuối trang "Tập trung" của ngày đó.
    Phiên đã đưa sang được đánh dấu sent nên bấm lại chỉ thêm phần mới, không chép lại từ đầu. --- */
-const FJPAGE = 'Tập trung';
+const FJPAGE = tr('fj.page');
 // chỉ phiên work đã xong hẳn mới đáng viết: đang chạy thì chưa có gì để kể
 const fToSend = () => S.focus.log.filter(e => e.k === 'work' && iso(new Date(e.a)) === today() && !e.sent);
 function fSend(){
   const list = fToSend();
-  if(!list.length) return toast('Mọi phiên hôm nay đã có trong mục Nhật ký');
+  if(!list.length) return toast(tr('fj.nothingNew'));
   const k = today(), pages = jPages(k);
   let page = pages.find(p => p.name === FJPAGE);
   if(!page){ page = {id:uid(), name:FJPAGE, html:''}; pages.push(page); }
@@ -560,7 +560,7 @@ function fSend(){
   save();
   ui.jDate = k; ui.jTab = pages.indexOf(page);
   goView('journal');
-  toast(`Đã đưa ${list.length} phiên sang mục Nhật ký`);
+  toast(tr('fj.sentToast', {n: list.length}));
 }
 // bài viết: một dòng tổng ở đầu, rồi mỗi phiên một đoạn. Dùng thẻ thường để sửa lại được bằng tay trong editor.
 function fSendHTML(list, cont){
@@ -568,9 +568,9 @@ function fSendHTML(list, cont){
   const rated = list.filter(e => e.rate);
   const tot = list.reduce((s, e) => s + e.ms, 0);
   const stamp = new Date().toTimeString().slice(0, 5);
-  const sum = [`<strong>${done.length} phiên đạt</strong>`, fHours(tot)];
-  if(cut.length) sum.push(`${cut.length} phiên bỏ dở`);
-  if(rated.length) sum.push(`tập trung ${(rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1)}/5`);
+  const sum = [tr('fj.sumDone', {n: done.length}), fHours(tot)];
+  if(cut.length) sum.push(tr('fj.sumCut', {n: cut.length}));
+  if(rated.length) sum.push(tr('fj.sumRate', {n: (rated.reduce((s, e) => s + e.rate, 0) / rated.length).toFixed(1)}));
   // gộp các phiên cùng một task lại: đọc theo việc dễ nhớ hơn đọc theo lượt ngồi
   const byTask = [];
   list.forEach(e => {
@@ -581,43 +581,46 @@ function fSendHTML(list, cont){
     const ms = g.es.reduce((s, e) => s + e.ms, 0);
     const span = `${fHM(g.es[0].a)}–${fHM(g.es[g.es.length - 1].b)}`;
     const nd = g.es.filter(e => e.done).length, cut = g.es.length - nd;
-    const head = `<p><strong>${esc(g.title.trim() || '(chưa đặt tên)')}</strong> — ${nd} phiên đạt${cut ? ` · ${cut} bỏ dở` : ''} · ${fHours(ms)} · ${span}</p>`;
+    const head = `<p><strong>${esc(g.title.trim() || tr('task.untitled'))}</strong> — ${tr('fj.taskHead', {n: nd})}${cut ? tr('fj.taskCut', {n: cut}) : ''} · ${fHours(ms)} · ${span}</p>`;
     // ghi chú cuối phiên là thứ đáng giữ nhất, nên cho ra một danh sách riêng
     const notes = g.es.filter(e => e.next || e.rate).map(e =>
       `<li>${fHM(e.a)}${e.rate ? ` · ${'★'.repeat(e.rate)}${'☆'.repeat(5 - e.rate)}` : ''}${e.next ? ` — ${esc(e.next)}` : ''}</li>`).join('');
     return head + (notes ? `<ul>${notes}</ul>` : '');
   }).join('');
-  return `${cont ? '<hr>' : ''}<h2>Tập trung hôm nay${cont ? ` · thêm lúc ${stamp}` : ''}</h2>
+  return `${cont ? '<hr>' : ''}<h2>${tr('fj.postTitle')}${cont ? tr('fj.postCont', {t: stamp}) : ''}</h2>
     <p>${sum.join(' · ')}</p>${body}`;
 }
 
 // biểu đồ giờ tập trung theo ngày / tuần / tháng / năm. Tính mọi phiên, kể cả bỏ dở, vì thời gian đó vẫn là đã ngồi làm.
 // S.settings.fcM = kiểu khoảng đang xem (nhớ qua F5), ui.fcOff = lùi / tiến bao nhiêu khoảng so với hiện tại
-const FCM = {day:'Ngày', week:'Tuần', month:'Tháng', year:'Năm'};
-const fHours = ms => { const m = Math.round(ms / 6e4); return m < 60 ? `${m} phút` : `${Math.floor(m / 60)} giờ${m % 60 ? ` ${m % 60} phút` : ''}`; };
+const FCM = {day:tr('fc.day'), week:tr('fc.week'), month:tr('fc.month'), year:tr('fc.year')};
+const fHours = ms => { const m = Math.round(ms / 6e4);
+  return m < 60 ? tr('fc.hoursMin', {m})
+    : tr('fc.hoursH', {h: Math.floor(m / 60), rest: m % 60 ? tr('fc.hoursRest', {m: m % 60}) : ''}); };
 function fChartHTML(){
   const mode = FCM[S.settings.fcM] ? S.settings.fcM : 'week', off = ui.fcOff || 0, k0 = today();
   let cols, title;   // cols: [{a, b, h, lbl, tip}] — khoảng ngày [a, b] của mỗi cột; xem theo ngày thì mỗi cột là một giờ h
   if(mode === 'day'){
     const d = dShift(k0, off), hr = new Date().getHours(), hh = h => String(h).padStart(2, '0') + ':00';
     cols = Array.from({length:24}, (_, h) => ({a:d, b:d, h, lbl:h % 3 ? '' : h, tip:`${hh(h)}–${hh(h + 1)}`, now:d === k0 && h === hr}));
-    title = off === 0 ? 'Hôm nay' : off === -1 ? 'Hôm qua' : `${DOW[dowOf(d)]} ${fmtVN(d)}`;
+    title = off === 0 ? tr('common.today') : off === -1 ? tr('fc.yesterday') : `${DOW[dowOf(d)]} ${fmtVN(d)}`;
   }else if(mode === 'week'){
     const mon = dShift(fMon(k0), off * 7);
     cols = Array.from({length:7}, (_, i) => { const d = dShift(mon, i);
       return {a:d, b:d, lbl:`${DOW[dowOf(d)]}<br>${d.slice(8)}/${d.slice(5, 7)}`, tip:`${DOW[dowOf(d)]} ${fmtVN(d)}`, now:d === k0}; });
-    title = off ? `${fmtVN(mon).slice(0, 5)} – ${fmtVN(dShift(mon, 6))}` : 'Tuần này';
+    title = off ? `${fmtVN(mon).slice(0, 5)} – ${fmtVN(dShift(mon, 6))}` : tr('fc.thisWeek');
   }else if(mode === 'month'){
     const x = new Date(k0.slice(0, 7) + '-01T00:00:00'); x.setMonth(x.getMonth() + off);
     const first = iso(x), n = new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
     cols = Array.from({length:n}, (_, i) => { const d = dShift(first, i);
       return {a:d, b:d, lbl:+d.slice(8) % 5 && i ? '' : +d.slice(8), tip:`${DOW[dowOf(d)]} ${fmtVN(d)}`, now:d === k0}; });
-    title = `Tháng ${x.getMonth() + 1}/${x.getFullYear()}`;
+    title = tr('journal.monthLbl', {m: x.getMonth() + 1, M: tr(`mon.${x.getMonth() + 1}`), y: x.getFullYear()});
   }else{
     const y = +k0.slice(0, 4) + off;
     cols = Array.from({length:12}, (_, i) => { const m = `${y}-${String(i + 1).padStart(2, '0')}`;
-      return {a:m + '-01', b:m + '-31', lbl:`T${i + 1}`, tip:`Tháng ${i + 1}/${y}`, now:m === k0.slice(0, 7)}; });
-    title = `Năm ${y}`;
+      return {a:m + '-01', b:m + '-31', lbl:tr('fc.monShort', {n: i + 1, M: tr(`mon.${i + 1}`).slice(0, 3)}),
+              tip:tr('fc.monTip', {n: i + 1, M: tr(`mon.${i + 1}`), y}), now:m === k0.slice(0, 7)}; });
+    title = tr('fc.yearTitle', {y});
   }
   const works = fWorks();
   // phiên tính vào giờ bắt đầu
@@ -631,17 +634,17 @@ function fChartHTML(){
   // trục dọc chia 4 nấc tròn số: theo phút khi xem một ngày, theo giờ khi xem khoảng dài hơn
   const unit = mode === 'day' ? 6e4 : 36e5, max = Math.max(...cols.map(c => c.ms)) / unit;
   const step = (mode === 'day' ? [5, 10, 15] : [.25, .5, 1, 2, 5, 10, 20, 50, 100]).find(v => v * 4 >= max) || Math.ceil(max / 4), top = step * 4;
-  return `<div class="fzh">Khu vườn<span class="n">🌳 ${grown.length - dead} cây${dead ? ` · 🥀 ${dead} héo` : ''}</span>
+  return `<div class="fzh">${tr('fc.gardenH')}<span class="n">${tr('fc.trees', {n: grown.length - dead})}${dead ? tr('fc.dead', {n: dead}) : ''}</span>
       <div class="scope fcscope">${Object.entries(FCM).map(([k, n]) => `<button class="${mode === k ? 'on' : ''}" data-fcm="${k}">${n}</button>`).join('')}</div></div>
     <div class="fcnav"><button class="nvb" data-fcoff="-1">‹</button><span>${title}</span><button class="nvb" data-fcoff="1">›</button></div>
     ${fGardenHTML(grown, mode + a0)}
-    ${grown.length ? '' : '<div class="fzhint fcempty">Chưa trồng cây nào trong khoảng này. Xong một phiên tập trung là có một cây.</div>'}
-    <div class="fzh">Giờ tập trung<span class="n">${fHours(total)}</span></div>
+    ${grown.length ? '' : `<div class="fzhint fcempty">${tr('fc.gardenEmpty')}</div>`}
+    <div class="fzh">${tr('fc.hoursH2')}<span class="n">${fHours(total)}</span></div>
     <div class="fchart">
       <div class="fcy">${[4, 3, 2, 1, 0].map(i => `<span>${+(step * i).toFixed(2)}${mode === 'day' && i ? 'p' : ''}</span>`).join('')}</div>
       <div class="fcplot">${[4, 3, 2, 1, 0].map(i => `<i style="bottom:${i * 25}%"></i>`).join('')}
         ${cols.map(c => `<div class="fccol${c.now ? ' td' : ''}">
-          <b style="height:${c.ms / unit / top * 100}%" data-tip="${c.tip} · ${c.ms ? `${fHours(c.ms)} · ${c.n} phiên` : 'chưa tập trung'}"></b></div>`).join('')}</div>
+          <b style="height:${c.ms / unit / top * 100}%" data-tip="${c.tip} · ${c.ms ? tr('fc.colTip', {h: fHours(c.ms), n: c.n}) : tr('fc.colNone')}"></b></div>`).join('')}</div>
       <div></div>
       <div class="fcx">${cols.map(c => `<span${c.now ? ' class="td"' : ''}>${c.lbl}</span>`).join('')}</div></div>`;
 }
@@ -651,43 +654,41 @@ function fLookHTML(p){
     <div class="fzprev" data-fprev="${p}"><div class="fzbg"></div><div class="fzimg"></div><div class="fzdim"></div>
       <div class="fzpt">${FPHASE[p]}<b>${fClock(c[p] * 6e4)}</b></div></div>
     <div class="fzlc">
-      <div class="fzrow"><span>Màu nền</span><button class="hsw" data-fpal="${p}" style="background:${lk.c}" title="Đổi màu"></button></div>
-      <div class="fzrow"><span>Ảnh nền</span><button class="btn ghost" data-fimg="${p}">${lk.img ? 'Đổi ảnh' : 'Tải ảnh lên'}</button>
-        ${lk.img ? `<button class="danger" data-fimgx="${p}">Bỏ ảnh</button>` : ''}</div>
-      <label class="fzrow"><span>Độ rõ ảnh</span><input type="range" min="0" max="100" data-flook="${p}|op" value="${lk.op}"></label>
-      <label class="fzrow"><span>Lớp phủ</span><input type="range" min="-80" max="80" data-flook="${p}|dim" value="${lk.dim}"><em>sáng · tối</em></label>
+      <div class="fzrow"><span>${tr('fs.bgColor')}</span><button class="hsw" data-fpal="${p}" style="background:${lk.c}" title="${tr('tag.recolor')}"></button></div>
+      <div class="fzrow"><span>${tr('fs.bgImage')}</span><button class="btn ghost" data-fimg="${p}">${tr(lk.img ? 'fs.changeImg' : 'fs.uploadImg')}</button>
+        ${lk.img ? `<button class="danger" data-fimgx="${p}">${tr('fs.dropImg')}</button>` : ''}</div>
+      <label class="fzrow"><span>${tr('fs.opacity')}</span><input type="range" min="0" max="100" data-flook="${p}|op" value="${lk.op}"></label>
+      <label class="fzrow"><span>${tr('fs.overlay')}</span><input type="range" min="-80" max="80" data-flook="${p}|dim" value="${lk.dim}"><em>${tr('fs.overlayEnds')}</em></label>
     </div></div>`;
 }
 function fCfgHTML(){
   const c = S.focus.cfg;
-  if(!ui.fCfg) return `<button class="fzcfgbtn" data-fcfgbtn>⚙ Cài đặt<span>Thời lượng, hàng đợi, mục tiêu, giao diện, âm thanh</span></button>`;
+  if(!ui.fCfg) return `<button class="fzcfgbtn" data-fcfgbtn>${tr('fs.open')}<span>${tr('fs.openSub')}</span></button>`;
   const num = (k, l, min, max, u) => `<label class="fzrow"><span>${l}</span><input class="inp" type="number" data-fcfg="${k}" min="${min}" max="${max}" value="${c[k]}">${u ? `<em>${u}</em>` : ''}</label>`;
   const chk = (k, l) => `<label class="fzrow chk"><input type="checkbox" data-fcfg="${k}"${c[k] ? ' checked' : ''}><span>${l}</span></label>`;
-  const grp = (id, t, body, hint) => `<div class="fzgrp"><div class="fzgh">${t}<button class="lblbtn" data-freset="${id}">Khôi phục mặc định</button></div>
+  const grp = (id, t, body, hint) => `<div class="fzgrp"><div class="fzgh">${t}<button class="lblbtn" data-freset="${id}">${tr('fs.reset')}</button></div>
     ${body}${hint ? `<div class="fzhint">${hint}</div>` : ''}</div>`;
   const perm = 'Notification' in window ? Notification.permission : 'denied';
-  return `<div class="fzh">Cài đặt<button class="lblbtn" data-fcfgbtn>Thu gọn</button></div>
-    ${grp('time', 'Thời lượng', num('work', 'Phiên tập trung', 1, 180, 'phút') + num('short', 'Nghỉ ngắn', 1, 60, 'phút')
-      + num('long', 'Nghỉ dài', 1, 90, 'phút') + num('every', 'Nghỉ dài sau mỗi', 1, 12, 'phiên')
-      + num('buffer', 'Cho làm bù sau khi hết giờ', 0, 60, 'phút') + chk('auto', 'Tự chạy phiên hoặc giờ nghỉ tiếp theo'),
-      'Đổi khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.<br>'
-      + 'Làm bù để 0 thì hết giờ là phiên khép lại ngay. Đặt số phút thì hết giờ chỉ kêu chuông, bạn làm nốt rồi bấm '
-      + 'kết thúc, hết ngần ấy phút thì đồng hồ tự ngừng. Phần bù vẫn tính là giờ tập trung, nhưng cây đã chốt ở mức đủ giờ.')}
-    ${grp('queue', 'Hàng đợi', num('qmax', 'Số task tối đa', 1, 10, 'task') + chk('confirmSw', 'Đổi task giữa phiên phải xác nhận'),
-      'Chỉ task ở cột Đang làm mới vào được hàng đợi.')}
-    ${grp('pause', 'Tạm dừng', num('pauseAsk', 'Tạm dừng quá bao lâu thì hỏi huỷ phiên', 1, 60, 'phút'))}
-    ${grp('streak', 'Mục tiêu & chuỗi', num('goal', 'Số phiên đạt mỗi ngày', 1, 20, 'phiên') + num('miss', 'Số ngày thường được lỡ', 0, 5, 'ngày')
-      + chk('weekend', 'Cuối tuần có làm đủ thì cộng vào chuỗi'),
-      'Cuối tuần không làm thì chuỗi không gãy. Phiên huỷ giữa chừng vẫn được ghi lại nhưng không tính là phiên đạt.')}
-    ${grp('ask', 'Sau phiên', chk('askRate', 'Chấm độ tập trung cuối phiên')
-      + chk('askNext', 'Ghi chú sau phiên'))}
-    ${grp('look', 'Giao diện toàn màn hình', Object.keys(FPHASE).map(fLookHTML).join(''))}
-    ${grp('sound', 'Âm thanh & thông báo', chk('sound', 'Âm báo hết phiên')
-      + `<label class="fzrow"><span>Âm lượng</span><input type="range" min="0" max="100" data-fcfg="vol" value="${c.vol}"><button class="btn ghost" data-ftest>Nghe thử</button></label>`
-      + chk('notify', 'Thông báo hệ thống')
-      + (perm === 'default' ? '<button class="bperm" data-fperm>Cho phép thông báo hệ thống — để được báo cả khi đang ở cửa sổ khác</button>'
-        : perm === 'denied' ? '<div class="fzhint">Trình duyệt đang tắt thông báo của trang này.</div>' : '')
-      + chk('tabTitle', 'Hiện đồng hồ trên tiêu đề tab'))}`;
+  return `<div class="fzh">${tr('fs.head')}<button class="lblbtn" data-fcfgbtn>${tr('side.fzmin')}</button></div>
+    ${grp('time', tr('fs.gTime'), num('work', tr('fs.work'), 1, 180, tr('fs.uMin')) + num('short', tr('fs.short'), 1, 60, tr('fs.uMin'))
+      + num('long', tr('fs.long'), 1, 90, tr('fs.uMin')) + num('every', tr('fs.every'), 1, 12, tr('fs.uSess'))
+      + num('buffer', tr('fs.buffer'), 0, 60, tr('fs.uMin')) + chk('auto', tr('fs.auto')),
+      tr('fs.timeHint'))}
+    ${grp('queue', tr('fs.gQueue'), num('qmax', tr('fs.qmax'), 1, 10, tr('fs.uTask')) + chk('confirmSw', tr('fs.confirmSw')),
+      tr('fs.queueHint'))}
+    ${grp('pause', tr('fs.gPause'), num('pauseAsk', tr('fs.pauseAsk'), 1, 60, tr('fs.uMin')))}
+    ${grp('streak', tr('fs.gStreak'), num('goal', tr('fs.goal'), 1, 20, tr('fs.uSess')) + num('miss', tr('fs.miss'), 0, 5, tr('fs.uDay'))
+      + chk('weekend', tr('fs.weekend')),
+      tr('fs.streakHint'))}
+    ${grp('ask', tr('fs.gAsk'), chk('askRate', tr('fs.askRate'))
+      + chk('askNext', tr('fs.askNext')))}
+    ${grp('look', tr('fs.gLook'), Object.keys(FPHASE).map(fLookHTML).join(''))}
+    ${grp('sound', tr('fs.gSound'), chk('sound', tr('fs.sound'))
+      + `<label class="fzrow"><span>${tr('fs.volume')}</span><input type="range" min="0" max="100" data-fcfg="vol" value="${c.vol}"><button class="btn ghost" data-ftest>${tr('fs.test')}</button></label>`
+      + chk('notify', tr('fs.notify'))
+      + (perm === 'default' ? `<button class="bperm" data-fperm>${tr('fs.perm')}</button>`
+        : perm === 'denied' ? `<div class="fzhint">${tr('fs.permDenied')}</div>` : '')
+      + chk('tabTitle', tr('fs.tabTitle')))}`;
 }
 function fSetCfg(el){
   const c = S.focus.cfg, k = el.dataset.fcfg;
@@ -706,7 +707,7 @@ function fPickImg(p){
   inp.onchange = async () => {
     const file = inp.files[0]; if(!file) return;
     try{ const id = 'i' + uid(); await imgPut(id, await shrink(file)); S.focus.cfg.look[p].img = id; }
-    catch(e){ return toast('Chưa đọc được ảnh này'); }
+    catch(e){ return toast(tr('fs.imgFail')); }
     save(); fPaintCfg(); fFullPaint();
   };
   inp.click();
