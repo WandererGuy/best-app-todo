@@ -7,7 +7,7 @@
 - **Dữ liệu là của bạn.** Mọi thứ nằm trong một file `data/dieukhien.json` trên máy. Không gửi đi đâu, không có máy chủ đám mây.
 - **Không mất dữ liệu vì xoá cache.** Dữ liệu ghi ra file chứ không nhốt trong trình duyệt, và mỗi ngày app tự sao lưu một bản.
 - **Không cần cài gì phức tạp.** Chỉ cần Python và một trình duyệt. Bấm đúp `run.bat` là chạy.
-- **Tiếng Việt hoàn toàn.**
+- **Tiếng Việt hoặc tiếng Anh.** Đổi ngôn ngữ giao diện bằng nút 🌐 ở cuối sidebar.
 
 ---
 
@@ -27,20 +27,22 @@
 
 | | |
 |---|---|
-| **Bảng việc & Bảng cuộc sống**<br>Kanban 3 cột kéo thả. Task có ưu tiên, hạn chót, giờ, tag, việc con và ghi chú kiểu Notion. | **Tập trung (pomodoro)**<br>Hàng đợi task, đồng hồ toàn màn hình, chuỗi ngày, thống kê. Mỗi phiên trồng một cây trong khu vườn. |
+| **Bảng việc & Bảng cuộc sống**<br>Kanban 3 cột kéo thả. Task có ưu tiên, hạn chót, giờ, tag, việc con và ghi chú kiểu Notion. | **Tập trung (pomodoro)**<br>Hàng đợi task, đồng hồ toàn màn hình, chuỗi ngày, thống kê. Mỗi phiên đủ giờ trồng một cây trong khu vườn, chọn được 8 loài. |
 | ![Panel task](docs/images/drawer.png) | ![Tập trung](docs/images/focus.png) |
 | **Thói quen**<br>Lưới theo dõi 12 tuần, chuỗi buổi liên tiếp, thói quen nên làm và nên bỏ. | **Lịch**<br>Xem theo ngày, tuần, tháng kiểu Google Calendar. Bấm khung trống để tạo task. |
 | ![Thói quen](docs/images/habits.png) | ![Lịch](docs/images/cal.png) |
-| **Ghi chú**<br>Trang lồng nhau như Notion, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
+| **Ghi chú**<br>Trang lồng nhau như Notion, kéo thả để đổi thứ tự hoặc lồng vào trang khác, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
 | ![Ghi chú](docs/images/notes.png) | ![Tổng quan](docs/images/dash.png) |
+| **Lịch trình**<br>Khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ — dựng sẵn thành mẫu cho từng thứ trong tuần. | **Nhật ký**<br>Mỗi ngày một hoặc nhiều trang, viết bằng cùng trình soạn thảo với ghi chú. |
+| ![Lịch trình](docs/images/plan.png) | ![Nhật ký](docs/images/journal.png) |
 
 Ngoài ra còn có:
 
 - **Để sau:** chỗ ghi nhanh những việc chưa muốn làm ngay. Chúng không lên bảng, lịch hay thống kê.
-- **Nhật ký:** mỗi ngày một hoặc nhiều trang.
 - **Nhắc việc:** toast, chuông trong app và thông báo hệ thống.
 - **Tag có màu, tìm kiếm toàn văn, bộ lọc.**
 - **Thùng rác:** khôi phục được task và ghi chú đã xoá.
+- **Hai ngôn ngữ:** toàn bộ giao diện có tiếng Việt và tiếng Anh, đổi ở cuối sidebar.
 
 Mô tả chi tiết từng tính năng: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
 
@@ -208,6 +210,7 @@ Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
 - Kéo card trên bảng thả **xuống đáy màn hình** để bỏ vào thùng rác, thả vào mục **Để sau** ở sidebar để gác lại, thả vào khối **Tập trung** để đưa vào hàng đợi.
 - Đang trong phiên tập trung mà chợt nhớ việc khác: gõ vào ô **Ghi để sau** rồi Enter. Việc đó vào mục Để sau, bạn quay lại việc đang làm.
 - Bấm khung giờ trống trên lịch (lịch lớn hoặc lịch nhỏ ở sidebar) để tạo task đúng giờ đó.
+- Trong cây ghi chú, kéo một trang thả vào mép trên / mép dưới của trang khác để đổi chỗ, thả vào giữa trang để biến nó thành trang con.
 
 ---
 
@@ -280,7 +283,8 @@ run.bat, tat-server-cu.ps1   Bấm đúp để chạy (Windows); tắt server c�
 serve.py                     Server localhost: phát file tĩnh + API /api/data giữ dữ liệu
 index.html                   Khung HTML
 style.css                    Toàn bộ giao diện
-js/                          Code app, mỗi mục một file (core.js nạp đầu, main.js nạp cuối)
+js/                          Code app, mỗi mục một file (i18n.js rồi core.js nạp đầu, main.js nạp cuối)
+js/i18n.js                   Chữ trong giao diện, mỗi dòng một chuỗi [tiếng Việt, tiếng Anh]
 vendor/tiptap.js             Bundle trình soạn thảo (build sinh ra, không sửa tay)
 build/                       Nguồn và script build lại trình soạn thảo (cần Node)
 docs/                        Hướng dẫn chi tiết và ảnh chụp
