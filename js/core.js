@@ -136,5 +136,36 @@ const fold = s => String(s).normalize('NFC').replace(/[^\x00-\x7f]/g, c => {
   const d = c.normalize('NFD');
   return d[0] === 'đ' ? 'd' : d[0] === 'Đ' ? 'D' : d.length > 1 && /[a-zA-Z]/.test(d[0]) ? d[0] : c;
 }).toLowerCase().replace(/(^|[^aeiouy])y/g, '$1i');
+/* --- tìm kiếm: phần dùng chung cho trang ghi chú (notes.js) và nhật ký (journal.js) ---
+   Mỗi bên tự giữ bản đã bỏ dấu của mình rồi gọi xuống đây để cắt đoạn trích và tô sáng.
+   Quy ước của "entry": {raw, b} — raw là chữ gốc dạng NFC, b là fold(raw), hai chuỗi cùng độ dài. */
+const NQ_SNIP = 130;                             // số ký tự của đoạn trích hiện dưới mỗi kết quả
+const nqToks = q => fold(q).split(/\s+/).filter(Boolean);
+// tô sáng các đoạn khớp: vị trí tính trên low (bản bỏ dấu), chữ hiện ra lấy từ raw (bản gốc còn dấu)
+function nqHi(raw, low, toks){
+  const hits = [];
+  toks.forEach(tk => { for(let i = low.indexOf(tk); i >= 0; i = low.indexOf(tk, i + tk.length)) hits.push([i, i + tk.length]); });
+  hits.sort((a, b) => a[0] - b[0]);
+  let out = '', at = 0;
+  for(const [a, b] of hits){
+    if(b <= at) continue;                        // đã nằm trong đoạn vừa tô
+    const s = Math.max(a, at);
+    out += esc(raw.slice(at, s)) + `<mark>${esc(raw.slice(s, b))}</mark>`;
+    at = b;
+  }
+  return out + esc(raw.slice(at));
+}
+// mẩu nội dung quanh chỗ khớp đầu tiên; không khớp chỗ nào trong raw thì lấy đoạn mở đầu
+function nqSnip(e, toks){
+  let at = -1;
+  toks.forEach(tk => { const i = e.b.indexOf(tk); if(i >= 0 && (at < 0 || i < at)) at = i; });
+  if(!e.raw) return '';
+  if(at < 0) return esc(e.raw.slice(0, NQ_SNIP)) + (e.raw.length > NQ_SNIP ? '…' : '');
+  let s = Math.max(0, at - 30);
+  const sp = s ? e.b.indexOf(' ', s) : -1;       // lùi sang đầu từ kế tiếp cho đỡ cụt giữa chữ
+  if(sp > 0 && sp < at) s = sp + 1;
+  const end = Math.min(e.raw.length, s + NQ_SNIP);
+  return (s ? '…' : '') + nqHi(e.raw.slice(s, end), e.b.slice(s, end), toks) + (end < e.raw.length ? '…' : '');
+}
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const today = () => iso(new Date());

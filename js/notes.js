@@ -158,7 +158,8 @@ function renderNotes(){
 // chỉ quét lại mảng có sẵn chứ không bóc lại html. Câu tìm tách thành từ, trang phải khớp ĐỦ mọi
 // từ nhưng không cần đúng thứ tự; rồi chấm điểm để trang đáng xem nhất lên đầu, thay vì xếp theo
 // ngày sửa như trước. Kết quả vẽ ra tối đa NQ_MAX hàng, phần dư chỉ đếm.
-const NQ_MAX = 60, NQ_SNIP = 130;
+// nqToks / nqHi / nqSnip nằm ở core.js vì nhật ký cũng dùng chung
+const NQ_MAX = 60;
 const nIdx = new Map();
 // raw / ttl cất bản NFC chứ không phải chuỗi gốc: fold() chuẩn hoá NFC bên trong, nên có cùng
 // dạng thì độ dài mới bằng nhau và vị trí khớp mới trỏ đúng chỗ lúc tô sáng.
@@ -172,7 +173,6 @@ function nEntry(n){
   }
   return e;
 }
-const nqToks = q => fold(q).split(/\s+/).filter(Boolean);
 // chỗ khớp đầu tiên của tok trong hay, ưu tiên chỗ rơi đúng vào đầu một từ
 function nqFind(hay, tok){
   let first = -1;
@@ -204,32 +204,6 @@ function nqSearch(q){
     .map(n => { const e = nEntry(n); return {n, e, s: toks.length ? nqScore(e, toks, fq) : 1}; })
     .filter(h => h.s > 0)
     .sort((a, b) => b.s - a.s || b.n.mod.localeCompare(a.n.mod));
-}
-// tô sáng các đoạn khớp: vị trí tính trên low (bản bỏ dấu), chữ hiện ra lấy từ raw (bản gốc còn dấu)
-function nqHi(raw, low, toks){
-  const hits = [];
-  toks.forEach(tk => { for(let i = low.indexOf(tk); i >= 0; i = low.indexOf(tk, i + tk.length)) hits.push([i, i + tk.length]); });
-  hits.sort((a, b) => a[0] - b[0]);
-  let out = '', at = 0;
-  for(const [a, b] of hits){
-    if(b <= at) continue;                      // đã nằm trong đoạn vừa tô
-    const s = Math.max(a, at);
-    out += esc(raw.slice(at, s)) + `<mark>${esc(raw.slice(s, b))}</mark>`;
-    at = b;
-  }
-  return out + esc(raw.slice(at));
-}
-// mẩu nội dung quanh chỗ khớp đầu tiên; khớp ở tiêu đề hay tag thôi thì lấy đoạn mở đầu
-function nqSnip(e, toks){
-  let at = -1;
-  toks.forEach(tk => { const i = e.b.indexOf(tk); if(i >= 0 && (at < 0 || i < at)) at = i; });
-  if(!e.raw) return '';
-  if(at < 0) return esc(e.raw.slice(0, NQ_SNIP)) + (e.raw.length > NQ_SNIP ? '…' : '');
-  let s = Math.max(0, at - 30);
-  const sp = s ? e.b.indexOf(' ', s) : -1;     // lùi sang đầu từ kế tiếp cho đỡ cụt giữa chữ
-  if(sp > 0 && sp < at) s = sp + 1;
-  const end = Math.min(e.raw.length, s + NQ_SNIP);
-  return (s ? '…' : '') + nqHi(e.raw.slice(s, end), e.b.slice(s, end), toks) + (end < e.raw.length ? '…' : '');
 }
 const nqName = (n, e, toks) => e.ttl.trim()
   ? nqHi(e.ttl, e.t, toks) : `<span class="ph">${tr('note.untitled')}</span>`;

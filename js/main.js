@@ -187,7 +187,10 @@ $('#q').oninput = e => {
     const b = $('#ntQ'); if(b) b.value = ui.q;
     drawNoteList();
   }
-  if(ui.view === 'journal') drawJournalList();
+  if(ui.view === 'journal'){
+    const b = $('#jQ'); if(b) b.value = ui.q;
+    drawJournalList();
+  }
 };
 $('#syncBar').onclick = () => pullSrv(true);
 // vừa rời ô soạn thảo / vừa đóng form: nếu đang hoãn bản mới thì nạp luôn

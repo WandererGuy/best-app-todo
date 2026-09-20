@@ -259,7 +259,12 @@ const STR = {
   'journal.askDel':    ['Xoá trang "{n}" của ngày này?', 'Delete the page "{n}" from this day?'],
   'journal.monthLbl':  ['Tháng {m}/{y}', '{M} {y}'],
   'journal.todaySfx':  [' · hôm nay', ' · today'],
+  'journal.search':    ['Tìm trong nhật ký…', 'Search journal…'],
+  'journal.searchT':   ['Gõ nhiều từ để lọc dần, không cần dấu. Enter mở ngày khớp mới nhất, Esc xoá câu tìm.',
+                        'Type several words to narrow down, accents optional. Enter opens the latest match, Esc clears.'],
   'journal.matchN':    ['{n} ngày khớp', '{n} {n#day#days} matched'],
+  'journal.matchMore': ['… và {n} ngày nữa, gõ thêm cho gọn bớt',
+                        '… and {n} more {n#day#days}, type more to narrow down'],
   'journal.noMatch':   ['Không có ngày nào khớp', 'No day matches'],
 
   /* --- lich --- */
