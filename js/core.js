@@ -29,7 +29,7 @@ const KEY   = 'dieukhien.v1';
 // cài đặt mặc định cho người mới mở app lần đầu. Sửa ở đây là đổi mặc định cho mọi bản clone;
 // người đã dùng rồi thì giá trị trong file dữ liệu vẫn được giữ, không bị đè.
 const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false,
-  nPinned:true, nRecent:true, nAll:true};   // nPinned / nRecent / nAll: ba mục ở cột trái trang ghi chú đang mở
+  nSide:true, nPinned:true, nRecent:true, nAll:true, jSide:true};   // cột trái đang hiện: nSide (ghi chú) / jSide (nhật ký); nPinned / nRecent / nAll = ba mục trong cột ghi chú đang mở
 // trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
 // 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
 const VIEW_KEY = 'dieukhien.view';

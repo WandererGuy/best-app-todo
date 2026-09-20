@@ -34,11 +34,16 @@ function renderJournal(){
   $('#vSub').textContent = tr('journal.sub', {n: days});
 
   const due = S.tasks.filter(t => t.due === ui.jDate && t.status !== 'backlog');
+  const side = S.settings.jSide;
   $('#view').innerHTML = `<div class="jwrap">
-    <div class="jside">
-      <button class="btn" id="jTd">${tr('common.today')}</button>
+    ${side ? `<div class="jside">
+      <div class="nshead">
+        <button class="btn" id="jTd">${tr('common.today')}</button>
+        <button class="nfold" id="jHide" title="${tr('common.hideSide')}">«</button>
+      </div>
       <div id="jList"></div>
-    </div>
+    </div>`
+    : `<button class="nfold nshow" id="jShow" title="${tr('common.showSide')}">»</button>`}
     <div class="jpage">
       <div class="jbar">
         <button class="nvb" id="pd">‹</button><button class="nvb" id="nd">›</button>
@@ -60,10 +65,11 @@ function renderJournal(){
   const shift = n => { const x = new Date(ui.jDate + 'T00:00:00'); x.setDate(x.getDate() + n); ui.jDate = iso(x); ui.jTab = 0; renderJournal(); };
   $('#pd').onclick = () => shift(-1);
   $('#nd').onclick = () => shift(1);
-  $('#jTd').onclick = () => { ui.jDate = today(); ui.jTab = 0; renderJournal(); };
+  $(side ? '#jHide' : '#jShow').onclick = () => { S.settings.jSide = !side; save(); renderJournal(); };
+  if(side) $('#jTd').onclick = () => { ui.jDate = today(); ui.jTab = 0; renderJournal(); };
   $('#jDp').onclick = e => openDP(e.currentTarget, ui.jDate,
     v => { if(v){ ui.jDate = v; ui.jTab = 0; renderJournal(); } }, false);
-  $('#jList').onclick = e => {
+  if(side) $('#jList').onclick = e => {
     const b = e.target.closest('[data-jd]');
     if(b && b.dataset.jd !== ui.jDate){ ui.jDate = b.dataset.jd; ui.jTab = 0; renderJournal(); }
   };

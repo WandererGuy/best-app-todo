@@ -224,6 +224,8 @@ const STR = {
   /* --- chung: hom nay, thang --- */
   'common.today':    ['Hôm nay', 'Today'],
   'common.pickDate': ['Chọn ngày', 'Pick a date'],
+  'common.hideSide': ['Thu gọn cột bên trái', 'Collapse the side list'],
+  'common.showSide': ['Mở lại cột bên trái', 'Show the side list'],
   'mon.1':  ['Tháng 1', 'January'],
   'mon.2':  ['Tháng 2', 'February'],
   'mon.3':  ['Tháng 3', 'March'],

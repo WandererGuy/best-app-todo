@@ -62,11 +62,16 @@ function renderNotes(){
   $('#vSub').textContent = tr('note.sub', {n: S.notes.length});
 
   const moveTo = n && nFlat(new Set([n.id])).filter(x => x.n.id !== n.parent);
+  const side = S.settings.nSide;
   $('#view').innerHTML = `<div class="nwrap">
-    <div class="nside">
-      <button class="btn" id="ntNew">${tr('note.new')}</button>
+    ${side ? `<div class="nside">
+      <div class="nshead">
+        <button class="btn" id="ntNew">${tr('note.new')}</button>
+        <button class="nfold" id="ntHide" title="${tr('common.hideSide')}">«</button>
+      </div>
       <div id="ntList"></div>
-    </div>
+    </div>`
+    : `<button class="nfold nshow" id="ntShow" title="${tr('common.showSide')}">»</button>`}
     <div class="npage">${n ? `
       ${nPath(n).length ? `<div class="ncrumb">${nPath(n).map(p => `<button data-nid="${p.id}">${nName(p)}</button><span>/</span>`).join('')}</div>` : ''}
       <input class="nttl" id="ntTitle" value="${esc(n.title)}" placeholder="${tr('note.untitled')}" autocomplete="off">
@@ -90,7 +95,8 @@ function renderNotes(){
   </div>`;
 
   drawNoteList();
-  $('#ntNew').onclick = () => newNote();
+  if(side) $('#ntNew').onclick = () => newNote();
+  $(side ? '#ntHide' : '#ntShow').onclick = () => { S.settings.nSide = !side; save(); renderNotes(); };
   $('.nwrap').onclick = e => {   // cây trang, kết quả tìm, đường dẫn phía trên tiêu đề
     const sec = e.target.closest('[data-nsec]');
     if(sec){ S.settings[sec.dataset.nsec] = !S.settings[sec.dataset.nsec]; save(); return drawNoteList(); }
