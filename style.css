@@ -389,6 +389,8 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .grid{display:grid;gap:14px}
 .stats{grid-template-columns:repeat(auto-fit,minmax(165px,1fr));margin-bottom:14px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px 17px}
+.stat.go{cursor:pointer;transition:border-color .15s,background-color .15s}
+.stat.go:hover{border-color:var(--acc);background:var(--panel2)}
 .stat .k{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:8px}
 .stat .v{font-size:27px;font-weight:700;letter-spacing:-1px;line-height:1}
 .stat .d{font-size:11.5px;color:var(--tx3);margin-top:6px}

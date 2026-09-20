@@ -34,7 +34,7 @@
 | ![Panel task](docs/images/vi/drawer.png) | ![Tập trung](docs/images/vi/focus.png) |
 | **Thói quen**<br>Lưới theo dõi 12 tuần, chuỗi buổi liên tiếp, thói quen nên làm và nên bỏ. | **Lịch**<br>Xem theo ngày, tuần, tháng kiểu Google Calendar. Bấm khung trống để tạo task. |
 | ![Thói quen](docs/images/vi/habits.png) | ![Lịch](docs/images/vi/cal.png) |
-| **Ghi chú**<br>Trang lồng nhau như Notion, kéo thả để đổi thứ tự hoặc lồng vào trang khác, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
+| **Ghi chú**<br>Trang lồng nhau như Notion, kéo thả để đổi thứ tự hoặc lồng vào trang khác, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Việc đến hạn hôm nay, việc trễ hạn, phiên tập trung so với mục tiêu ngày, thói quen và chuỗi nhật ký, kèm biểu đồ 7 ngày. |
 | ![Ghi chú](docs/images/vi/notes.png) | ![Tổng quan](docs/images/vi/dash.png) |
 | **Lịch trình**<br>Khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ — dựng sẵn thành mẫu cho từng thứ trong tuần. | **Nhật ký**<br>Mỗi ngày một hoặc nhiều trang, viết bằng cùng trình soạn thảo với ghi chú. |
 | ![Lịch trình](docs/images/vi/plan.png) | ![Nhật ký](docs/images/vi/journal.png) |
@@ -155,7 +155,7 @@ Nhóm này nằm dưới nhãn **Ít dùng** ở sidebar.
 | **Lịch trình** | Muốn dựng khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ. Sửa các khối cho khớp ngày thật của bạn rồi bấm **⤓ Lưu vào mẫu**, từ đó mỗi thứ trong tuần có mẫu riêng. |
 | **Thói quen** | Thêm, sửa thói quen, hoặc xem lưới 12 tuần. |
 | **Để sau** | Chỗ đổ những việc chưa cam kết làm. Gõ vào ô trên cùng rồi Enter để ghi nhanh. Task ở đây không lên bảng, lịch, nhắc việc và không tính vào tổng quan. |
-| **Tổng quan** | Cuối tuần nhìn lại: tỉ lệ hoàn thành, việc trễ hạn, biểu đồ 7 ngày, phân bố theo mảng và ưu tiên. |
+| **Tổng quan** | Mở đầu ngày để biết hôm nay còn gì, cuối tuần nhìn lại: việc đến hạn hôm nay, việc trễ hạn, phiên tập trung, thói quen, chuỗi nhật ký, việc trễ hạn cần xử lý, biểu đồ 7 ngày và phân bố trạng thái, mảng, ưu tiên. |
 | **Thùng rác** | Lỡ tay bỏ task hay trang ghi chú thì vào đây khôi phục. |
 
 ### Mấy thứ nhỏ nằm rải rác

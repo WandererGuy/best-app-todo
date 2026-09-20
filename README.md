@@ -34,7 +34,7 @@
 | ![Task panel](docs/images/en/drawer.png) | ![Focus](docs/images/en/focus.png) |
 | **Habits**<br>A twelve-week tracking grid, session streaks, and habits to keep as well as habits to drop. | **Calendar**<br>Day, week and month views in the style of Google Calendar. Click an empty slot to create a task there. |
 | ![Habits](docs/images/en/habits.png) | ![Calendar](docs/images/en/cal.png) |
-| **Notes**<br>Pages nested inside pages like Notion. Drag to reorder or to nest, pin, tag, paste images and attach files. | **Overview**<br>Completion rate, overdue work, a seven-day chart, and the split by area and priority. |
+| **Notes**<br>Pages nested inside pages like Notion. Drag to reorder or to nest, pin, tag, paste images and attach files. | **Overview**<br>What is due today, what is overdue, focus sessions against the daily goal, habits and the journal streak, plus seven-day charts. |
 | ![Notes](docs/images/en/notes.png) | ![Overview](docs/images/en/dash.png) |
 | **Day plan**<br>The shape of a day — sleep, commute, work, meals, rest — built from a template per weekday. | **Journal**<br>One or more pages per day, written in the same editor as the notes. |
 | ![Day plan](docs/images/en/plan.png) | ![Journal](docs/images/en/journal.png) |
@@ -154,7 +154,7 @@ These sit under the **Less used** label in the sidebar.
 | **Day plan** | When you want to lay out the shape of a day — sleep, commute, work, meals, rest. Adjust the blocks to match your real day, then click **⤓ Save to template**; from there each weekday can have its own template. |
 | **Habits** | Adding and editing habits, or reading the twelve-week grid. |
 | **Later** | Where the uncommitted things go. Type in the box at the top and press Enter to jot one down. Tasks here stay off the board, the calendar and the reminders, and don't count towards the overview. |
-| **Overview** | For looking back at the end of a week: completion rate, overdue work, the seven-day chart, and the split by area and priority. |
+| **Overview** | For starting the day and for looking back at the end of a week: what is due today, what is overdue, focus sessions, habits, the journal streak, the overdue work waiting for you, the seven-day charts, and the split by status, area and priority. |
 | **Trash** | Where a task or note page goes when you delete one, and where you get it back. |
 
 ### The small things scattered around
