@@ -92,6 +92,8 @@ function renderNotes(){
   drawNoteList();
   $('#ntNew').onclick = () => newNote();
   $('.nwrap').onclick = e => {   // cây trang, kết quả tìm, đường dẫn phía trên tiêu đề
+    const sec = e.target.closest('[data-nsec]');
+    if(sec){ S.settings[sec.dataset.nsec] = !S.settings[sec.dataset.nsec]; save(); return drawNoteList(); }
     const tog = e.target.closest('[data-ntog]');
     if(tog){ const x = S.notes.find(v => v.id === tog.dataset.ntog); x.open = !x.open; save(); return drawNoteList(); }
     const kid = e.target.closest('[data-nkid]');
@@ -151,10 +153,14 @@ function drawNoteList(){
   };
   const pins = S.notes.filter(n => n.pin), roots = nKids(null);
   const recent = [...S.notes].sort((a, b) => b.mod.localeCompare(a.mod)).slice(0, 5);
-  box.innerHTML = (pins.length ? `<div class="nlbl">${tr('note.pinned')}</div>${pins.map(n => row(n, 0, false, '★')).join('')}` : '')
-    + (recent.length ? `<div class="nlbl">${tr('note.recent')}</div>${recent.map(n => row(n, 0, false, '◷')).join('')}` : '')
-    + `<div class="nlbl">${tr('note.all')}</div>`
-    + (roots.length ? roots.map(n => row(n, 0, true)).join('') : `<div class="nofil" style="padding:4px 8px">${tr('note.none')}</div>`);
+  // nhãn mục bấm được: thu gọn hay mở nhớ trong settings theo khoá của mục
+  const sect = (key, label, body) =>
+    `<button class="nlbl" data-nsec="${key}">${tr(label)}<span class="nlcar">${S.settings[key] ? '▾' : '▸'}</span></button>`
+    + (S.settings[key] ? body : '');
+  box.innerHTML = (pins.length ? sect('nPinned', 'note.pinned', pins.map(n => row(n, 0, false, '★')).join('')) : '')
+    + (recent.length ? sect('nRecent', 'note.recent', recent.map(n => row(n, 0, false, '◷')).join('')) : '')
+    + sect('nAll', 'note.all', roots.length ? roots.map(n => row(n, 0, true)).join('')
+        : `<div class="nofil" style="padding:4px 8px">${tr('note.none')}</div>`);
   wireNoteDnD();
 }
 
