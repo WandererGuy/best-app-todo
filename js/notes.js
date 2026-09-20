@@ -39,7 +39,8 @@ function fmtAgo(s){
 function newNote(parent = null){
   const now = new Date().toISOString();
   const n = {id:uid(), title:'', html:'', parent, tags: ui.tag ? [ui.tag] : [], pin:false, open:false, cr:now, mod:now};
-  S.notes.push(n);
+  const sib = S.notes.find(x => x.parent === parent);   // trang mới lên đầu danh sách cùng cha
+  if(sib) S.notes.splice(S.notes.indexOf(sib), 0, n); else S.notes.push(n);
   if(parent) S.notes.find(x => x.id === parent).open = true;
   ui.nOpen = n.id; ui.q = ''; $('#q').value = '';   // bỏ ô tìm để trang mới hiện ở cây
   save(); renderNotes();
