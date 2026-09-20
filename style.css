@@ -606,6 +606,12 @@ select.inp:disabled{opacity:.45;cursor:default}
 .hcard{scroll-margin-top:12px}
 .hstat{font-size:11.5px;color:var(--tx3);white-space:nowrap}
 .hsm{padding:4px 10px;font-size:12px;font-weight:500;margin-left:auto}
+.hsm + .hsm{margin-left:0}
+/* thói quen đang tạm dừng: vẫn đọc được nhưng lùi hẳn ra sau, rê vào mới hiện rõ */
+.hcard.off,.hsr.off{opacity:.55}
+.hcard.off:hover,.hsr.off:hover{opacity:1}
+.pill.rest{background:var(--panel2);color:var(--tx3);border:1px solid var(--line)}
+.hnudge.rest{background:var(--panel2);border:1px solid var(--line);color:var(--tx2)}
 .hsw{width:24px;height:24px;flex:0 0 24px;border-radius:8px;border:1px solid var(--line)}
 .hmeta{display:flex;gap:9px;font-size:12.5px;color:var(--tx2);line-height:1.5}
 .hmeta .l{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:var(--tx3);font-weight:600;flex:0 0 66px;padding-top:2px}

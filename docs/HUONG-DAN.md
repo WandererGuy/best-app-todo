@@ -34,6 +34,8 @@ Mỗi thẻ có lưới 12 tuần kiểu biểu đồ đóng góp — cột là 
 
 Những thói quen **đến hạn hôm nay** hiện thành một dải tick nhanh ở đầu Bảng việc và Bảng cuộc sống, kèm số buổi liên tiếp. Tick xong có một nhịp mừng ngắn: cảm xúc tích cực tức thì mới là thứ gắn hành vi thành thói quen, không phải số lần lặp.
 
+Có quãng không theo được — ốm, đi xa, đổi nhịp sống — thì bấm **Tạm dừng** trên thẻ thay vì xoá. Thói quen đang tạm dừng rời khỏi dải hôm nay, không đòi tick và lùi xuống cuối danh sách. Những hôm nghỉ được coi như ngoài lịch: không tính là bỏ lỡ, không vào tỉ lệ làm được, nên bấm **Bật lại** là chuỗi đi tiếp từ đúng số cũ. Lịch sử và lưới 12 tuần giữ nguyên.
+
 **Tập trung** — đồng hồ pomodoro để làm việc sâu, chống nhảy việc. Mặc định 40 phút làm, 10 phút nghỉ, nghỉ dài 15 phút sau mỗi 3 phiên; mọi thông số đều đổi được ở **⚙ Cài đặt** trong mục Tập trung, nhóm nào cũng có nút **Khôi phục mặc định**. Đổi thời lượng khi đồng hồ đang chạy thì chỉ áp dụng từ phiên sau — đã bấm bắt đầu là giữ đúng lịch.
 
 - **Hàng đợi** tối đa 3 task (đổi được), **chỉ nhận task ở cột Đang làm**: kéo card Đang làm thả vào khối Tập trung ở sidebar, hoặc chọn trong mục Tập trung — danh sách chọn chia nhóm theo ưu tiên, cao lên đầu, và mỗi task trong hàng đợi có nhãn ưu tiên. Task đầu hàng là task của phiên tới. Mỗi phiên gắn đúng một task — đổi task giữa phiên phải xác nhận và được ghi là một lần chuyển ngữ cảnh, trừ khi task cũ đã xong. Task rời cột Đang làm (xong, về Cần làm, bị gác lại hay bị bỏ) thì tự rời hàng đợi.

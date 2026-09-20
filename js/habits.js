@@ -8,7 +8,12 @@ let hFocus = false;   // vừa mở form thì đưa con trỏ vào ô tên
 
 const dShift = (k, n) => { const d = new Date(k + 'T00:00:00'); d.setDate(d.getDate() + n); return iso(d); };
 const dowOf  = k => new Date(k + 'T00:00:00').getDay();
-const hOn    = (h, k) => h.days.includes(dowOf(k));   // ngày k có nằm trong lịch của thói quen không
+// Tạm dừng ghi lại từng khoảng ngày nghỉ chứ không phải một cờ bật / tắt: nhờ vậy sau khi bật lại,
+// những hôm nghỉ vẫn nằm ngoài lịch nên không bị tính là bỏ lỡ và chuỗi đi tiếp từ chỗ dừng.
+const hRest  = (h, k) => (h.rest || []).some(r => k >= r.a && (!r.b || k <= r.b));
+const hOff   = h => { const r = (h.rest || []).at(-1); return !!r && !r.b; };
+const hOn    = (h, k) => h.days.includes(dowOf(k)) && !hRest(h, k);   // ngày k có nằm trong lịch của thói quen không
+const hOrder = () => [...S.habits].sort((a, b) => hOff(a) - hOff(b));   // thói quen đang tạm dừng xuống cuối danh sách
 const hDone  = (h, k) => !!h.log[k];
 const hDue   = () => S.habits.filter(h => hOn(h, today()));
 
@@ -111,7 +116,8 @@ function hGrid(h){
     const cls = k > k0 ? 'fut'
       : hDone(h, k) ? (hOn(h, k) ? 'on' : 'extra')
       : (k < h.cr || !hOn(h, k)) ? 'off' : 'miss';
-    const note = {on:tr('hb.cellOn'), extra:tr('hb.cellExtra'), miss:tr('hb.cellMiss'), off:tr('hb.cellOff')}[cls] || '';
+    const note = cls === 'off' && hRest(h, k) ? tr('hb.cellRest')
+      : {on:tr('hb.cellOn'), extra:tr('hb.cellExtra'), miss:tr('hb.cellMiss'), off:tr('hb.cellOff')}[cls] || '';
     cells += `<i class="${cls}${k === k0 ? ' td' : ''}"${cls === 'fut' ? '' : ` data-htick="${h.id}" data-hday="${k}"`} title="${DOW[dowOf(k)]} ${fmtVN(k)}${note}">${+k.slice(8)}</i>`;
   }
   return `<div class="hgwrap">
@@ -138,25 +144,28 @@ function hWhy(h){
 }
 
 function hCard(h){
-  const k = today(), on = hDone(h, k), due = hOn(h, k), kind = HKINDS[h.kind];
+  const k = today(), on = hDone(h, k), due = hOn(h, k), kind = HKINDS[h.kind], off = hOff(h);
   const n = hStreak(h), m = hMiss(h);
   // luật "không bỏ hai lần": bỏ một buổi gần như không ảnh hưởng đến quá trình thành tự động,
   // bỏ liên tiếp mới là lúc nhịp phai dần — nên app chỉ lên tiếng đúng lúc đó.
-  const nudge = on || !m ? ''
+  const nudge = off ? `<div class="hnudge rest">${tr('hb.restNote', {n})}</div>`
+    : on || !m ? ''
     : m >= 2 ? `<div class="hnudge cold">${tr('hb.nudgeCold', {n: m})}</div>`
     : `<div class="hnudge warn">${tr('hb.nudgeWarn', {
         when: tr(due ? 'hb.nudgeToday' : 'hb.nudgeNext'),
         tail: tr(h.grace ? 'hb.nudgeGrace' : 'hb.nudgePlain')})}</div>`;
-  return `<div class="hcard" id="hc-${h.id}" style="--hc:${h.color}">
+  return `<div class="hcard${off ? ' off' : ''}" id="hc-${h.id}" style="--hc:${h.color}">
     <div class="hhd">
       ${due ? `<button class="hbx${on ? ' on' : ''}${ui.hPop === h.id ? ' pop' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${tr(on ? 'hb.untick' : 'hb.tick')}">${on ? '✓' : ''}</button>`
-             : `<span class="hbx off" title="${tr('hb.notToday')}"></span>`}
+             : `<span class="hbx off" title="${tr(off ? 'hb.offToday' : 'hb.notToday')}"></span>`}
       <span class="hnm">${esc(h.name)}</span>
       <span class="pill" style="background:${kind.c}22;color:${kind.c}">${kind.n}</span>
+      ${off ? `<span class="pill rest">${tr('hb.offPill')}</span>` : ''}
       <span class="hstat" title="${tr('hb.streakT')}${h.grace ? tr('hb.streakGr') : ''}">🔥 ${n}</span>
       <span class="hstat" title="${tr('hb.recordT')}">🏆 ${hRecord(h)}</span>
       <span class="hstat" title="${tr('hb.rateT', {n: HWEEKS})}">${hRate(h)}%</span>
       <button class="btn ghost hsm" data-hedit="${h.id}">${tr('hb.edit')}</button>
+      <button class="btn ghost hsm" data-hpause="${h.id}" title="${tr(off ? 'hb.resumeT' : 'hb.pauseT')}">${tr(off ? 'hb.resume' : 'hb.pause')}</button>
     </div>
     ${h.cue ? `<div class="hmeta"><span class="l">${tr('hb.cueLbl')}</span>${esc(h.cue)}</div>` : ''}
     ${h.kind === 'bad' && h.swap ? `<div class="hmeta"><span class="l">${tr('hb.swapLbl')}</span>${esc(h.swap)}</div>` : ''}
@@ -171,13 +180,13 @@ const hSched = days => days.length === 7 ? tr('hb.everyDay')
   : HWK.filter(i => days.includes(i)).map(i => DOW[i]).join(', ');
 function hSum(){
   const k = today();
-  return `<div class="hsum">${S.habits.map(h => {
-    const on = hDone(h, k), due = hOn(h, k);
-    return `<div class="hsr" style="--hc:${h.color}">
+  return `<div class="hsum">${hOrder().map(h => {
+    const on = hDone(h, k), due = hOn(h, k), off = hOff(h);
+    return `<div class="hsr${off ? ' off' : ''}" style="--hc:${h.color}">
       ${due ? `<button class="hbx${on ? ' on' : ''}" data-htick="${h.id}"${on ? ` style="background:${h.color};border-color:${h.color}"` : ''} title="${tr(on ? 'hb.untick' : 'hb.tick')}">${on ? '✓' : ''}</button>`
-             : `<span class="hbx off" title="${tr('hb.notToday')}"></span>`}
+             : `<span class="hbx off" title="${tr(off ? 'hb.offToday' : 'hb.notToday')}"></span>`}
       <button class="hsn" data-hjump="${h.id}" title="${tr('hb.jumpT')}">${esc(h.name)}</button>
-      <span class="hstat">${hSched(h.days)}</span>
+      <span class="hstat">${off ? tr('hb.offPill') : hSched(h.days)}</span>
       <span class="hstat" title="${tr('hb.streakT')}">🔥 ${hStreak(h)}</span>
       <span class="hstat" title="${tr('hb.recordT')}">🏆 ${hRecord(h)}</span>
       <span class="hstat" title="${tr('hb.rateT', {n: HWEEKS})}">${hRate(h)}%</span></div>`;
@@ -257,6 +266,21 @@ function hSave(){
   const name = hd.name;
   hd = null; ui.hEdit = null; save(); render(); toast(tr('hb.saved', {n: name}));
 }
+// Tạm dừng / bật lại. Đang nghỉ thì thói quen không lên dải hôm nay, không đòi tick,
+// và những ngày nghỉ không vào tỉ lệ làm được.
+function hPause(id){
+  const h = S.habits.find(x => x.id === id); if(!h) return;
+  if(hOff(h)){
+    const r = h.rest.at(-1);
+    r.b = dShift(today(), -1);      // hôm nay tính lại vào lịch
+    if(r.b < r.a) h.rest.pop();     // dừng rồi bật lại ngay trong ngày thì coi như chưa nghỉ buổi nào
+    toast(tr('hb.resumed', {n: h.name}));
+  }else{
+    (h.rest ||= []).push({a: today(), b: ''});
+    toast(tr('hb.paused', {n: h.name}));
+  }
+  save(); render();
+}
 function hDel(id){
   const h = S.habits.find(x => x.id === id); if(!h) return;
   const n = Object.keys(h.log).length;
@@ -269,8 +293,9 @@ function renderHabits(){
   closeEds();
   const k = today(), due = hDue(), done = due.filter(h => hDone(h, k)).length;
   const best = S.habits.reduce((a, h) => Math.max(a, hRecord(h)), 0);
+  const nOff = S.habits.filter(h => hOff(h)).length;
   $('#vSub').textContent = S.habits.length
-    ? tr('hb.sub', {n: S.habits.length, a: done, b: due.length, best})
+    ? tr('hb.sub', {n: S.habits.length - nOff, a: done, b: due.length, best}) + (nOff ? tr('hb.subOff', {n: nOff}) : '')
     : tr('hb.subNone');
   $('#view').innerHTML = `<div class="tb">
       <span class="hint" style="margin:0">${tr('hb.gridHint')}</span>
@@ -278,7 +303,7 @@ function renderHabits(){
     <div class="hlist">
       ${S.habits.length ? hSum() : ''}
       ${ui.hEdit === 'new' ? hForm() : ''}
-      ${S.habits.map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
+      ${hOrder().map(h => ui.hEdit === h.id ? hForm() : hCard(h)).join('')}
       ${!S.habits.length && ui.hEdit !== 'new' ? `<div class="empty">${tr('hb.empty')}</div>` : ''}
     </div>`;
   wireHabits();
@@ -295,6 +320,7 @@ function wireHabits(){
   $$('[data-hnew]').forEach(b => b.onclick = () => hOpen(null));
   $$('[data-hedit]').forEach(b => b.onclick = () => hOpen(S.habits.find(x => x.id === b.dataset.hedit)));
   $$('[data-hjump]').forEach(b => b.onclick = () => $('#hc-' + b.dataset.hjump)?.scrollIntoView({behavior:'smooth', block:'start'}));
+  $$('[data-hpause]').forEach(b => b.onclick = () => hPause(b.dataset.hpause));
   $$('[data-hwhy]').forEach(b => b.onclick = () => {
     const h = S.habits.find(x => x.id === b.dataset.hwhy);
     h.open = !h.open; save(); renderHabits();
