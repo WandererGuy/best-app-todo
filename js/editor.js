@@ -115,9 +115,9 @@ function mountEd(hostId, content, ph, onChange){
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos)});
   EDS.set(hostId, ed);
   const dom = ed.view.dom;
-  dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc ở tab mới
+  dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc để đọc chữ trong ảnh
     const img = e.target.closest('img.eimg');
-    if(img && img.src) window.open(img.src, '_blank');
+    if(img && img.src && !img.classList.contains('miss')) openLightbox(img.src);
   });
   dom.addEventListener('keydown', e => slashKeys(e, ed), true);   // chặn trước ProseMirror
   ed.on('update',          () => { syncMenus(ed); keepCaretOffBottom(ed); });   // bám theo TipTap, không bám phím
@@ -200,3 +200,31 @@ function showFtb(ed, r){
   el.style.top  = Math.max(8, r.top - 42) + 'px';
 }
 function hideFtb(){ document.getElementById('ftbEl')?.remove(); }
+
+/* --- xem ảnh cỡ gốc --- */
+function openLightbox(src){
+  const el = document.createElement('div');
+  el.className = 'lbx';
+  el.innerHTML = `<img alt=""><button type="button" class="x">✕</button><div class="hint">${tr('ed.imgZoom')}</div>`;
+  const img = el.querySelector('img'); img.src = src;
+  const close = () => { el.remove(); document.removeEventListener('keydown', onKey, true); };
+  const onKey = e => { if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); close(); } };
+  el.querySelector('.x').onclick = close;
+  el.addEventListener('mousedown', e => { if(e.target === el) close(); });
+  /* bấm ảnh: đổi giữa vừa màn hình và cỡ 1:1; đang ở 1:1 thì kéo để dời ảnh */
+  let pan = null, moved = false;
+  img.addEventListener('pointerdown', e => {
+    if(!el.classList.contains('zoom')) return;
+    pan = {x:e.clientX, y:e.clientY, l:el.scrollLeft, t:el.scrollTop}; moved = false;
+    img.setPointerCapture(e.pointerId);
+  });
+  img.addEventListener('pointermove', e => {
+    if(!pan) return;
+    if(Math.abs(e.clientX - pan.x) > 3 || Math.abs(e.clientY - pan.y) > 3) moved = true;
+    el.scrollLeft = pan.l - (e.clientX - pan.x); el.scrollTop = pan.t - (e.clientY - pan.y);
+  });
+  img.addEventListener('pointerup', () => { pan = null; });
+  img.addEventListener('click', () => { if(!moved) el.classList.toggle('zoom'); moved = false; });
+  document.addEventListener('keydown', onKey, true);
+  document.body.appendChild(el);
+}

@@ -7,8 +7,10 @@ import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Link } from '@tiptap/extension-link';
 import { Placeholder, TrailingNode } from '@tiptap/extensions';
 
-/* ảnh: nội dung chỉ lưu mã ảnh (data-img), còn file ảnh do app cất ở chỗ khác.
-   Lúc hiển thị hỏi app qua options.src(mã) -> URL. */
+/* ảnh: nội dung chỉ lưu mã ảnh (data-img) và bề rộng đã kéo (data-w), còn file ảnh do app cất ở chỗ khác.
+   Lúc hiển thị hỏi app qua options.src(mã) -> URL.
+   Chưa kéo cỡ thì để CSS chặn bớt chiều cao cho ảnh khỏi chiếm hết trang; kéo góc phải dưới thì nhớ cỡ. */
+const IMG_MIN_W = 80;
 const Img = Node.create({
   name: 'image',
   group: 'block',
@@ -16,16 +18,59 @@ const Img = Node.create({
   draggable: true,
   addOptions(){ return {src: () => Promise.resolve('')}; },
   addAttributes(){
-    return {id: {default: null, parseHTML: el => el.getAttribute('data-img'), renderHTML: a => ({'data-img': a.id})}};
+    return {
+      id: {default: null, parseHTML: el => el.getAttribute('data-img'), renderHTML: a => ({'data-img': a.id})},
+      w:  {default: null, parseHTML: el => +el.getAttribute('data-w') || null,
+           renderHTML: a => a.w ? {'data-w': a.w} : {}},
+    };
   },
   parseHTML(){ return [{tag: 'img[data-img]'}]; },
   renderHTML({HTMLAttributes}){ return ['img', HTMLAttributes]; },
   addNodeView(){
-    return ({node}) => {
-      const dom = document.createElement('img');
-      dom.className = 'eimg'; dom.alt = 'Không tìm thấy ảnh';
-      this.options.src(node.attrs.id).then(u => { if(u) dom.src = u; else dom.classList.add('miss'); });
-      return {dom};
+    return ({node, getPos, editor}) => {
+      const dom = document.createElement('div');
+      dom.className = 'eimgw';
+      const img = document.createElement('img');
+      img.className = 'eimg'; img.alt = 'Không tìm thấy ảnh';
+      this.options.src(node.attrs.id).then(u => { if(u) img.src = u; else img.classList.add('miss'); });
+      const grip = document.createElement('div');
+      grip.className = 'eimgr'; grip.title = 'Kéo để đổi cỡ ảnh, bấm đúp để trả về cỡ mặc định';
+      dom.append(img, grip);
+
+      const show = w => { dom.classList.toggle('sized', !!w); dom.style.width = w ? w + 'px' : ''; };
+      const save = w => {
+        const pos = typeof getPos === 'function' ? getPos() : null;
+        if(typeof pos !== 'number') return;
+        editor.view.dispatch(editor.view.state.tr.setNodeMarkup(pos, null, {...node.attrs, w}));
+      };
+      show(node.attrs.w);
+
+      let drag = null;
+      grip.addEventListener('pointerdown', e => {
+        e.preventDefault(); e.stopPropagation();
+        grip.setPointerCapture(e.pointerId);
+        drag = {x: e.clientX, w: dom.getBoundingClientRect().width};
+      });
+      grip.addEventListener('pointermove', e => {
+        if(!drag) return;
+        const max = editor.view.dom.clientWidth;
+        show(Math.round(Math.max(IMG_MIN_W, Math.min(max, drag.w + e.clientX - drag.x))));
+      });
+      const drop = () => { if(drag){ drag = null; save(Math.round(dom.getBoundingClientRect().width)); } };
+      grip.addEventListener('pointerup', drop);
+      grip.addEventListener('pointercancel', drop);
+      grip.addEventListener('dblclick', e => { e.preventDefault(); e.stopPropagation(); save(null); });
+      grip.addEventListener('dragstart', e => { e.preventDefault(); e.stopPropagation(); });  // kéo nút cỡ, không phải kéo ảnh đi
+
+      return {
+        dom,
+        ignoreMutation: () => true,
+        stopEvent: e => !!(e.target && e.target.closest && e.target.closest('.eimgr')),
+        update(n){
+          if(n.type !== node.type || n.attrs.id !== node.attrs.id) return false;
+          node = n; show(n.attrs.w); return true;
+        },
+      };
     };
   },
 });

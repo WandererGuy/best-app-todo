@@ -358,9 +358,28 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed strong{font-weight:680;color:#fff}
 .ed em{font-style:italic}
 .ed .ProseMirror-gapcursor:after{border-top:1px solid var(--tx)}
-.ed img.eimg{display:block;max-width:100%;height:auto;margin:6px 0 10px;border-radius:8px;cursor:zoom-in}
-.ed img.eimg.ProseMirror-selectednode{outline:2px solid var(--acc);outline-offset:2px}
-.ed img.eimg.miss{padding:14px;border:1px dashed var(--line);color:var(--tx3);font-size:12.5px;cursor:default}
+/* ảnh: mặc định chặn chiều cao cho ảnh khỏi chiếm hết trang; kéo nút góc phải dưới để đặt cỡ riêng,
+   bấm đúp vào ảnh để mở cỡ gốc mà đọc chữ trong ảnh */
+.ed .eimgw{position:relative;display:block;width:fit-content;max-width:100%;margin:6px 0 10px;border-radius:8px}
+.ed .eimgw img.eimg{display:block;max-width:100%;height:auto;max-height:min(600px,68vh);border-radius:8px;cursor:zoom-in}
+.ed .eimgw.sized img.eimg{width:100%;max-height:none}
+.ed .eimgw.ProseMirror-selectednode{outline:2px solid var(--acc);outline-offset:2px}
+.ed .eimgw img.eimg.miss{padding:14px;border:1px dashed var(--line);color:var(--tx3);font-size:12.5px;cursor:default}
+.ed .eimgr{position:absolute;right:5px;bottom:5px;width:15px;height:15px;border-radius:5px;cursor:ew-resize;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.55);opacity:0;transition:opacity .12s}
+.ed .eimgw:hover .eimgr,.ed .eimgw.ProseMirror-selectednode .eimgr{opacity:1}
+.ed .eimgw img.eimg.miss ~ .eimgr{display:none}
+
+/* xem ảnh cỡ gốc: mở vừa màn hình, bấm vào ảnh để xem 1:1 rồi kéo để dời */
+.lbx{position:fixed;inset:0;z-index:130;background:rgba(0,0,0,.82);overflow:auto;display:grid;
+  justify-items:safe center;align-items:safe center}
+.lbx img{display:block;max-width:calc(100vw - 72px);max-height:calc(100vh - 72px);border-radius:6px;cursor:zoom-in}
+.lbx.zoom img{max-width:none;max-height:none;cursor:grab;border-radius:0}
+.lbx.zoom img:active{cursor:grabbing}
+.lbx .x{position:fixed;right:14px;top:14px;width:32px;height:32px;border-radius:9px;font-size:15px;
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);color:#fff}
+.lbx .x:hover{background:rgba(255,255,255,.26)}
+.lbx .hint{position:fixed;left:0;right:0;bottom:14px;text-align:center;color:rgba(255,255,255,.62);font-size:12px;pointer-events:none}
 .ed .efile{display:flex;align-items:center;gap:10px;margin:6px 0 10px;padding:9px 12px;border:1px solid var(--line);
   border-radius:8px;background:var(--panel2);font-size:13px}
 .ed .efile.ProseMirror-selectednode{outline:2px solid var(--acc);outline-offset:2px}

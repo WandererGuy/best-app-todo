@@ -284,6 +284,7 @@ const STR = {
   /* --- trinh soan thao --- */
   'ed.empty':     ['Chưa có nội dung.', 'Nothing written yet.'],
   'ed.noCmd':     ['Không có lệnh nào khớp', 'No command matches'],
+  'ed.imgZoom':   ['Bấm vào ảnh để xem cỡ 1:1, Esc để đóng', 'Click the image for 1:1 size, Esc to close'],
   'blk.p':        ['Văn bản', 'Text'],
   'blk.h1':       ['Tiêu đề lớn', 'Large heading'],
   'blk.h2':       ['Tiêu đề vừa', 'Medium heading'],
