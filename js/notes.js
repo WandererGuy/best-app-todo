@@ -69,6 +69,10 @@ function renderNotes(){
         <button class="btn" id="ntNew">${tr('note.new')}</button>
         <button class="nfold" id="ntHide" title="${tr('common.hideSide')}">«</button>
       </div>
+      <div class="search nsrch">
+        <span style="color:var(--tx3)">⌕</span>
+        <input id="ntQ" value="${esc(ui.q)}" placeholder="${tr('note.search')}" autocomplete="off" title="${tr('note.searchT')}">
+      </div>
       <div id="ntList"></div>
     </div>`
     : `<button class="nfold nshow" id="ntShow" title="${tr('common.showSide')}">»</button>`}
@@ -95,7 +99,26 @@ function renderNotes(){
   </div>`;
 
   drawNoteList();
-  if(side) $('#ntNew').onclick = () => newNote();
+  if(side){
+    // dựng sẵn bản bỏ dấu lúc máy rảnh, để phím đầu tiên gõ vào ô tìm không phải bóc html cả kho.
+    // Gọi qua window chứ không tách hàm ra biến: requestIdleCallback đòi đúng receiver, tách ra là ném lỗi.
+    const warm = () => S.notes.forEach(nEntry);
+    if(window.requestIdleCallback) window.requestIdleCallback(warm); else setTimeout(warm, 1);
+    $('#ntNew').onclick = () => newNote();
+    const qi = $('#ntQ');
+    // ô này và ô tìm trên thanh trên là cùng một câu tìm (ui.q), gõ ở đâu cũng soi sang ô kia
+    qi.oninput = () => { ui.q = qi.value; $('#q').value = ui.q; drawNoteList(); };
+    qi.onkeydown = e => {
+      if(e.key === 'Escape' && ui.q){
+        e.stopPropagation();                       // Esc ở đây là xoá câu tìm, không phải đóng panel
+        ui.q = ''; qi.value = ''; $('#q').value = ''; return drawNoteList();
+      }
+      if(e.key === 'Enter' && nHits.length && nHits[0].n.id !== ui.nOpen){
+        ui.nOpen = nHits[0].n.id; renderNotes();    // Enter = mở trang khớp nhất, con trỏ ở lại ô tìm
+        setTimeout(() => $('#ntQ')?.focus(), 0);
+      }
+    };
+  }
   $(side ? '#ntHide' : '#ntShow').onclick = () => { S.settings.nSide = !side; save(); renderNotes(); };
   $('.nwrap').onclick = e => {   // cây trang, kết quả tìm, đường dẫn phía trên tiêu đề
     const sec = e.target.closest('[data-nsec]');
@@ -130,21 +153,109 @@ function renderNotes(){
     t => { if(!n.tags.includes(t)) n.tags.push(t); touch(); render(); setTimeout(() => $('#ntTag')?.focus(), 0); },
     t => { n.tags = n.tags.filter(x => x !== t); touch(); render(); });
 }
-// cột trái: bình thường là cây trang; đang tìm hoặc lọc tag thì thành danh sách phẳng, mới sửa lên đầu
+/* ============ tìm kiếm trang ============ */
+// Mỗi trang giữ sẵn một bản đã bỏ dấu (nIdx), chỉ dựng lại khi trang đổi — gõ thêm một phím thì
+// chỉ quét lại mảng có sẵn chứ không bóc lại html. Câu tìm tách thành từ, trang phải khớp ĐỦ mọi
+// từ nhưng không cần đúng thứ tự; rồi chấm điểm để trang đáng xem nhất lên đầu, thay vì xếp theo
+// ngày sửa như trước. Kết quả vẽ ra tối đa NQ_MAX hàng, phần dư chỉ đếm.
+const NQ_MAX = 60, NQ_SNIP = 130;
+const nIdx = new Map();
+// raw / ttl cất bản NFC chứ không phải chuỗi gốc: fold() chuẩn hoá NFC bên trong, nên có cùng
+// dạng thì độ dài mới bằng nhau và vị trí khớp mới trỏ đúng chỗ lúc tô sáng.
+function nEntry(n){
+  let e = nIdx.get(n.id);
+  if(!e || e.mod !== n.mod || e.src !== n.title){
+    const raw = plain(n.html).replace(/\s+/g, ' ').normalize('NFC');
+    const ttl = String(n.title).normalize('NFC');
+    e = {mod:n.mod, src:n.title, raw, ttl, t:fold(ttl), b:fold(raw), g:fold(n.tags.join(' '))};
+    nIdx.set(n.id, e);
+  }
+  return e;
+}
+const nqToks = q => fold(q).split(/\s+/).filter(Boolean);
+// chỗ khớp đầu tiên của tok trong hay, ưu tiên chỗ rơi đúng vào đầu một từ
+function nqFind(hay, tok){
+  let first = -1;
+  for(let i = hay.indexOf(tok); i >= 0; i = hay.indexOf(tok, i + 1)){
+    if(first < 0) first = i;
+    if(i === 0 || !/[a-z0-9]/.test(hay[i - 1])) return {at:i, head:true};
+  }
+  return first < 0 ? null : {at:first, head:false};
+}
+// tiêu đề ăn điểm hơn tag, tag hơn nội dung; khớp đầu từ hơn khớp lọt giữa từ. 0 = không nhận
+function nqScore(e, toks, fq){
+  let s = 0;
+  for(const tk of toks){
+    const t = nqFind(e.t, tk), g = nqFind(e.g, tk), b = nqFind(e.b, tk);
+    if(!t && !g && !b) return 0;               // thiếu một từ là loại cả trang
+    if(t) s += t.head ? 60 : 30;
+    if(g) s += g.head ? 40 : 20;
+    if(b) s += b.head ? 12 : 6;
+    if(t && t.at === 0) s += 15;               // đứng ngay đầu tiêu đề
+  }
+  if(e.t.trim() === fq) s += 120;              // tiêu đề đúng bằng câu tìm
+  else if(toks.length > 1 && e.t.includes(fq)) s += 60;   // cả câu nằm nguyên một chỗ trong tiêu đề
+  return s;
+}
+// không có câu tìm (chỉ lọc tag) thì mọi trang đều nhận, xếp theo ngày sửa như cũ
+function nqSearch(q){
+  const toks = nqToks(q), fq = fold(q).trim();
+  return S.notes.filter(n => !ui.tag || n.tags.includes(ui.tag))
+    .map(n => { const e = nEntry(n); return {n, e, s: toks.length ? nqScore(e, toks, fq) : 1}; })
+    .filter(h => h.s > 0)
+    .sort((a, b) => b.s - a.s || b.n.mod.localeCompare(a.n.mod));
+}
+// tô sáng các đoạn khớp: vị trí tính trên low (bản bỏ dấu), chữ hiện ra lấy từ raw (bản gốc còn dấu)
+function nqHi(raw, low, toks){
+  const hits = [];
+  toks.forEach(tk => { for(let i = low.indexOf(tk); i >= 0; i = low.indexOf(tk, i + tk.length)) hits.push([i, i + tk.length]); });
+  hits.sort((a, b) => a[0] - b[0]);
+  let out = '', at = 0;
+  for(const [a, b] of hits){
+    if(b <= at) continue;                      // đã nằm trong đoạn vừa tô
+    const s = Math.max(a, at);
+    out += esc(raw.slice(at, s)) + `<mark>${esc(raw.slice(s, b))}</mark>`;
+    at = b;
+  }
+  return out + esc(raw.slice(at));
+}
+// mẩu nội dung quanh chỗ khớp đầu tiên; khớp ở tiêu đề hay tag thôi thì lấy đoạn mở đầu
+function nqSnip(e, toks){
+  let at = -1;
+  toks.forEach(tk => { const i = e.b.indexOf(tk); if(i >= 0 && (at < 0 || i < at)) at = i; });
+  if(!e.raw) return '';
+  if(at < 0) return esc(e.raw.slice(0, NQ_SNIP)) + (e.raw.length > NQ_SNIP ? '…' : '');
+  let s = Math.max(0, at - 30);
+  const sp = s ? e.b.indexOf(' ', s) : -1;     // lùi sang đầu từ kế tiếp cho đỡ cụt giữa chữ
+  if(sp > 0 && sp < at) s = sp + 1;
+  const end = Math.min(e.raw.length, s + NQ_SNIP);
+  return (s ? '…' : '') + nqHi(e.raw.slice(s, end), e.b.slice(s, end), toks) + (end < e.raw.length ? '…' : '');
+}
+const nqName = (n, e, toks) => e.ttl.trim()
+  ? nqHi(e.ttl, e.t, toks) : `<span class="ph">${tr('note.untitled')}</span>`;
+
+// cột trái: bình thường là cây trang; đang tìm hoặc lọc tag thì thành danh sách phẳng xếp theo độ khớp
+let nHits = [];
 function drawNoteList(){
   const box = $('#ntList'); if(!box) return;
-  const q = ui.q.trim().toLowerCase();
+  const q = ui.q.trim();
   if(q || ui.tag){
-    const hit = S.notes.filter(n => (!ui.tag || n.tags.includes(ui.tag))
-        && (!q || [n.title, plain(n.html), n.tags.join(' ')].join(' ').toLowerCase().includes(q)))
-      .sort((a, b) => b.mod.localeCompare(a.mod));
-    box.innerHTML = `<div class="nlbl">${tr('note.matchN', {n: hit.length})}${ui.tag ? tr('note.matchTag', {t: esc(ui.tag)}) : ''}</div>`
-      + (hit.length ? hit.map(n => `<button class="nhit${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}">
-          <span class="nname">${nTitle(n)}</span>
-          <span class="nsub">${nPath(n).map(p => nName(p) + ' / ').join('')}${tr('note.rowAgo', {a: fmtAgo(n.mod)})}</span></button>`).join('')
-        : `<div class="nofil" style="padding:4px 8px">${tr('note.noMatch')}</div>`);
+    const toks = nqToks(q);
+    nHits = nqSearch(q);
+    const show = nHits.slice(0, NQ_MAX);
+    box.innerHTML = `<div class="nlbl">${tr('note.matchN', {n: nHits.length})}${ui.tag ? tr('note.matchTag', {t: esc(ui.tag)}) : ''}</div>`
+      + (show.length ? show.map(({n, e}) => {
+          const sn = toks.length ? nqSnip(e, toks) : '';    // trang rỗng thì không chừa chỗ trống
+          return `<button class="nhit${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}">
+          <span class="nname">${toks.length ? nqName(n, e, toks) : nTitle(n)}</span>
+          ${sn ? `<span class="nsnip">${sn}</span>` : ''}
+          <span class="nsub">${nPath(n).map(p => nName(p) + ' / ').join('')}${tr('note.rowAgo', {a: fmtAgo(n.mod)})}</span></button>`;
+        }).join('')
+        : `<div class="nofil" style="padding:4px 8px">${tr('note.noMatch')}</div>`)
+      + (nHits.length > NQ_MAX ? `<div class="nofil" style="padding:6px 8px">${tr('note.matchMore', {n: nHits.length - NQ_MAX})}</div>` : '');
     return;
   }
+  nHits = [];
   const row = (n, depth, tree, mark) => {
     const kids = tree ? nKids(n.id) : [];
     return `<div class="nrow${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}"

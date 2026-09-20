@@ -127,5 +127,14 @@ const $  = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 const esc = s => String(s).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+// Bỏ dấu rồi về chữ thường, để gõ "ghi chu" vẫn ra "Ghi chú".
+// Thay từng ký tự một nên chuỗi trả về giữ nguyên độ dài, miễn là chuỗi vào đã chuẩn NFC: vị trí khớp
+// trên bản bỏ dấu cũng là vị trí trên bản gốc (bên tìm kiếm dựa vào đó để tô sáng đoạn trích).
+// Bước cuối gộp y về i cho các cặp viết hai kiểu: lí/lý, kĩ/kỹ, mĩ/mỹ, hi/hy. Chỉ gộp khi y đứng
+// một mình làm nguyên âm — y sau nguyên âm là vần khác hẳn nên để nguyên (tay ≠ tai, quy ≠ qui).
+const fold = s => String(s).normalize('NFC').replace(/[^\x00-\x7f]/g, c => {
+  const d = c.normalize('NFD');
+  return d[0] === 'đ' ? 'd' : d[0] === 'Đ' ? 'D' : d.length > 1 && /[a-zA-Z]/.test(d[0]) ? d[0] : c;
+}).toLowerCase().replace(/(^|[^aeiouy])y/g, '$1i');
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const today = () => iso(new Date());

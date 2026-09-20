@@ -183,7 +183,10 @@ $('#fsBtn').onclick = () => fh ? linkFile() : reconnectFile();
 $('#q').oninput = e => {
   ui.q = e.target.value;
   if(['dash', 'board', 'life', 'backlog', 'cal'].includes(ui.view)) render();
-  if(ui.view === 'notes') drawNoteList();       // chỉ vẽ lại cột trái, trang đang mở giữ nguyên
+  if(ui.view === 'notes'){                      // chỉ vẽ lại cột trái, trang đang mở giữ nguyên
+    const b = $('#ntQ'); if(b) b.value = ui.q;
+    drawNoteList();
+  }
   if(ui.view === 'journal') drawJournalList();
 };
 $('#syncBar').onclick = () => pullSrv(true);
