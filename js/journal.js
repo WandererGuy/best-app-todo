@@ -18,12 +18,22 @@ function jSub(k){
 }
 
 /* ============ nhật ký ============ */
+// ngày và trang đang mở, nhớ riêng trong trình duyệt này như VIEW_KEY: bật lại app vẫn ở đúng trang cũ.
+// Nhớ theo id trang chứ không theo vị trí, vì các trang kéo đổi chỗ được.
+const JPAGE_KEY = 'dieukhien.jpage';
+let jKept = (() => { try{ return JSON.parse(localStorage.getItem(JPAGE_KEY)); }catch(e){ return null; } })();
 function renderJournal(){
-  if(!ui.jDate) ui.jDate = today();
+  if(!ui.jDate) ui.jDate = /^\d{4}-\d\d-\d\d$/.test(jKept?.d) ? jKept.d : today();
   const d = new Date(ui.jDate + 'T00:00:00');
   const pages = jPages(ui.jDate);
+  if(jKept){                                   // chỉ dùng ở lần vẽ đầu tiên
+    const i = jKept.d === ui.jDate ? pages.findIndex(p => p.id === jKept.id) : -1;
+    if(i >= 0) ui.jTab = i;
+    jKept = null;
+  }
   if(ui.jTab >= pages.length) ui.jTab = 0;
   const page = pages[ui.jTab];
+  try{ localStorage.setItem(JPAGE_KEY, JSON.stringify({d: ui.jDate, id: page.id})); }catch(e){}
   const days = Object.keys(S.journal).filter(dayHas).length;
   $('#vSub').textContent = tr('journal.sub', {n: days});
 
@@ -51,7 +61,7 @@ function renderJournal(){
         <span class="hint">${tr('journal.slashHint')}</span>
       </div>
       <div class="jtabs">
-        ${pages.map((t, i) => `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}">${esc(t.name)}</button>`).join('')}
+        ${pages.map((t, i) => `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`).join('')}
         <button class="jtab ico" id="jAdd" title="${tr('journal.addPage')}">+</button>
         <button class="jtab ico" id="jRen" title="${tr('journal.renPage')}">✎</button>
         ${pages.length > 1 ? `<button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>` : ''}
@@ -93,6 +103,7 @@ function renderJournal(){
   });
 
   $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; renderJournal(); });
+  wireJTabDnD(pages);
   $('#jAdd').onclick = () => {
     pages.push({id:uid(), name:tr('journal.newPage', {n: pages.length + 1}), html:''});
     ui.jTab = pages.length - 1; save(); renderJournal();
@@ -105,6 +116,40 @@ function renderJournal(){
     if(!confirm(tr('journal.askDel', {n: page.name}))) return;
     pages.splice(ui.jTab, 1); ui.jTab = 0; save(); renderJournal();
   };
+}
+/* ============ kéo thả tab để đổi thứ tự trang trong ngày ============ */
+// Trỏ vào nửa trái một tab thì chèn trước nó, nửa phải thì chèn sau (hiện vạch ở mép đó).
+// Trang đang mở vẫn là trang đang mở sau khi đổi chỗ, chỉ vị trí của nó thay đổi.
+function wireJTabDnD(pages){
+  const tabs = $$('[data-jt]');
+  let from = -1, drop = null;
+  const mark = d => { tabs.forEach(t => t.classList.remove('dropL', 'dropR')); drop = d; if(d) d.el.classList.add(d.after ? 'dropR' : 'dropL'); };
+  tabs.forEach(el => {
+    el.addEventListener('dragstart', e => {
+      from = +el.dataset.jt; el.classList.add('drag');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', el.textContent);
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('drag'); from = -1; mark(null); });
+    el.addEventListener('dragover', e => {
+      if(from < 0) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      mark({el, after: e.clientX > r.left + r.width / 2});
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if(from < 0 || !drop) return;
+      const open = pages[ui.jTab];
+      const [pg] = pages.splice(from, 1);
+      let to = +drop.el.dataset.jt + (drop.after ? 1 : 0);
+      if(to > from) to--;                      // đã rút trang ra phía trước nên chỗ chèn lùi một ô
+      pages.splice(to, 0, pg);
+      ui.jTab = pages.indexOf(open);
+      from = -1; mark(null);
+      save(); renderJournal();
+    });
+  });
 }
 /* ============ tìm kiếm ngày ============ */
 // Như bên ghi chú: mỗi ngày giữ sẵn một bản đã bỏ dấu, câu tìm tách thành từ và ngày phải khớp

@@ -257,6 +257,10 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
   background:var(--panel);border:1px solid var(--line);border-bottom:none;font-weight:540}
 .jtab:hover{color:var(--tx)}
 .jtab.on{background:var(--panel2);color:var(--tx);font-weight:620;box-shadow:inset 0 2px 0 var(--acc)}
+.jtab.drag{opacity:.35}
+/* vạch chỗ thả khi kéo tab: nằm ở khe giữa hai tab */
+.jtab.dropL{box-shadow:-4px 0 0 -1px var(--acc)}
+.jtab.dropR{box-shadow:4px 0 0 -1px var(--acc)}
 .jtab.ico{padding:6px 10px;border-radius:8px;border-bottom:1px solid var(--line);color:var(--tx3)}
 .jtab.ico:hover{color:var(--tx);border-color:#3a4254}
 .jed{

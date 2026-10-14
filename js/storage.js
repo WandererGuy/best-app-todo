@@ -9,6 +9,12 @@ function applyData(d){
   Object.keys(S.journal).forEach(k => {
     if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:tr('journal.firstPage'), html:S.journal[k]}];
   });
+  // trang đầu mỗi ngày trước đây mặc định tên "Ghi chép" / "Notes", nay là "Trang 1".
+  // Chỉ đổi một lần (cờ jPage1), về sau tự đặt lại tên đó cho trang nào thì để yên.
+  if(!S.settings.jPage1){
+    Object.values(S.journal).forEach(pgs => Array.isArray(pgs) && pgs.forEach(p => { if(['Ghi chép', 'Notes'].includes(p.name)) p.name = tr('journal.firstPage'); }));
+    S.settings.jPage1 = true;
+  }
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); storageOK = true; }

@@ -6,6 +6,7 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Link } from '@tiptap/extension-link';
 import { Placeholder, TrailingNode } from '@tiptap/extensions';
+import { Slice, Fragment } from '@tiptap/pm/model';
 
 /* ảnh: nội dung chỉ lưu mã ảnh (data-img) và bề rộng đã kéo (data-w), còn file ảnh do app cất ở chỗ khác.
    Lúc hiển thị hỏi app qua options.src(mã) -> URL.
@@ -179,6 +180,16 @@ window.TT = {
           const files = [...(e.clipboardData && e.clipboardData.files || [])];
           if(!files.length) return false;
           onFiles(files, null); return true;
+        },
+        /* dán chữ trơn (Sublime, Notepad…): mỗi dòng một đoạn, dòng trắng giữ thành đoạn trống.
+           Mặc định ProseMirror gộp các dòng trắng liền nhau, nên đoạn văn dán vào dính hết vào nhau.
+           Thụt đầu dòng đổi sang dấu cách cứng, không thì lúc mở lại trang HTML sẽ nuốt mất. */
+        clipboardTextParser(text, $ctx){
+          const {schema} = $ctx.parent.type, marks = $ctx.marks();
+          const lines = text.replace(/\r\n?/g, '\n').split('\n').map(ln =>
+            ln.replace(/^[ \t]+/, w => w.replace(/\t/g, '    ').replace(/ /g, '\u00a0')));
+          const nodes = lines.map(ln => schema.nodes.paragraph.create(null, ln ? schema.text(ln, marks) : null));
+          return new Slice(Fragment.from(nodes), 1, 1);   // mở hai đầu: dòng đầu / dòng cuối nối vào đoạn đang gõ
         },
         handleDrop(view, e, slice, moved){
           const files = moved ? [] : [...(e.dataTransfer && e.dataTransfer.files || [])];

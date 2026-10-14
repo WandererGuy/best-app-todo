@@ -243,7 +243,7 @@ const STR = {
   'mon.12': ['Tháng 12', 'December'],
 
   /* --- nhat ky --- */
-  'journal.firstPage': ['Ghi chép', 'Notes'],
+  'journal.firstPage': ['Trang 1', 'Page 1'],
   'journal.pageCount': ['{n} trang', '{n} {n#page#pages}'],
   'journal.blank':     ['Chưa viết gì', 'Nothing written'],
   'journal.sub':       ['{n} ngày đã viết', '{n} {n#day#days} written'],
@@ -253,6 +253,7 @@ const STR = {
   'journal.addPage':   ['Thêm trang mới cho ngày này', 'Add another page to this day'],
   'journal.renPage':   ['Đổi tên trang', 'Rename this page'],
   'journal.delPage':   ['Xoá trang này', 'Delete this page'],
+  'journal.dragT':     ['Kéo sang trái hoặc phải để đổi thứ tự trang', 'Drag left or right to reorder pages'],
   'journal.ph':        ['Hôm nay bạn nghĩ gì…', 'What is on your mind today…'],
   'journal.newPage':   ['Trang {n}', 'Page {n}'],
   'journal.askName':   ['Tên trang:', 'Page name:'],
