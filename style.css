@@ -393,6 +393,68 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .efile .fd:hover{border-color:var(--acc);color:var(--acc2)}
 .ed .efile .fv{margin-right:-4px}
 .ed .efile.miss .fd{color:var(--high);border-color:var(--high)}
+/* bảng việc trong trang (lệnh /Bảng việc): ba cột cạnh nhau, hẹp quá thì xếp dọc */
+.ed .ekb{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:6px 0 10px;
+  white-space:normal;line-height:1.45;font-size:13px}
+.ed .ekbc{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.ed .ekbh{display:flex;align-items:center;gap:7px;padding:0 2px 2px;font-size:12px;font-weight:620;color:var(--tx2)}
+.ed .ekbh i{width:8px;height:8px;border-radius:50%;flex:none}
+.ed .ekbh b{margin-left:auto;font-weight:540;color:var(--tx3)}
+.ed .ekbl{display:flex;flex-direction:column;gap:6px;min-height:4px}
+.ed .ekbk{display:flex;align-items:flex-start;gap:6px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+  background:var(--panel2);color:var(--tx);cursor:grab}
+.ed .ekbk span{flex:1;min-width:0;word-break:break-word}
+.ed .ekbc[data-s="done"] .ekbk span{color:var(--tx3);text-decoration:line-through}
+.ed .ekbk.drag{opacity:.35}
+.ed .ekbx{flex:none;color:var(--tx3);font-size:11px;line-height:18px;opacity:0}
+.ed .ekbk:hover .ekbx{opacity:1}
+.ed .ekbx:hover{color:var(--high)}
+.ed .ekbcp{flex:none;color:var(--tx3);font-size:12px;line-height:18px;opacity:0}
+.ed .ekbk:hover .ekbcp{opacity:1}
+.ed .ekbcp:hover{color:var(--acc2)}
+.ed .ekbe,.ed .ekba{flex:1;min-width:0;padding:5px 8px;border:1px solid transparent;border-radius:6px;background:none;
+  color:var(--tx);font:inherit;outline:none}
+.ed .ekba{flex:none;padding:6px 9px;border:1px dashed var(--line)}
+/* các ô gõ là textarea tự cao theo chữ: chữ dài, kể cả một chuỗi liền không dấu cách, tự xuống dòng */
+.ed .ekb textarea{display:block;resize:none;overflow:hidden;line-height:1.45;overflow-wrap:anywhere}
+.ed .ekbk span{overflow-wrap:anywhere;white-space:pre-wrap}   /* tiêu đề có xuống dòng (Shift+Enter) */   /* ô thêm luôn có viền, nhìn ra là chỗ gõ được */
+.ed .ekbe{padding:0;border:none;font-weight:600}
+.ed .ekbd{flex:none;color:var(--tx3);font-style:normal;font-size:12px;line-height:18px}   /* thẻ có mô tả */
+.ed .ekbk.on{flex-direction:column;gap:6px;cursor:default;border-color:var(--acc)}
+.ed .ekbk.on .ekbe{width:100%;flex:none}
+.ed .ekbt{width:100%;min-height:44px;padding:0;border:none;background:none;color:var(--tx2);font:inherit;
+  line-height:1.5;resize:none;outline:none;overflow:hidden}
+.ed .ekbt::placeholder{color:var(--tx3)}
+.ed .ekba::placeholder{color:var(--tx3)}
+.ed .ekba:hover,.ed .ekba:focus{border-style:solid;background:var(--panel2)}
+.ed .ekba:focus{border-color:var(--acc)}
+.ed .ekbp{height:2px;margin:-4px 0;border-radius:2px;background:var(--acc)}
+/* chọn nhiều thẻ để chép một lượt */
+.ed .ekbk.sel{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--panel2))}
+.ed .ekbbar{grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--acc);
+  border-radius:8px;background:var(--panel);font-size:12.5px;color:var(--tx2)}
+.ed .ekbbar span{margin-right:auto;color:var(--tx);font-weight:600}
+.ed .ekbbar button{padding:3px 10px;border-radius:6px;border:1px solid var(--line);color:var(--tx2);font-size:12px}
+.ed .ekbbar button:hover{border-color:var(--acc);color:var(--acc2)}
+/* việc con: nhãn đã xong / tổng trên thẻ gập, danh sách tick được trong thẻ đang mở */
+.ed .ekbsb{flex:none;color:var(--tx3);font-style:normal;font-size:11.5px;line-height:18px;white-space:nowrap}
+.ed .ekbsb.all{color:#22c55e}
+.ed .ekbk.into{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);background:var(--panel)}   /* thả vào đây = thành việc con */
+.ed .ekbsl{display:flex;flex-direction:column;gap:2px}
+.ed .ekbsl:empty{display:none}
+.ed .ekbs{display:flex;align-items:flex-start;gap:6px;padding:2px 0;border-radius:4px;line-height:1.45}
+.ed .ekbs.drag{opacity:.35}
+.ed .ekbs{outline:none}
+.ed .ekbsg{flex:none;margin:0 -4px 0 -6px;padding:0 4px 0 6px;color:var(--tx3);font-style:normal;font-size:12px;cursor:grab;opacity:.45}
+.ed .ekbs:hover .ekbsg{opacity:1;color:var(--tx2)}
+.ed .ekbsc{flex:none;margin:3px 0 0;accent-color:var(--acc);cursor:pointer}   /* tên dài nhiều dòng: ô tick đứng ở dòng đầu */
+.ed .ekbsn{flex:1;min-width:0;padding:0;border:none;background:none;color:var(--tx);font:inherit;outline:none}
+.ed .ekbs.x .ekbsn{color:var(--tx3);text-decoration:line-through}
+.ed .ekbsx{flex:none;color:var(--tx3);font-size:11px;opacity:0}
+.ed .ekbs:hover .ekbsx{opacity:1}
+.ed .ekbsx:hover{color:var(--high)}
+.ed .ekbsa{width:100%;padding:3px 0;border:none;border-top:1px dashed var(--line);background:none;color:var(--tx);font:inherit;outline:none}
+.ed .ekbsa::placeholder{color:var(--tx3)}
 .ph{color:var(--tx3)}
 
 /* menu lệnh khi gõ "/" */

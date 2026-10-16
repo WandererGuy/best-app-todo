@@ -48,7 +48,7 @@ function md(src){
 
 /* ============ trình soạn thảo (TipTap / ProseMirror) ============ */
 const plain   = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim();
-const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=/i.test(h || '');
+const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=|data-kanban=/i.test(h || '');
 
 const BLOCKS = [
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
@@ -63,6 +63,7 @@ const BLOCKS = [
   {k:'hr',  n:tr('blk.hr'),  ic:'—',  key:'---'},
   {k:'img', n:tr('blk.img'), ic:'▣',  key:'Ctrl+V'},
   {k:'file', n:tr('blk.file'), ic:'📎', key:tr('blk.fileKey')},
+  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},
 ];
 
 /* dữ liệu cũ (markdown, hoặc HTML do bản tự viết sinh ra) -> định dạng TipTap hiểu */
@@ -112,7 +113,11 @@ function mountEd(hostId, content, ph, onChange){
   closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
-    imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos)});
+    imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
+    kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})),
+             addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
+             editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
+             selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel')}});
   EDS.set(hostId, ed);
   const dom = ed.view.dom;
   dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc để đọc chữ trong ảnh

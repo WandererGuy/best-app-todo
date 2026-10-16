@@ -122,6 +122,398 @@ const FileBlock = Node.create({
   },
 });
 
+/* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái.
+   Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, sub?: [{id, t, d?, x?: đã xong}]}];
+   chữ của các thẻ còn nằm trong nội dung để ô tìm kiếm thấy. Tên, màu cột và chữ trên nút do app đưa vào qua options.
+   Thẻ gập chỉ hiện tiêu đề (có mô tả thì thêm ≡, có việc con thì thêm số đã xong / tổng) cho bảng đỡ rối; bấm vào thẻ
+   thì mở ra sửa tiêu đề, viết mô tả, thêm việc con; bấm ra ngoài / Esc thì lưu rồi gập lại.
+   Kéo thả: thả ở mép trên / dưới một thẻ là đổi chỗ, thả vào giữa thẻ là thành việc con của nó (việc con chỉ một tầng:
+   thẻ đã có việc con thì các việc con ấy đi theo, xếp ngay sau nó). Kéo việc con ra cột thì nó lại thành thẻ riêng. */
+let kbDrag = null;                           // đang kéo: {dom: bảng chứa nó, id, from?: id thẻ cha nếu là việc con}
+// thẻ vừa chép (nút ⧉), dùng chung cho mọi bảng nên chép ở ngày này dán được sang ngày khác.
+// Clipboard hệ thống nhận thẻ dạng chữ; dán đúng chữ đó vào ô "+ Thêm" thì dựng lại nguyên thẻ.
+// Chọn nhiều thẻ (Ctrl + bấm) thì chép cả loạt; dán vào cột nào thì cả loạt vào cột đó, giữ thứ tự.
+let kbClip = null;                           // [{t, d?, sub?: [{t, d?, x?}]}]
+const kbCardText = c => [c.t, c.d, ...(c.sub || []).map(x => (x.x ? '☑ ' : '☐ ') + x.t)].filter(Boolean).join('\n');
+const kbClipText = list => list.map(kbCardText).join('\n\n');
+const kbClipOf = c => ({t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.sub && c.sub.length ? {sub: c.sub.map(({id, ...x}) => x)} : {})});
+const kbNorm = s => s.replace(/\r\n?/g, '\n').trim();
+const kbId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// thẻ -> các việc con khi bị thả vào thẻ khác: chính nó (ở cột Xong thì coi như đã xong) rồi tới việc con của nó
+const kbToSubs = c => [{id: c.id, t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.s === 'done' ? {x: true} : {})}, ...(c.sub || [])];
+const kbToCard = (x, s) => ({id: x.id, t: x.t, s, ...(x.d ? {d: x.d} : {})});
+// thẻ chỉ thả được trong bảng của nó: kéo ra ngoài thì chặn trước khi ProseMirror kịp hiện vạch thả hay nhận thả
+['dragover', 'drop'].forEach(t => window.addEventListener(t, e => {
+  if(kbDrag && !kbDrag.dom.contains(e.target)) e.stopPropagation();
+}, true));
+const Kanban = Node.create({
+  name: 'kanban',
+  group: 'block',
+  atom: true,
+  addOptions(){
+    return {cols: [{k:'todo', n:'To do', c:'#64748b'}, {k:'doing', n:'Doing', c:'#6366f1'}, {k:'done', n:'Done', c:'#22c55e'}],
+            addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
+            editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
+            selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear'};
+  },
+  addAttributes(){
+    return {cards: {default: [],
+      parseHTML: el => { try{ const v = JSON.parse(el.getAttribute('data-kanban')); return Array.isArray(v) ? v : []; }catch(e){ return []; } },
+      renderHTML: a => ({'data-kanban': JSON.stringify(a.cards || [])})},
+      // chữ gõ dở ở ô thêm của từng cột {mã cột: chữ}: lưu cùng trang, nên đi chỗ khác hay tắt app rồi quay lại vẫn còn
+      drafts: {default: {},
+        parseHTML: el => { try{ const v = JSON.parse(el.getAttribute('data-kbdraft')); return v && typeof v === 'object' ? v : {}; }catch(e){ return {}; } },
+        renderHTML: a => Object.keys(a.drafts || {}).length ? {'data-kbdraft': JSON.stringify(a.drafts)} : {}}};
+  },
+  parseHTML(){ return [{tag: 'div[data-kanban]'}]; },
+  renderHTML({node, HTMLAttributes}){
+    return ['div', HTMLAttributes, node.attrs.cards.map(c =>
+      [c.t, c.d, ...(c.sub || []).map(x => x.t)].filter(Boolean).join(' ')).join(' · ')];
+  },
+  addNodeView(){
+    return ({node, getPos, editor}) => {
+      const o = this.options;
+      const dom = document.createElement('div');
+      dom.className = 'ekb';
+      let open = null;                       // id thẻ đang mở ra để sửa
+      let justOpened = false;                // vừa bấm mở thẻ: vẽ xong đặt con trỏ vào ô mô tả
+      let refocus = null;                    // thẻ vừa gập vì bấm sang ô thêm của cột này: vẽ xong trả con trỏ về đó
+      let drawing = false;                   // đang vẽ lại: ô có con trỏ bị gỡ ra cũng bắn focusout, phải bỏ qua
+      const sel = new Set();                 // id các thẻ đang chọn (Ctrl + bấm) để chép một lượt; không lưu lại
+      const picked = () => node.attrs.cards.filter(c => sel.has(c.id));
+      const copy = list => {
+        kbClip = list.map(kbClipOf);
+        navigator.clipboard?.writeText(kbClipText(kbClip)).catch(() => {});
+        document.querySelectorAll('.ekba').forEach(i => { i.placeholder = o.pastePh; });   // mọi bảng đang hiện
+      };
+      let ph = null, drop = null;            // vạch chỗ thả, và chỗ thả {s: cột, before: id thẻ | null} hoặc {into: id thẻ}
+      // ô gõ là textarea tự cao theo chữ, để việc dài xuống dòng thay vì chạy mất về bên phải.
+      // Lần vẽ đầu bảng chưa gắn vào trang nên chưa đo được (scrollHeight = 0): để nguyên một dòng, đo lại sau
+      const fit = ta => { ta.style.height = 'auto'; if(ta.scrollHeight) ta.style.height = ta.scrollHeight + 'px'; };
+      const fitAll = () => dom.querySelectorAll('textarea').forEach(fit);
+
+      // chữ đang gõ trong thẻ đang mở (tiêu đề, mô tả, tên việc con) chưa nằm trong attrs: lần lưu nào cũng gom vào,
+      // kẻo tick một việc con xong vẽ lại là mất chữ vừa gõ. Ô bị xoá trắng thì giữ chữ cũ.
+      const withLive = cards => {
+        const k = dom.querySelector('.ekbk.on'); if(!k) return cards;
+        return cards.map(c => {
+          if(c.id !== k.dataset.id) return c;
+          const t = k.querySelector('.ekbe').value.trim() || c.t;
+          const d = k.querySelector('.ekbt').value.replace(/\s+$/, '');
+          const {d: _, ...rest} = c;
+          const out = d ? {...rest, t, d} : {...rest, t};
+          if(c.sub) out.sub = c.sub.map(x => {
+            const inp = k.querySelector(`.ekbs[data-sid="${x.id}"] .ekbsn`);
+            return inp && inp.value.trim() ? {...x, t: inp.value.trim()} : x;
+          });
+          return out;
+        });
+      };
+      // chữ gõ dở chờ ghi (pend), ghi sau một nhịp ngừng gõ; lần lưu thẻ nào cũng mang theo luôn
+      let pend = null, pendT = null;
+      const curDrafts = () => pend || node.attrs.drafts || {};
+      const write = (attrs, history = true) => {
+        clearTimeout(pendT); pend = null;
+        if(editor.isDestroyed) return;
+        const pos = typeof getPos === 'function' ? getPos() : null;
+        if(typeof pos !== 'number') return;
+        const tr = editor.view.state.tr.setNodeMarkup(pos, null, {...node.attrs, drafts: curDrafts(), ...attrs});
+        if(!history) tr.setMeta('addToHistory', false);   // gõ dở không chiếm chỗ trong Ctrl+Z của trang
+        editor.view.dispatch(tr);
+      };
+      const save = (cards, drafts) => write(drafts ? {cards: withLive(cards), drafts} : {cards: withLive(cards)});
+      const flushDrafts = () => { if(pend) write({drafts: pend}, false); };
+      const setDraft = (k, v) => {
+        const d = {...curDrafts()};
+        if(v.trim()) d[k] = v; else delete d[k];
+        pend = d; clearTimeout(pendT); pendT = setTimeout(flushDrafts, 250);
+      };
+      const editSubs = (id, f) => node.attrs.cards.map(c => c.id === id ? {...c, sub: f(c.sub || [])} : c);
+
+      const draw = () => {
+        // vẽ lại thay hết phần tử: nhớ ô đang có con trỏ để đặt lại vào ô tương ứng
+        const a = document.activeElement, keep = a && dom.contains(a) && a.classList[0] && {
+          cls: a.classList[0], s: a.closest('.ekbc')?.dataset.s, sid: a.closest('[data-sid]')?.dataset.sid, on: !!a.closest('.ekbk.on')};
+        drawing = true;
+        dom.innerHTML = '';
+        drawing = false;
+        [...sel].forEach(id => { if(!node.attrs.cards.some(c => c.id === id)) sel.delete(id); });   // thẻ đã bị xoá / kéo vào thẻ khác
+        if(sel.size){                        // thanh chọn nhiều: nằm trên cả ba cột
+          const bar = document.createElement('div');
+          bar.className = 'ekbbar';
+          bar.innerHTML = '<span></span><button type="button" class="ekbbc"></button><button type="button" class="ekbbx"></button>';
+          bar.querySelector('span').textContent = o.selN.replace('{n}', sel.size);
+          bar.querySelector('.ekbbc').textContent = o.copySel;
+          bar.querySelector('.ekbbx').textContent = o.clearSel;
+          dom.appendChild(bar);
+        }
+        o.cols.forEach(col => {
+          const cards = node.attrs.cards.filter(c => c.s === col.k);
+          const el = document.createElement('div');
+          el.className = 'ekbc'; el.dataset.s = col.k;
+          el.innerHTML = '<div class="ekbh"><i></i><span></span><b></b></div><div class="ekbl"></div><textarea class="ekba" rows="1"></textarea>';
+          el.querySelector('i').style.background = col.c;
+          el.querySelector('span').textContent = col.n;
+          el.querySelector('b').textContent = cards.length || '';
+          el.querySelector('.ekba').placeholder = kbClip ? o.pastePh : o.addPh;
+          el.querySelector('.ekba').title = o.addT;
+          el.querySelector('.ekba').value = curDrafts()[col.k] || '';
+          const list = el.querySelector('.ekbl');
+          cards.forEach(c => {
+            const k = document.createElement('div');
+            k.dataset.id = c.id;
+            const sub = c.sub || [];
+            if(c.id === open){
+              k.className = 'ekbk on';
+              k.innerHTML = '<textarea class="ekbe" rows="1"></textarea><textarea class="ekbt" rows="2"></textarea><div class="ekbsl"></div><textarea class="ekbsa" rows="1"></textarea>';
+              k.querySelector('.ekbe').value = c.t;
+              k.querySelector('.ekbt').value = c.d || '';
+              k.querySelector('.ekbt').placeholder = o.descPh;
+              k.querySelector('.ekbsa').placeholder = o.subPh;
+              const sl = k.querySelector('.ekbsl');
+              sub.forEach(x => {
+                const r = document.createElement('div');
+                r.className = 'ekbs' + (x.x ? ' x' : ''); r.dataset.sid = x.id; r.draggable = true;
+                // nhận focus khi nhấn vào nút kéo: con trỏ vẫn ở trong thẻ, nên thẻ không tưởng là bấm ra ngoài mà gập lại
+                r.tabIndex = -1;
+                r.innerHTML = '<i class="ekbsg">⠿</i><input type="checkbox" class="ekbsc"><textarea class="ekbsn" rows="1"></textarea><button type="button" class="ekbsx">✕</button>';
+                r.querySelector('.ekbsg').title = o.subT;
+                r.querySelector('.ekbsc').checked = !!x.x;
+                r.querySelector('.ekbsn').value = x.t;
+                if(x.d) r.querySelector('.ekbsn').title = x.d;
+                r.querySelector('.ekbsx').title = o.delT;
+                sl.appendChild(r);
+              });
+            } else {
+              k.className = 'ekbk' + (sel.has(c.id) ? ' sel' : ''); k.draggable = true;
+              k.title = c.d ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
+              const n = sub.filter(x => x.x).length;
+              k.innerHTML = '<span></span>' + (c.d ? '<i class="ekbd">≡</i>' : '')
+                + (sub.length ? `<i class="ekbsb${n === sub.length ? ' all' : ''}">☑ ${n}/${sub.length}</i>` : '')
+                + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>';
+              k.querySelector('span').textContent = c.t;
+              k.querySelector('.ekbcp').title = o.copyT;
+              k.querySelector('.ekbx').title = o.delT;
+            }
+            list.appendChild(k);
+          });
+          dom.appendChild(el);
+        });
+        fitAll();
+        if(!dom.isConnected) requestAnimationFrame(fitAll);
+        let f = null;
+        if(justOpened){ f = dom.querySelector('.ekbk.on .ekbt'); justOpened = false; }
+        else if(refocus){ f = dom.querySelector(`.ekbc[data-s="${refocus}"] .ekba`); }
+        else if(keep) f = [...dom.querySelectorAll(`.ekbc[data-s="${keep.s}"] .${keep.cls}`)]
+          .find(x => (x.closest('[data-sid]')?.dataset.sid) === keep.sid);
+        // ô cũ không còn (vd. vừa kéo việc con ra ngoài) mà thẻ vẫn mở: giữ con trỏ trong thẻ để bấm ra ngoài còn gập được
+        if(!f && keep && keep.on) f = dom.querySelector('.ekbk.on .ekbt');
+        refocus = null;
+        if(f){
+          f.focus();
+          if(f.setSelectionRange && f.type !== 'checkbox') f.setSelectionRange(f.value.length, f.value.length);
+        }
+      };
+      draw();
+
+      // lưu thẻ đang mở rồi gập lại (muốn xoá thẻ thì bấm ✕)
+      const commit = () => {
+        const live = withLive(node.attrs.cards);
+        open = null;
+        if(JSON.stringify(live) === JSON.stringify(node.attrs.cards)) return draw();
+        save(live);
+      };
+
+      dom.addEventListener('keydown', e => {
+        if(e.isComposing) return;
+        // Shift+Enter ở mọi ô = xuống dòng (để textarea tự làm); Enter thường mới là thêm / lưu
+        if(e.key === 'Enter' && e.shiftKey && e.target.matches('textarea')) return;
+        const inp = e.target.closest('.ekba');
+        if(inp && e.key === 'Enter'){
+          e.preventDefault();
+          const t = inp.value.trim(); if(!t) return;
+          const s = inp.closest('.ekbc').dataset.s;
+          const {[s]: _, ...drafts} = curDrafts();
+          save([...node.attrs.cards, {id: kbId(), t, s}], drafts);
+          return;
+        }
+        const k = e.target.closest('.ekbk.on'); if(!k) return;
+        if(e.key === 'Enter' && e.target.matches('.ekbsa')){       // thêm việc con, con trỏ ở lại ô để gõ tiếp
+          e.preventDefault();
+          const t = e.target.value.trim(); if(!t) return;
+          return save(editSubs(k.dataset.id, sub => [...sub, {id: kbId(), t}]));
+        }
+        if(e.key === 'Enter' && e.target.matches('.ekbsn')){       // sửa tên việc con xong: sang ô thêm việc con
+          e.preventDefault();
+          k.querySelector('.ekbsa').focus();
+          return save(node.attrs.cards);
+        }
+        // Esc, Enter ở ô tiêu đề, Ctrl+Enter ở ô mô tả: lưu và gập thẻ (Enter thường trong mô tả là xuống dòng)
+        if(e.key === 'Escape' || (e.key === 'Enter' && (e.target.matches('.ekbe') || e.ctrlKey || e.metaKey))){
+          e.preventDefault(); e.stopPropagation(); commit();
+        }
+      });
+      dom.addEventListener('change', e => {
+        if(!e.target.matches('.ekbsc')) return;
+        const id = e.target.closest('.ekbk').dataset.id, sid = e.target.closest('.ekbs').dataset.sid, on = e.target.checked;
+        save(editSubs(id, sub => sub.map(x => {
+          if(x.id !== sid) return x;
+          const {x: _, ...rest} = x;
+          return on ? {...rest, x: true} : rest;
+        })));
+      });
+      dom.addEventListener('input', e => {
+        const ta = e.target;
+        if(ta.matches('textarea')) fit(ta);
+        if(e.target.matches('.ekba')) setDraft(e.target.closest('.ekbc').dataset.s, e.target.value);
+      });
+      dom.addEventListener('paste', e => {      // dán thẻ vừa chép vào ô "+ Thêm" của cột nào thì thẻ vào cột đó
+        const inp = e.target.closest('.ekba');
+        if(!inp || inp.value || !kbClip || kbNorm(e.clipboardData.getData('text/plain')) !== kbNorm(kbClipText(kbClip))) return;
+        e.preventDefault();
+        const s = inp.closest('.ekbc').dataset.s;
+        save([...node.attrs.cards, ...kbClip.map(c => ({...c, id: kbId(), s, ...(c.sub ? {sub: c.sub.map(x => ({...x, id: kbId()}))} : {})}))]);
+      });
+      dom.addEventListener('focusout', e => {
+        if(drawing || !e.target.isConnected) return;         // ô vừa bị thay khi vẽ lại, không phải người dùng rời đi
+        if(e.target.matches('.ekba')) return flushDrafts();  // rời ô thêm (sang ngày khác, bấm chỗ khác): ghi ngay
+        const k = e.target.closest('.ekbk.on');
+        if(!k || k.dataset.id !== open) return;
+        const to = e.relatedTarget;
+        if(to && k.contains(to)) return;                     // đi giữa các ô trong cùng thẻ
+        if(to && dom.contains(to) && to.matches('.ekba')) refocus = to.closest('.ekbc').dataset.s;   // vẽ lại xong trả con trỏ về ô thêm vừa bấm
+        commit();
+      });
+      dom.addEventListener('click', e => {
+        const cp = e.target.closest('.ekbcp');
+        if(cp){                              // ⧉ trên một thẻ đang chọn = chép cả loạt đang chọn
+          const id = cp.closest('.ekbk').dataset.id;
+          const list = sel.has(id) ? picked() : node.attrs.cards.filter(c => c.id === id); if(!list.length) return;
+          copy(list);
+          cp.textContent = o.copied; setTimeout(() => { cp.textContent = '⧉'; }, 1200);
+          return;
+        }
+        const bc = e.target.closest('.ekbbc');
+        if(bc){
+          copy(picked());
+          bc.textContent = o.copiedSel; setTimeout(() => { bc.textContent = o.copySel; }, 1500);
+          return;
+        }
+        if(e.target.closest('.ekbbx')){ sel.clear(); return draw(); }
+        const x = e.target.closest('.ekbx');
+        if(x){
+          const id = x.closest('.ekbk').dataset.id;
+          return save(node.attrs.cards.filter(c => c.id !== id));
+        }
+        const sx = e.target.closest('.ekbsx');
+        if(sx){
+          const sid = sx.closest('.ekbs').dataset.sid;
+          return save(editSubs(sx.closest('.ekbk').dataset.id, sub => sub.filter(y => y.id !== sid)));
+        }
+        const k = e.target.closest('.ekbk');
+        if(!k || k.classList.contains('on')) return;
+        if(e.ctrlKey || e.metaKey || e.shiftKey){   // Ctrl / Shift + bấm: chọn hoặc bỏ chọn, không mở thẻ
+          if(sel.has(k.dataset.id)) sel.delete(k.dataset.id); else sel.add(k.dataset.id);
+          return draw();
+        }
+        sel.clear(); open = k.dataset.id; justOpened = true; draw();
+      });
+
+      const clearDrop = () => {
+        if(ph) ph.remove(); ph = null; drop = null;
+        dom.querySelectorAll('.ekbk.into').forEach(k => k.classList.remove('into'));
+      };
+      dom.addEventListener('dragstart', e => {
+        const r = e.target.closest && e.target.closest('.ekbs');
+        const k = !r && e.target.closest && e.target.closest('.ekbk'); if(!r && !k) return;
+        kbDrag = r ? {dom, id: r.dataset.sid, from: r.closest('.ekbk').dataset.id} : {dom, id: k.dataset.id};
+        (r || k).classList.add('drag');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('application/x-kanban', kbDrag.id);   // không mang chữ, để ô nhập nào cũng không nhận
+      });
+      dom.addEventListener('dragend', e => {
+        e.target.closest && e.target.closest('.ekbs, .ekbk')?.classList.remove('drag');
+        kbDrag = null; clearDrop();
+      });
+      dom.addEventListener('dragover', e => {
+        if(kbDrag) e.stopPropagation();          // kéo thẻ trong bảng: không cho vạch thả của ProseMirror hiện lên
+        const col = e.target.closest('.ekbc');
+        if(!kbDrag || kbDrag.dom !== dom || !col) return;   // chỉ đổi chỗ trong cùng một bảng
+        e.preventDefault();
+        const list = col.querySelector('.ekbl'), y = e.clientY;
+        const cards = [...list.querySelectorAll('.ekbk:not(.drag)')];
+        // con trỏ nằm trên thẻ nào: mép trên / dưới = chèn trước / sau thẻ đó, giữa = thả vào làm việc con
+        // (thẻ cha của chính việc con đang kéo thì chỉ có trước / sau)
+        let at = null, into = null;
+        const on = cards.find(k => { const r = k.getBoundingClientRect(); return y >= r.top && y < r.bottom; });
+        if(on){
+          const r = on.getBoundingClientRect(), p = (y - r.top) / r.height;
+          const edge = on.dataset.id === kbDrag.from ? .5 : .3;
+          if(p < edge) at = on;
+          else if(p > 1 - edge) at = cards[cards.indexOf(on) + 1] || null;
+          else into = on;
+        } else at = cards.find(k => y < k.getBoundingClientRect().top) || null;
+        dom.querySelectorAll('.ekbk.into').forEach(k => { if(k !== into) k.classList.remove('into'); });
+        if(into){
+          if(ph) ph.remove();
+          into.classList.add('into');
+          drop = {into: into.dataset.id};
+          return;
+        }
+        drop = {s: col.dataset.s, before: at ? at.dataset.id : null};
+        if(!ph){ ph = document.createElement('div'); ph.className = 'ekbp'; }
+        if(at) list.insertBefore(ph, at); else list.appendChild(ph);
+      });
+      dom.addEventListener('drop', e => {
+        if(kbDrag) e.stopPropagation();
+        if(!kbDrag || kbDrag.dom !== dom || !drop) return;
+        e.preventDefault();
+        const d = drop, {id, from} = kbDrag;
+        kbDrag = null; clearDrop();
+        // rút thứ đang kéo ra khỏi chỗ cũ
+        let rest = node.attrs.cards, item;
+        if(from){
+          item = (rest.find(c => c.id === from)?.sub || []).find(x => x.id === id); if(!item) return;
+          rest = rest.map(c => c.id === from ? {...c, sub: c.sub.filter(x => x.id !== id)} : c);
+        } else {
+          item = rest.find(c => c.id === id); if(!item) return;
+          rest = rest.filter(c => c.id !== id);
+        }
+        if(d.into){
+          if(d.into === from) return;
+          const adds = from ? [item] : kbToSubs(item);
+          return save(rest.map(c => c.id === d.into ? {...c, sub: [...(c.sub || []), ...adds]} : c));
+        }
+        const moved = from ? kbToCard(item, d.s) : {...item, s: d.s};
+        let i = d.before ? rest.findIndex(c => c.id === d.before) : -1;
+        if(i < 0){                               // cuối cột: ngay sau thẻ cuối của cột đó
+          const last = rest.map(c => c.s).lastIndexOf(d.s);
+          i = last < 0 ? rest.length : last + 1;
+        }
+        rest = [...rest]; rest.splice(i, 0, moved);
+        save(rest);
+      });
+
+      return {
+        dom,
+        ignoreMutation: () => true,
+        stopEvent: () => true,               // mọi thao tác trong bảng do bảng tự lo, ProseMirror đứng ngoài
+        update(n){
+          if(n.type !== node.type) return false;
+          const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards);
+          node = n;
+          if(!same) draw();
+          else dom.querySelectorAll('.ekba').forEach(i => {   // chỉ chữ gõ dở đổi (vd. Ctrl+Z): khỏi vẽ lại kẻo mất con trỏ
+            if(i !== document.activeElement){ i.value = curDrafts()[i.closest('.ekbc').dataset.s] || ''; fit(i); }
+          });
+          return true;
+        },
+        destroy(){ try{ flushDrafts(); }catch(e){} },   // trang đóng lại giữa lúc đang gõ dở
+      };
+    };
+  },
+});
+
 const CMD = {
   p:   c => c.setParagraph(),
   h1:  c => c.toggleHeading({level:1}),
@@ -135,6 +527,7 @@ const CMD = {
   hr:  c => c.setHorizontalRule(),
   img: c => c,                               // chỉ xoá "/lệnh"; app mở hộp chọn file rồi gọi TT.image
   file: c => c,                              // như trên, rồi gọi TT.file
+  kb:  c => c.insertContent({type:'kanban'}),
 };
 const MARK = {
   bold:   c => c.toggleBold(),
@@ -150,8 +543,9 @@ const ACTIVE = {
 window.TT = {
   /* imgSrc(mã) -> Promise<URL> (dùng cho cả ảnh lẫn file đính kèm);
      fileCanView(tên) -> có nút Xem không; fileView(attrs) -> Promise<false nếu không tìm thấy file>;
-     onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ) */
-  create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}} = {}){
+     onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ);
+     kanban = {cols, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel}: tên / màu cột và chữ trên bảng việc trong trang */
+  create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban} = {}){
     return new Editor({
       element: el,
       content,
@@ -173,6 +567,7 @@ window.TT = {
           ...(imgSrc ? {src: imgSrc} : {}),
           ...(fileView ? {canView: fileCanView, view: fileView} : {}),
         }),
+        Kanban.configure(kanban || {}),
       ],
       editorProps:{
         attributes:{ class:'ed' },
