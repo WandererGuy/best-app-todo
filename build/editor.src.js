@@ -123,7 +123,11 @@ const FileBlock = Node.create({
 });
 
 /* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái.
-   Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả, sub?: [{id, t, d?, x?: đã xong}]}];
+   Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả,
+   sub?: [{id, t, d?, x?: đã xong}], sh?: đang ẩn danh sách việc con, tk?: id task đã nối ở bảng việc / bảng cuộc sống}];
+   Thẻ đã nối (nút ↗): tiêu đề, cột và việc con là của task thật. Bảng hiện lên thì lấy bản mới nhất từ task,
+   sửa trên thẻ thì đẩy sang task; chép bảng sang ngày khác vẫn trỏ về cùng task nên không sinh task trùng.
+   Mô tả chỉ chép sang task lúc nối, về sau mỗi bên một bản (mô tả của task là văn bản có định dạng).
    chữ của các thẻ còn nằm trong nội dung để ô tìm kiếm thấy. Tên, màu cột và chữ trên nút do app đưa vào qua options.
    Thẻ gập chỉ hiện tiêu đề (có mô tả thì thêm ≡, có việc con thì thêm số đã xong / tổng) cho bảng đỡ rối; bấm vào thẻ
    thì mở ra sửa tiêu đề, viết mô tả, thêm việc con; bấm ra ngoài / Esc thì lưu rồi gập lại.
@@ -136,7 +140,8 @@ let kbDrag = null;                           // đang kéo: {dom: bảng chứa 
 let kbClip = null;                           // [{t, d?, sub?: [{t, d?, x?}]}]
 const kbCardText = c => [c.t, c.d, ...(c.sub || []).map(x => (x.x ? '☑ ' : '☐ ') + x.t)].filter(Boolean).join('\n');
 const kbClipText = list => list.map(kbCardText).join('\n\n');
-const kbClipOf = c => ({t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.sub && c.sub.length ? {sub: c.sub.map(({id, ...x}) => x)} : {})});
+const kbClipOf = c => ({t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.sub && c.sub.length ? {sub: c.sub.map(({id, ...x}) => x)} : {}),
+  ...(c.tk ? {tk: c.tk} : {})});
 const kbNorm = s => s.replace(/\r\n?/g, '\n').trim();
 const kbId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 // thẻ -> các việc con khi bị thả vào thẻ khác: chính nó (ở cột Xong thì coi như đã xong) rồi tới việc con của nó
@@ -155,7 +160,8 @@ const Kanban = Node.create({
             addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
             editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
-            copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description',
+            copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description', subHide: 'Hide subtasks', subShow: 'Show subtasks',
+            link: null, linkT: 'Send to a board', linkWork: 'Work board', linkLife: 'Life board', linkedT: 'Linked to a task on {b}. Click to open it',
             day: '', fmtDay: d => d};
   },
   addAttributes(){
@@ -228,7 +234,35 @@ const Kanban = Node.create({
         if(!history) tr.setMeta('addToHistory', false);   // gõ dở không chiếm chỗ trong Ctrl+Z của trang
         editor.view.dispatch(tr);
       };
-      const save = (cards, drafts) => write(drafts ? {cards: withLive(cards), drafts} : {cards: withLive(cards)});
+      // thẻ đã nối: lấy tiêu đề / cột / việc con từ task; task không còn (đã bỏ vào thùng rác) thì thôi nối, giữ chữ
+      const L = o.link;
+      const pulled = cards => !L ? cards : cards.map(c => {
+        if(!c.tk) return c;
+        const T = L.get(c.tk);
+        if(!T){ const {tk, ...rest} = c; return rest; }
+        const sub = T.sub.map(x => { const own = (c.sub || []).find(y => y.id === x.id); return own && own.d ? {...x, d: own.d} : x; });
+        const {sub: _, ...rest} = c;
+        return {...rest, t: T.t, s: T.s, ...(sub.length ? {sub} : {})};
+      });
+      // sửa trên thẻ đã nối: đẩy đúng phần vừa đổi sang task (thẻ mới dán vào thì không đẩy, để task giữ bản của nó)
+      const pushLinks = (prev, next) => {
+        if(L) next.forEach(c => {
+          const p = c.tk && prev.find(x => x.id === c.id && x.tk === c.tk); if(!p) return;
+          const patch = {};
+          if(p.t !== c.t) patch.t = c.t;
+          if(p.s !== c.s) patch.s = c.s;
+          if(JSON.stringify(p.sub || []) !== JSON.stringify(c.sub || [])) patch.sub = c.sub || [];
+          if(Object.keys(patch).length) L.update(c.tk, patch);
+        });
+      };
+      const save = (cards, drafts) => {
+        let next = withLive(cards);
+        pushLinks(node.attrs.cards, next);
+        next = pulled(next);
+        write(drafts ? {cards: next, drafts} : {cards: next});
+      };
+      let menu = null;                       // menu chọn bảng khi bấm ↗ trên thẻ chưa nối
+      const closeMenu = () => { if(menu){ menu.remove(); menu = null; } };
       const flushDrafts = () => { if(pend) write({drafts: pend}, false); };
       const setDraft = (k, v) => {
         const d = {...curDrafts()};
@@ -318,14 +352,28 @@ const Kanban = Node.create({
               // mô tả hiện ngay dưới tiêu đề cho tới khi bấm ≡ để ẩn (dh lưu cùng thẻ); đang ẩn thì xem qua tooltip
               const showD = c.d && !c.dh;
               k.title = c.d && c.dh ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
-              const n = sub.filter(x => x.x).length;
+              // việc con cũng vậy: hiện ngay trên thẻ, tick được tại chỗ, bấm nhãn ☑ n/m để ẩn / hiện (sh lưu cùng thẻ)
+              const n = sub.filter(x => x.x).length, showS = sub.length && !c.sh;
               k.innerHTML = '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
-                + (sub.length ? `<i class="ekbsb${n === sub.length ? ' all' : ''}">☑ ${n}/${sub.length}</i>` : '')
+                + (sub.length ? `<button type="button" class="ekbsb${n === sub.length ? ' all' : ''}${showS ? ' on' : ''}">☑ ${n}/${sub.length}</button>` : '')
+                + (L ? `<button type="button" class="${c.tk ? 'ekblk' : 'ekbln'}">↗</button>` : '')
                 + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>'
-                + (showD ? '<div class="ekbdt"></div>' : '');
+                + (showD ? '<div class="ekbdt"></div>' : '') + (showS ? '<div class="ekbsv"></div>' : '');
+              if(c.tk) k.classList.add('lk');
+              if(L) k.querySelector(c.tk ? '.ekblk' : '.ekbln').title = c.tk
+                ? o.linkedT.replace('{b}', L.get(c.tk)?.area === 'life' ? o.linkLife : o.linkWork) : o.linkT;
               k.querySelector('span').textContent = c.t;
               if(c.d) k.querySelector('.ekbd').title = showD ? o.descHide : o.descShow;
               if(showD) k.querySelector('.ekbdt').textContent = c.d;
+              if(sub.length) k.querySelector('.ekbsb').title = showS ? o.subHide : o.subShow;
+              if(showS) sub.forEach(x => {
+                const r = document.createElement('label');
+                r.className = 'ekbsr' + (x.x ? ' x' : ''); r.dataset.sid = x.id;
+                r.innerHTML = '<input type="checkbox" class="ekbsc"><span></span>';
+                r.querySelector('input').checked = !!x.x;
+                r.querySelector('span').textContent = x.t;
+                k.querySelector('.ekbsv').appendChild(r);
+              });
               k.querySelector('.ekbcp').title = o.copyT;
               k.querySelector('.ekbx').title = o.delT;
             }
@@ -351,6 +399,11 @@ const Kanban = Node.create({
       draw();
       // bảng chưa có ngày mà đang nằm trong trang nhật ký: đóng dấu ngày của trang (đợi editor dựng xong mới ghi được)
       if(!node.attrs.day && o.day) setTimeout(() => { if(!node.attrs.day) write({day: o.day}, false); }, 0);
+      // thẻ đã nối: task có thể vừa đổi ở bảng việc (kéo cột, tick việc con) trong lúc trang này đóng
+      setTimeout(() => {
+        const fresh = pulled(node.attrs.cards);
+        if(JSON.stringify(fresh) !== JSON.stringify(node.attrs.cards)) write({cards: fresh}, false);
+      }, 0);
 
       // lưu thẻ đang mở rồi gập lại (muốn xoá thẻ thì bấm ✕)
       const commit = () => {
@@ -391,7 +444,7 @@ const Kanban = Node.create({
       });
       dom.addEventListener('change', e => {
         if(!e.target.matches('.ekbsc')) return;
-        const id = e.target.closest('.ekbk').dataset.id, sid = e.target.closest('.ekbs').dataset.sid, on = e.target.checked;
+        const id = e.target.closest('.ekbk').dataset.id, sid = e.target.closest('[data-sid]').dataset.sid, on = e.target.checked;
         save(editSubs(id, sub => sub.map(x => {
           if(x.id !== sid) return x;
           const {x: _, ...rest} = x;
@@ -428,6 +481,43 @@ const Kanban = Node.create({
         commit();
       });
       dom.addEventListener('click', e => {
+        if(e.target.closest('.ekbsr')){               // việc con trên thẻ gập: ô vuông thì tick ('change' lo), chữ thì mở thẻ như thường
+          if(e.target.matches('.ekbsc')) return;
+          e.preventDefault();                         // label không tự tick khi bấm vào chữ
+        }
+        if(menu && !menu.contains(e.target)) closeMenu();
+        const mi = e.target.closest('.ekbmi');
+        if(mi){                              // chọn bảng trong menu ↗: tạo task thật rồi nối thẻ vào nó
+          const id = menu.dataset.id; closeMenu();
+          const c = withLive(node.attrs.cards).find(x => x.id === id); if(!c || c.tk) return;
+          const tk = L.create(c, mi.dataset.area);
+          return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
+        }
+        const ln = e.target.closest('.ekbln');
+        if(ln){
+          menu = document.createElement('div');
+          menu.className = 'ekbmenu'; menu.dataset.id = ln.closest('.ekbk').dataset.id;
+          menu.innerHTML = '<button type="button" class="ekbmi" data-area="work"></button><button type="button" class="ekbmi" data-area="life"></button>';
+          menu.children[0].textContent = o.linkWork; menu.children[1].textContent = o.linkLife;
+          const r = ln.getBoundingClientRect(), b = dom.getBoundingClientRect();
+          menu.style.top = (r.bottom - b.top + 4) + 'px';
+          menu.style.right = (b.right - r.right) + 'px';
+          dom.appendChild(menu);
+          const off = ev => { if(menu && !menu.contains(ev.target) && !ev.target.closest?.('.ekbln')) closeMenu(); if(!menu) document.removeEventListener('pointerdown', off, true); };
+          document.addEventListener('pointerdown', off, true);   // bấm ra ngoài bảng cũng đóng menu
+          return;
+        }
+        const lk = e.target.closest('.ekblk');
+        if(lk){ const c = node.attrs.cards.find(x => x.id === lk.closest('.ekbk').dataset.id); if(c && c.tk) L.open(c.tk); return; }
+        const sb = e.target.closest('.ekbsb');
+        if(sb){                              // ẩn / hiện danh sách việc con trên thẻ gập; nhớ theo từng thẻ
+          const id = sb.closest('.ekbk').dataset.id;
+          return save(node.attrs.cards.map(c => {
+            if(c.id !== id) return c;
+            const {sh, ...rest} = c;
+            return sh ? rest : {...rest, sh: true};
+          }));
+        }
         const dt = e.target.closest('.ekbd');
         if(dt){                              // bật / tắt mô tả trên thẻ gập; nhớ theo từng thẻ
           const id = dt.closest('.ekbk').dataset.id;
@@ -618,7 +708,8 @@ window.TT = {
   /* imgSrc(mã) -> Promise<URL> (dùng cho cả ảnh lẫn file đính kèm);
      fileCanView(tên) -> có nút Xem không; fileView(attrs) -> Promise<false nếu không tìm thấy file>;
      onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ);
-     kanban = {cols, day, fmtDay, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow}: tên / màu cột và chữ trên bảng việc trong trang */
+     kanban = {cols, day, fmtDay, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow, subHide, subShow, link, linkT, linkWork, linkLife, linkedT}:
+     link = {get(id) -> {t, s, sub, area} | null, create(thẻ, 'work' | 'life') -> id task, update(id, {t?, s?, sub?}), open(id)} tên / màu cột và chữ trên bảng việc trong trang */
   create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban} = {}){
     return new Editor({
       element: el,

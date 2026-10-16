@@ -51,6 +51,7 @@ const plain   = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g,
 const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=|data-kanban=/i.test(h || '');
 
 const BLOCKS = [
+  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng việc
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
   {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
@@ -63,7 +64,6 @@ const BLOCKS = [
   {k:'hr',  n:tr('blk.hr'),  ic:'—',  key:'---'},
   {k:'img', n:tr('blk.img'), ic:'▣',  key:'Ctrl+V'},
   {k:'file', n:tr('blk.file'), ic:'📎', key:tr('blk.fileKey')},
-  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},
 ];
 
 /* dữ liệu cũ (markdown, hoặc HTML do bản tự viết sinh ra) -> định dạng TipTap hiểu */
@@ -111,6 +111,42 @@ function keepCaretOffBottom(ed){
 
 // kbDay: ngày (YYYY-MM-DD) của trang nhật ký đang soạn, để đóng dấu lên bảng việc chưa có ngày.
 // Bảng đã mang ngày riêng (chép từ ngày khác sang) thì giữ ngày của nó.
+/* nối thẻ của bảng việc trong trang với task thật (xem Kanban trong build/editor.src.js).
+   Thẻ dùng {t, s: cột, sub: [{id, t, x: đã xong}]}, task dùng {title, status, subs: [{id, t, d: đã xong}]}.
+   Task "Để sau" hiện ở cột Cần làm; kéo thẻ sang cột khác thì task ra khỏi "Để sau". */
+const kbSubsOf = t => (t.subs || []).map(x => ({id: x.id, t: x.t, ...(x.d ? {x: true} : {})}));
+function kbSetStatus(t, s){                    // như kéo thẻ trên bảng việc (board.js)
+  t.status = s;
+  if(s === 'done'){ t.pg = 100; t.done = today(); }
+  else { t.done = null; if(t.pg === 100) t.pg = 75; if(s === 'doing' && t.pg === 0) t.pg = 25; }
+}
+const KB_LINK = {
+  get(id){
+    const t = S.tasks.find(x => x.id === id); if(!t) return null;
+    return {t: t.title, s: t.status === 'backlog' ? 'todo' : t.status, sub: kbSubsOf(t), area: t.area};
+  },
+  create(c, area){
+    const note = c.d ? c.d.split('\n').map(l => `<p>${esc(l)}</p>`).join('') : '';
+    const t = {id: uid(), title: c.t, area, prio: 'med', status: c.s, pg: 0, tags: [], due: '', time: '', dur: 60, remind: 30,
+      note, cr: today(), subs: (c.sub || []).map(x => ({id: x.id || uid(), t: x.t, d: !!x.x})), done: null};
+    kbSetStatus(t, c.s);
+    if(t.status === 'todo') t.pg = 0;
+    S.tasks.unshift(t); save();
+    toast(tr('kb.linked', {b: tr(area === 'life' ? 'nav.life' : 'nav.board')}));
+    return t.id;
+  },
+  update(id, p){
+    const t = S.tasks.find(x => x.id === id); if(!t) return;
+    if(p.t) t.title = p.t;
+    if(p.s && p.s !== (t.status === 'backlog' ? 'todo' : t.status)) kbSetStatus(t, p.s);
+    if(p.sub){
+      const old = new Map((t.subs || []).map(x => [x.id, x]));   // giữ ghi chú riêng của từng việc con trên task
+      t.subs = p.sub.map(x => ({...(old.get(x.id) || {}), id: x.id, t: x.t, d: !!x.x}));
+    }
+    save();
+  },
+  open(id){ openTask(id); },
+};
 const kbFmtDay = k => { const d = new Date(k + 'T00:00:00'); return `${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
 function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
   closeEd(hostId);
@@ -122,7 +158,9 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),
              copyAll: tr('kb.copyAll'), copiedAll: tr('kb.copiedAll'),
-             descHide: tr('kb.descHide'), descShow: tr('kb.descShow')}});
+             descHide: tr('kb.descHide'), descShow: tr('kb.descShow'),
+             subHide: tr('kb.subHide'), subShow: tr('kb.subShow'),
+             link: KB_LINK, linkT: tr('kb.linkT'), linkWork: tr('nav.board'), linkLife: tr('nav.life'), linkedT: tr('kb.linkedT')}});
   EDS.set(hostId, ed);
   const dom = ed.view.dom;
   dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc để đọc chữ trong ảnh

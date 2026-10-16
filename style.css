@@ -409,6 +409,17 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbx{flex:none;color:var(--tx3);font-size:11px;line-height:18px;opacity:0}
 .ed .ekbk:hover .ekbx{opacity:1}
 .ed .ekbx:hover{color:var(--high)}
+.ed .ekbln{flex:none;color:var(--tx3);font-size:12px;line-height:18px;opacity:0}
+.ed .ekbk:hover .ekbln{opacity:1}
+.ed .ekbln:hover{color:var(--acc2)}
+.ed .ekblk{flex:none;color:var(--acc2);font-size:12px;line-height:18px;padding:0 3px;border-radius:4px}   /* thẻ đã nối với task */
+.ed .ekblk:hover{background:var(--panel);color:var(--tx)}
+.ed .ekbk.lk{border-left:2px solid var(--acc)}
+.ed .ekb{position:relative}
+.ed .ekbmenu{position:absolute;z-index:5;display:flex;flex-direction:column;min-width:150px;padding:4px;border:1px solid var(--line);
+  border-radius:8px;background:var(--panel2);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.ed .ekbmi{padding:6px 10px;border-radius:6px;text-align:left;color:var(--tx);font-size:12.5px}
+.ed .ekbmi:hover{background:var(--panel)}
 .ed .ekbcp{flex:none;color:var(--tx3);font-size:12px;line-height:18px;opacity:0}
 .ed .ekbk:hover .ekbcp{opacity:1}
 .ed .ekbcp:hover{color:var(--acc2)}
@@ -447,8 +458,16 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbca:hover{border-color:var(--acc);color:var(--acc2)}
 .ed .ekbca.ok{color:#22c55e;border-color:#22c55e}
 /* việc con: nhãn đã xong / tổng trên thẻ gập, danh sách tick được trong thẻ đang mở */
-.ed .ekbsb{flex:none;color:var(--tx3);font-style:normal;font-size:11.5px;line-height:18px;white-space:nowrap}
+.ed .ekbsb{flex:none;color:var(--tx3);font-size:11.5px;line-height:18px;white-space:nowrap;padding:0 3px;border-radius:4px}
+.ed .ekbsb.on{color:var(--acc2)}
 .ed .ekbsb.all{color:#22c55e}
+.ed .ekbsb:hover{color:var(--tx);background:var(--panel)}
+/* danh sách việc con trên thẻ gập */
+.ed .ekbsv{flex-basis:100%;display:flex;flex-direction:column;gap:1px}
+.ed .ekbsr{display:flex;align-items:flex-start;gap:6px;font-size:12.5px;color:var(--tx2);cursor:default}
+.ed .ekbsr .ekbsc{margin-top:3px}
+.ed .ekbsr span{flex:1;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.ed .ekbsr.x span{color:var(--tx3);text-decoration:line-through}
 .ed .ekbk.into{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc);background:var(--panel)}   /* thả vào đây = thành việc con */
 .ed .ekbsl{display:flex;flex-direction:column;gap:2px}
 .ed .ekbsl:empty{display:none}
