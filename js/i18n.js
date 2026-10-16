@@ -471,6 +471,11 @@ const STR = {
   'side.noTag':    ['Chưa có tag nào', 'No tags yet'],
   'warn.noStore':  ['⚠ Trình duyệt đang chặn lưu trữ cục bộ nên dữ liệu sẽ mất khi đóng tab. Hãy bấm <b>Xuất file</b> để giữ lại, và kiểm tra xem có đang mở ở chế độ ẩn danh không.',
                     '⚠ This browser is blocking local storage, so your data will be lost when the tab closes. Click <b>Export</b> to keep a copy, and check whether you are in a private window.'],
+  'warn.web':      ['Dữ liệu đang nằm trong trình duyệt này, xoá cache là mất. Gắn một file trên máy để app ghi liên tục ra đó:',
+                    'Your data lives in this browser and clearing the cache loses it. Link a file on your computer and the app keeps writing to it:'],
+  'warn.webLink':  ['Gắn file', 'Link a file'],
+  'warn.webNoFs':  ['Dữ liệu đang nằm trong trình duyệt này, xoá cache là mất. Trình duyệt này không ghi ra file được: thỉnh thoảng bấm <b>Xuất file</b> ở cột trái để giữ một bản, hoặc mở bằng Chrome / Edge.',
+                    'Your data lives in this browser and clearing the cache loses it. This browser cannot write to a file: use <b>Export</b> in the sidebar now and then, or open the app in Chrome / Edge.'],
   'warn.noServer': ['⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.',
                     '⚠ Nothing is being written to disk, so the data lives only in this browser — clearing the cache or switching Chrome profile loses it. Start the app with <b>run.bat</b> (the black window must stay open), then reload.'],
 

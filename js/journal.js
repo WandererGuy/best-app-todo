@@ -100,7 +100,7 @@ function renderJournal(){
     page.html = v; save();
     const sub = $(`#jList [data-jd="${ui.jDate}"] .nsub`);   // ngày trống vừa được viết thì đổi nhãn ở cột trái luôn
     if(sub) sub.textContent = jSub(ui.jDate);
-  });
+  }, {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
 
   $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; renderJournal(); });
   wireJTabDnD(pages);

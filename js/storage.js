@@ -42,6 +42,9 @@ function paintSave(){
    Tải lại trang giữa lúc đang gửi thì server đã ghi mà tab không kịp nghe trả lời: nhờ next, lần mở sau
    nhận ra bản trên server là của chính mình, không tưởng nhầm là cửa sổ khác ghi đè rồi cất vào data/backups. */
 const SRV_KEY = 'dieukhien.srv';
+// bản chạy trên web (GitHub Pages…): không có serve.py phía sau, dữ liệu nằm trong trình duyệt, muốn có file thì gắn file.
+// Chỉ máy này (localhost) mới có server; mở thẳng file:// cũng không có.
+const WEB = location.protocol !== 'file:' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
 let srvOn = false;      // phiên này đang ghi lên server
 let srvErr = null;      // null | 'off': không nối / không gửi được | 'conflict': cửa sổ khác đã ghi
@@ -156,7 +159,7 @@ async function boot(){
   let local = null, meta = null, res = null, msg = '';
   try{ local = JSON.parse(localStorage.getItem(KEY)); }catch(e){ console.warn(tr('sv.readOld'), e); }
   try{ meta = JSON.parse(localStorage.getItem(SRV_KEY)); }catch(e){}
-  if(location.protocol !== 'file:') try{ res = await fetch('/api/data', {cache:'no-store'}); }catch(e){}
+  if(location.protocol !== 'file:' && !WEB) try{ res = await fetch('/api/data', {cache:'no-store'}); }catch(e){}
 
   if(!res || res.headers.get('X-App') !== 'dieukhien' || !(res.ok || res.status === 404)){
     srvErr = 'off'; srvTag = meta && meta.tag;          // vẫn đánh dấu dirty để lần sau có server thì gửi lên
@@ -210,6 +213,7 @@ async function linkFile(){
     });
     await writeFile(); await idbPut(fh);
     toast(tr('fs.linked'));
+    $('.banner.web')?.remove();                // bản web: đã có file thì khỏi nhắc nữa
   }catch(e){ if(e.name !== 'AbortError') toast(tr('fs.linkFail', {e: e.message})); }
   paintFs();
 }

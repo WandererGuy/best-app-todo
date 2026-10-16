@@ -109,12 +109,15 @@ function keepCaretOffBottom(ed){
   if(over > 1) box.scrollTop += over;
 }
 
-function mountEd(hostId, content, ph, onChange){
+// kbDay: ngày (YYYY-MM-DD) của trang nhật ký đang soạn, để đóng dấu lên bảng việc chưa có ngày.
+// Bảng đã mang ngày riêng (chép từ ngày khác sang) thì giữ ngày của nó.
+const kbFmtDay = k => { const d = new Date(k + 'T00:00:00'); return `${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
+function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
   closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
-    kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})),
+    kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})), day: kbDay, fmtDay: kbFmtDay,
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),

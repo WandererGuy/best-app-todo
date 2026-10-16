@@ -4,6 +4,8 @@
 
 *English · [Tiếng Việt](README.vi.md)*
 
+**[Try it in your browser](https://wandererguy.github.io/best-app-todo/)**, no install. See [Try it online](#try-it-online) for where the data goes.
+
 ![Work board](docs/images/en/board.png)
 
 - **The data is yours.** Everything lives in a single file, `data/dieukhien.json`, on your disk. Nothing is sent anywhere.
@@ -16,6 +18,7 @@
 ## Contents
 
 - [What's in it](#whats-in-it)
+- [Try it online](#try-it-online)
 - [Install and run](#install-and-run)
 - [How to use it](#how-to-use-it)
 - [Data and backups](#data-and-backups)
@@ -51,6 +54,26 @@ Every feature described in detail: see [docs/GUIDE.md](docs/GUIDE.md).
 > The screenshots use made-up sample data, not anyone's real data.
 
 ---
+
+## Try it online
+
+**Open [wandererguy.github.io/best-app-todo](https://wandererguy.github.io/best-app-todo/) and it runs. Nothing to install.**
+
+The online copy keeps your data in that browser only. Clearing browser data, or opening the link in another browser or Chrome profile, starts you from an empty app.
+
+- **Chrome or Edge:** click **Link a file** on the banner at the top and choose where to save. Every change is then also written to that file on your computer. If the browser data is ever cleared, use **Import** in the sidebar and pick that file to get everything back.
+- **Other browsers:** they cannot write to a file, so use **Export** in the sidebar now and then to keep a copy.
+
+Nothing you type leaves your computer. GitHub only serves the page itself (HTML and JavaScript); there is no server behind it.
+
+| | Online | `run.bat` on your machine |
+|---|---|---|
+| Install | nothing | Python |
+| Where the data lives | the browser, plus the linked file | `data/dieukhien.json` |
+| Daily backups in `data/backups` | no | yes |
+| Several tabs and browsers stay in sync | no | yes |
+
+If you end up using it every day, switch to the `run.bat` version below: export from the online copy, then **Import** that file into the local app.
 
 ## Install and run
 

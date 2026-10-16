@@ -4,6 +4,8 @@
 
 *[English](README.md) · Tiếng Việt*
 
+**[Dùng thử ngay trên trình duyệt](https://wandererguy.github.io/best-app-todo/)**, không cần cài gì. Dữ liệu nằm ở đâu thì xem mục [Dùng thử online](#dùng-thử-online).
+
 ![Bảng việc](docs/images/vi/board.png)
 
 - **Dữ liệu là của bạn.** Mọi thứ nằm trong một file `data/dieukhien.json` trên máy. Không gửi đi đâu, không có máy chủ đám mây.
@@ -16,6 +18,7 @@
 ## Mục lục
 
 - [Có những gì](#có-những-gì)
+- [Dùng thử online](#dùng-thử-online)
 - [Cài đặt và chạy](#cài-đặt-và-chạy)
 - [Hướng dẫn dùng](#hướng-dẫn-dùng)
 - [Dữ liệu và sao lưu](#dữ-liệu-và-sao-lưu)
@@ -52,6 +55,26 @@ Mô tả chi tiết từng tính năng: xem [docs/HUONG-DAN.md](docs/HUONG-DAN.m
 > Ảnh chụp dùng dữ liệu minh hoạ, không phải dữ liệu thật.
 
 ---
+
+## Dùng thử online
+
+**Mở [wandererguy.github.io/best-app-todo](https://wandererguy.github.io/best-app-todo/) là dùng được, không cần cài gì.**
+
+Bản online giữ dữ liệu trong chính trình duyệt đó. Xoá dữ liệu trình duyệt, hoặc mở link bằng trình duyệt khác hay profile Chrome khác, thì app trống trơn như mới.
+
+- **Chrome hoặc Edge:** bấm **Gắn file** trên dòng nhắc ở đầu trang rồi chọn chỗ lưu. Từ đó mọi thay đổi cũng được ghi ra file này trên máy bạn. Lỡ xoá dữ liệu trình duyệt thì bấm **Nạp file** ở cột trái, chọn đúng file đó là có lại hết.
+- **Trình duyệt khác:** không ghi ra file được, nên thỉnh thoảng bấm **Xuất file** ở cột trái để giữ một bản.
+
+Không có gì bạn gõ bị gửi ra khỏi máy. GitHub chỉ phát trang web (HTML và JavaScript), phía sau không có máy chủ nào.
+
+| | Bản online | Chạy `run.bat` trên máy |
+|---|---|---|
+| Cài đặt | không | Python |
+| Dữ liệu nằm ở | trình duyệt, và file đã gắn | `data/dieukhien.json` |
+| Tự sao lưu mỗi ngày vào `data/backups` | không | có |
+| Nhiều tab, nhiều trình duyệt thấy cùng dữ liệu | không | có |
+
+Nếu dùng hằng ngày, nên chuyển sang bản chạy `run.bat` ở dưới: xuất file từ bản online, rồi **Nạp file** đó vào app trên máy.
 
 ## Cài đặt và chạy
 

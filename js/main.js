@@ -61,6 +61,12 @@ function render(){
   fSide(); fFullPaint(); fPaintTime(); ui.fPop = false;
   if(!storageOK) $('#view').insertAdjacentHTML('afterbegin',
     `<div class="banner">${tr('warn.noStore')}</div>`);
+  else if(WEB){                     // bản web: chưa gắn file thì nhắc gắn (trình duyệt không ghi file được thì nhắc xuất)
+    if(!fh) $('#view').insertAdjacentHTML('afterbegin', FS_OK
+      ? `<div class="banner web">${tr('warn.web')} <button class="bnbtn" id="bnLink">${tr('warn.webLink')}</button></div>`
+      : `<div class="banner web">${tr('warn.webNoFs')}</div>`);
+    $('#bnLink')?.addEventListener('click', () => fhPending ? reconnectFile() : linkFile());
+  }
   else if(srvErr === 'off') $('#view').insertAdjacentHTML('afterbegin',
     `<div class="banner">${tr('warn.noServer')}</div>`);
   restoreScroll();

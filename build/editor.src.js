@@ -155,7 +155,8 @@ const Kanban = Node.create({
             addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
             editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
-            copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description'};
+            copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description',
+            day: '', fmtDay: d => d};
   },
   addAttributes(){
     return {cards: {default: [],
@@ -164,7 +165,12 @@ const Kanban = Node.create({
       // chữ gõ dở ở ô thêm của từng cột {mã cột: chữ}: lưu cùng trang, nên đi chỗ khác hay tắt app rồi quay lại vẫn còn
       drafts: {default: {},
         parseHTML: el => { try{ const v = JSON.parse(el.getAttribute('data-kbdraft')); return v && typeof v === 'object' ? v : {}; }catch(e){ return {}; } },
-        renderHTML: a => Object.keys(a.drafts || {}).length ? {'data-kbdraft': JSON.stringify(a.drafts)} : {}}};
+        renderHTML: a => Object.keys(a.drafts || {}).length ? {'data-kbdraft': JSON.stringify(a.drafts)} : {}},
+      // ngày bảng thuộc về (YYYY-MM-DD): đóng dấu theo trang nhật ký lúc bảng hiện lần đầu, rồi đi theo bảng khi chép
+      // sang ngày khác hay sang ghi chú, nên bảng của ngày 14 dán vào ngày 16 vẫn ghi ngày 14
+      day: {default: '',
+        parseHTML: el => /^\d{4}-\d\d-\d\d$/.test(el.getAttribute('data-kbday') || '') ? el.getAttribute('data-kbday') : '',
+        renderHTML: a => a.day ? {'data-kbday': a.day} : {}}};
   },
   parseHTML(){ return [{tag: 'div[data-kanban]'}]; },
   renderHTML({node, HTMLAttributes}){
@@ -239,10 +245,23 @@ const Kanban = Node.create({
         dom.innerHTML = '';
         drawing = false;
         [...sel].forEach(id => { if(!node.attrs.cards.some(c => c.id === id)) sel.delete(id); });   // thẻ đã bị xoá / kéo vào thẻ khác
-        if(node.attrs.cards.length && !sel.size){   // nút chép cả bảng: biểu tượng nhỏ nổi trên mép bảng, không chiếm hàng nào
-          const ca = document.createElement('button');
-          ca.type = 'button'; ca.className = 'ekbca'; ca.textContent = '⧉'; ca.title = o.copyAll;
-          dom.appendChild(ca);
+        // hàng mỏng trên cùng, tách khỏi các cột: bên trái ngày của trang chứa bảng, bên phải nút chép cả bảng
+        const canCopy = node.attrs.cards.length && !sel.size;
+        const day = node.attrs.day || o.day, label = day ? o.fmtDay(day) : '';
+        if(label || canCopy){
+          const hd = document.createElement('div');
+          hd.className = 'ekbhd';
+          if(label){
+            const lb = document.createElement('span');
+            lb.className = 'ekbdate'; lb.textContent = label;
+            hd.appendChild(lb);
+          }
+          if(canCopy){
+            const ca = document.createElement('button');
+            ca.type = 'button'; ca.className = 'ekbca'; ca.textContent = '⧉'; ca.title = o.copyAll;
+            hd.appendChild(ca);
+          }
+          dom.appendChild(hd);
         }
         if(sel.size){                        // thanh chọn nhiều: nằm trên cả ba cột
           const bar = document.createElement('div');
@@ -253,6 +272,10 @@ const Kanban = Node.create({
           bar.querySelector('.ekbbx').textContent = o.clearSel;
           dom.appendChild(bar);
         }
+        // lưới chỉ chứa ba cột: hàng ngày / thanh chọn nằm ngoài, kẻo một hàng trải ngang làm auto-fit không gộp được rãnh trống, cột co lại
+        const grid = document.createElement('div');
+        grid.className = 'ekbcols';
+        dom.appendChild(grid);
         o.cols.forEach(col => {
           const cards = node.attrs.cards.filter(c => c.s === col.k);
           const el = document.createElement('div');
@@ -308,7 +331,7 @@ const Kanban = Node.create({
             }
             list.appendChild(k);
           });
-          dom.appendChild(el);
+          grid.appendChild(el);
         });
         fitAll();
         if(!dom.isConnected) requestAnimationFrame(fitAll);
@@ -326,6 +349,8 @@ const Kanban = Node.create({
         }
       };
       draw();
+      // bảng chưa có ngày mà đang nằm trong trang nhật ký: đóng dấu ngày của trang (đợi editor dựng xong mới ghi được)
+      if(!node.attrs.day && o.day) setTimeout(() => { if(!node.attrs.day) write({day: o.day}, false); }, 0);
 
       // lưu thẻ đang mở rồi gập lại (muốn xoá thẻ thì bấm ✕)
       const commit = () => {
@@ -435,6 +460,7 @@ const Kanban = Node.create({
           kbClip = cards.map(c => ({...kbClipOf(c), s: c.s}));
           const box = document.createElement('div');
           box.setAttribute('data-kanban', JSON.stringify(cards));
+          if(node.attrs.day || o.day) box.setAttribute('data-kbday', node.attrs.day || o.day);
           box.textContent = kbClipText(kbClip);
           const text = kbClipText(kbClip);
           const onCopy = ev => { ev.preventDefault(); ev.clipboardData.setData('text/html', box.outerHTML); ev.clipboardData.setData('text/plain', text); };
@@ -548,7 +574,7 @@ const Kanban = Node.create({
         stopEvent: () => true,               // mọi thao tác trong bảng do bảng tự lo, ProseMirror đứng ngoài
         update(n){
           if(n.type !== node.type) return false;
-          const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards);
+          const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards) && n.attrs.day === node.attrs.day;
           node = n;
           if(!same) draw();
           else dom.querySelectorAll('.ekba').forEach(i => {   // chỉ chữ gõ dở đổi (vd. Ctrl+Z): khỏi vẽ lại kẻo mất con trỏ
@@ -592,7 +618,7 @@ window.TT = {
   /* imgSrc(mã) -> Promise<URL> (dùng cho cả ảnh lẫn file đính kèm);
      fileCanView(tên) -> có nút Xem không; fileView(attrs) -> Promise<false nếu không tìm thấy file>;
      onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ);
-     kanban = {cols, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow}: tên / màu cột và chữ trên bảng việc trong trang */
+     kanban = {cols, day, fmtDay, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow}: tên / màu cột và chữ trên bảng việc trong trang */
   create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban} = {}){
     return new Editor({
       element: el,
