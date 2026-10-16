@@ -301,7 +301,7 @@ const STR = {
   'blk.fileKey':  ['kéo thả', 'drag & drop'],
   'blk.kb':       ['Bảng việc', 'Task board'],
   'kb.add':       ['+ Thêm', '+ Add'],
-  'kb.addT':      ['Enter để thêm, Shift+Enter để xuống dòng', 'Enter to add, Shift+Enter for a new line'],
+  'kb.addT':      ['Gõ xong bấm ra ngoài hoặc Enter để thêm, Shift+Enter để xuống dòng', 'Click away or press Enter to add, Shift+Enter for a new line'],
   'kb.del':       ['Xoá thẻ', 'Delete card'],
   'kb.copy':      ['Chép thẻ (cả mô tả, việc con; đang chọn nhiều thì chép cả loạt), rồi Ctrl+V vào ô + Thêm ở ngày khác để dán',
                    'Copy this card (or all selected cards), then Ctrl+V into + Add on another day'],

@@ -387,7 +387,14 @@ const Kanban = Node.create({
       });
       dom.addEventListener('focusout', e => {
         if(drawing || !e.target.isConnected) return;         // ô vừa bị thay khi vẽ lại, không phải người dùng rời đi
-        if(e.target.matches('.ekba')) return flushDrafts();  // rời ô thêm (sang ngày khác, bấm chỗ khác): ghi ngay
+        if(e.target.matches('.ekba')){                       // rời ô thêm (bấm chỗ khác, sang ngày khác): chữ đã gõ thành thẻ luôn
+          const t = e.target.value.trim();
+          if(!t) return flushDrafts();
+          const s = e.target.closest('.ekbc').dataset.s, to = e.relatedTarget;
+          if(to && dom.contains(to) && to.matches('.ekba')) refocus = to.closest('.ekbc').dataset.s;   // vẽ lại xong vẫn ở ô thêm vừa bấm
+          const {[s]: _, ...drafts} = curDrafts();
+          return save([...node.attrs.cards, {id: kbId(), t, s}], drafts);
+        }
         const k = e.target.closest('.ekbk.on');
         if(!k || k.dataset.id !== open) return;
         const to = e.relatedTarget;
