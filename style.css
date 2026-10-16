@@ -401,7 +401,7 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbh i{width:8px;height:8px;border-radius:50%;flex:none}
 .ed .ekbh b{margin-left:auto;font-weight:540;color:var(--tx3)}
 .ed .ekbl{display:flex;flex-direction:column;gap:6px;min-height:4px}
-.ed .ekbk{display:flex;align-items:flex-start;gap:6px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+.ed .ekbk{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
   background:var(--panel2);color:var(--tx);cursor:grab}
 .ed .ekbk span{flex:1;min-width:0;word-break:break-word}
 .ed .ekbc[data-s="done"] .ekbk span{color:var(--tx3);text-decoration:line-through}
@@ -419,7 +419,11 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekb textarea{display:block;resize:none;overflow:hidden;line-height:1.45;overflow-wrap:anywhere}
 .ed .ekbk span{overflow-wrap:anywhere;white-space:pre-wrap}   /* tiêu đề có xuống dòng (Shift+Enter) */   /* ô thêm luôn có viền, nhìn ra là chỗ gõ được */
 .ed .ekbe{padding:0;border:none;font-weight:600}
-.ed .ekbd{flex:none;color:var(--tx3);font-style:normal;font-size:12px;line-height:18px}   /* thẻ có mô tả */
+.ed .ekbd{flex:none;color:var(--tx3);font-size:12px;line-height:18px;padding:0 2px;border-radius:4px}   /* thẻ có mô tả: bấm để ẩn / hiện */
+.ed .ekbd.on{color:var(--acc2)}
+.ed .ekbd:hover{color:var(--tx);background:var(--panel)}
+.ed .ekbdt{flex-basis:100%;margin-top:-2px;color:var(--tx2);font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.ed .ekbc[data-s="done"] .ekbdt{color:var(--tx3)}
 .ed .ekbk.on{flex-direction:column;gap:6px;cursor:default;border-color:var(--acc)}
 .ed .ekbk.on .ekbe{width:100%;flex:none}
 .ed .ekbt{width:100%;min-height:44px;padding:0;border:none;background:none;color:var(--tx2);font:inherit;
@@ -436,6 +440,12 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbbar span{margin-right:auto;color:var(--tx);font-weight:600}
 .ed .ekbbar button{padding:3px 10px;border-radius:6px;border:1px solid var(--line);color:var(--tx2);font-size:12px}
 .ed .ekbbar button:hover{border-color:var(--acc);color:var(--acc2)}
+.ed .ekb{position:relative}
+.ed .ekbca{position:absolute;top:-9px;right:8px;z-index:1;width:20px;height:18px;padding:0;border-radius:5px;
+  border:1px solid var(--line);background:var(--panel2);color:var(--tx3);font-size:11px;line-height:16px;opacity:.55}
+.ed .ekb:hover .ekbca{opacity:1}
+.ed .ekbca:hover{border-color:var(--acc);color:var(--acc2)}
+.ed .ekbca.ok{opacity:1;color:#22c55e;border-color:#22c55e}
 /* việc con: nhãn đã xong / tổng trên thẻ gập, danh sách tick được trong thẻ đang mở */
 .ed .ekbsb{flex:none;color:var(--tx3);font-style:normal;font-size:11.5px;line-height:18px;white-space:nowrap}
 .ed .ekbsb.all{color:#22c55e}

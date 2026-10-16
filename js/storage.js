@@ -37,14 +37,24 @@ function paintSave(){
    localStorage chỉ là bản đệm, nên xoá cache hay đổi profile Chrome không mất gì.
    Mỗi lần ghi kèm mã phiên bản (ETag) của bản trên server mà dữ liệu đang dựa vào; cửa sổ khác đã ghi
    trước thì server trả 409 — lúc đó tab này nạp lại bản mới (xem pullSrv) thay vì đè lên.
-   localStorage 'dieukhien.srv' = {tag, dirty}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt). */
+   localStorage 'dieukhien.srv' = {tag, dirty, next?}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt);
+   next = mã phiên bản server sẽ có nếu lượt ghi đang gửi đi lọt (serve.py đặt ETag = sha1 của đúng nội dung nhận được).
+   Tải lại trang giữa lúc đang gửi thì server đã ghi mà tab không kịp nghe trả lời: nhờ next, lần mở sau
+   nhận ra bản trên server là của chính mình, không tưởng nhầm là cửa sổ khác ghi đè rồi cất vào data/backups. */
 const SRV_KEY = 'dieukhien.srv';
 const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
 let srvOn = false;      // phiên này đang ghi lên server
 let srvErr = null;      // null | 'off': không nối / không gửi được | 'conflict': cửa sổ khác đã ghi
-let srvTag = null, srvTimer = null, srvBusy = false, srvKeep = false, srvGen = 0;
+let srvTag = null, srvTimer = null, srvBusy = false, srvKeep = false, srvGen = 0, srvNext = null;
 function setMeta(dirty){
-  if(srvTag) try{ localStorage.setItem(SRV_KEY, JSON.stringify({tag:srvTag, dirty})); }catch(e){}
+  if(srvTag) try{ localStorage.setItem(SRV_KEY, JSON.stringify({tag:srvTag, dirty, ...(srvNext ? {next:srvNext} : {})})); }catch(e){}
+}
+// ETag server sẽ trả cho nội dung này: '"' + sha1 hex + '"', như etag() trong serve.py
+async function tagOf(body){
+  try{
+    const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(body));
+    return '"' + [...new Uint8Array(h)].map(b => b.toString(16).padStart(2, '0')).join('') + '"';
+  }catch(e){ return null; }
 }
 function queueSrv(){
   setMeta(true); srvGen++;
@@ -57,8 +67,11 @@ async function pushSrv(){
   srvBusy = true;
   const gen = srvGen, keep = srvKeep;
   try{
+    const body = await dataJSON();
+    srvNext = await tagOf(body); setMeta(true);
     const r = await fetch('/api/data' + (keep ? '?keep=1' : ''),
-                          {method:'PUT', headers:{...SRV_H, 'If-Match':srvTag}, body: await dataJSON()});
+                          {method:'PUT', headers:{...SRV_H, 'If-Match':srvTag}, body});
+    srvNext = null;
     if(r.status === 409){
       // cửa sổ khác vừa ghi: cất bản ở đây vào data/backups rồi nạp bản mới về, không đè lên nhau
       await stashSrv();
@@ -72,6 +85,7 @@ async function pushSrv(){
       bcSend();
     }else throw new Error(r.status);
   }catch(e){
+    srvNext = null;
     if(!srvErr) toast(tr('sv.pushFail'));
     srvErr = 'off';
   }
@@ -162,7 +176,8 @@ async function boot(){
   }
 
   const d = await res.json(); srvTag = res.headers.get('ETag');
-  if(local && meta && meta.dirty && meta.tag === srvTag){   // thay đổi lần trước chưa kịp gửi
+  // thay đổi lần trước chưa kịp gửi, hoặc đã gửi tới nơi mà tab tắt trước khi nghe trả lời (next)
+  if(local && meta && meta.dirty && (meta.tag === srvTag || (meta.next && meta.next === srvTag))){
     applyData(local); save(); return '';
   }
   if(local && !(meta && !meta.dirty)){                      // dữ liệu riêng của trình duyệt này, chưa lên server

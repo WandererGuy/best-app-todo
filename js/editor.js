@@ -117,7 +117,9 @@ function mountEd(hostId, content, ph, onChange){
     kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})),
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
-             selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel')}});
+             selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),
+             copyAll: tr('kb.copyAll'), copiedAll: tr('kb.copiedAll'),
+             descHide: tr('kb.descHide'), descShow: tr('kb.descShow')}});
   EDS.set(hostId, ed);
   const dom = ed.view.dom;
   dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc để đọc chữ trong ảnh

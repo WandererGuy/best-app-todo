@@ -123,7 +123,7 @@ const FileBlock = Node.create({
 });
 
 /* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái.
-   Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, sub?: [{id, t, d?, x?: đã xong}]}];
+   Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả, sub?: [{id, t, d?, x?: đã xong}]}];
    chữ của các thẻ còn nằm trong nội dung để ô tìm kiếm thấy. Tên, màu cột và chữ trên nút do app đưa vào qua options.
    Thẻ gập chỉ hiện tiêu đề (có mô tả thì thêm ≡, có việc con thì thêm số đã xong / tổng) cho bảng đỡ rối; bấm vào thẻ
    thì mở ra sửa tiêu đề, viết mô tả, thêm việc con; bấm ra ngoài / Esc thì lưu rồi gập lại.
@@ -154,7 +154,8 @@ const Kanban = Node.create({
     return {cols: [{k:'todo', n:'To do', c:'#64748b'}, {k:'doing', n:'Doing', c:'#6366f1'}, {k:'done', n:'Done', c:'#22c55e'}],
             addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
             editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
-            selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear'};
+            selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
+            copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description'};
   },
   addAttributes(){
     return {cards: {default: [],
@@ -238,6 +239,11 @@ const Kanban = Node.create({
         dom.innerHTML = '';
         drawing = false;
         [...sel].forEach(id => { if(!node.attrs.cards.some(c => c.id === id)) sel.delete(id); });   // thẻ đã bị xoá / kéo vào thẻ khác
+        if(node.attrs.cards.length && !sel.size){   // nút chép cả bảng: biểu tượng nhỏ nổi trên mép bảng, không chiếm hàng nào
+          const ca = document.createElement('button');
+          ca.type = 'button'; ca.className = 'ekbca'; ca.textContent = '⧉'; ca.title = o.copyAll;
+          dom.appendChild(ca);
+        }
         if(sel.size){                        // thanh chọn nhiều: nằm trên cả ba cột
           const bar = document.createElement('div');
           bar.className = 'ekbbar';
@@ -286,12 +292,17 @@ const Kanban = Node.create({
               });
             } else {
               k.className = 'ekbk' + (sel.has(c.id) ? ' sel' : ''); k.draggable = true;
-              k.title = c.d ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
+              // mô tả hiện ngay dưới tiêu đề cho tới khi bấm ≡ để ẩn (dh lưu cùng thẻ); đang ẩn thì xem qua tooltip
+              const showD = c.d && !c.dh;
+              k.title = c.d && c.dh ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
               const n = sub.filter(x => x.x).length;
-              k.innerHTML = '<span></span>' + (c.d ? '<i class="ekbd">≡</i>' : '')
+              k.innerHTML = '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
                 + (sub.length ? `<i class="ekbsb${n === sub.length ? ' all' : ''}">☑ ${n}/${sub.length}</i>` : '')
-                + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>';
+                + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>'
+                + (showD ? '<div class="ekbdt"></div>' : '');
               k.querySelector('span').textContent = c.t;
+              if(c.d) k.querySelector('.ekbd').title = showD ? o.descHide : o.descShow;
+              if(showD) k.querySelector('.ekbdt').textContent = c.d;
               k.querySelector('.ekbcp').title = o.copyT;
               k.querySelector('.ekbx').title = o.delT;
             }
@@ -371,8 +382,8 @@ const Kanban = Node.create({
         const inp = e.target.closest('.ekba');
         if(!inp || inp.value || !kbClip || kbNorm(e.clipboardData.getData('text/plain')) !== kbNorm(kbClipText(kbClip))) return;
         e.preventDefault();
-        const s = inp.closest('.ekbc').dataset.s;
-        save([...node.attrs.cards, ...kbClip.map(c => ({...c, id: kbId(), s, ...(c.sub ? {sub: c.sub.map(x => ({...x, id: kbId()}))} : {})}))]);
+        const s = inp.closest('.ekbc').dataset.s;   // thẻ chép từ cả bảng đã mang cột cũ (c.s), thẻ chép lẻ thì vào cột được dán
+        save([...node.attrs.cards, ...kbClip.map(c => ({s, ...c, id: kbId(), ...(c.sub ? {sub: c.sub.map(x => ({...x, id: kbId()}))} : {})}))]);
       });
       dom.addEventListener('focusout', e => {
         if(drawing || !e.target.isConnected) return;         // ô vừa bị thay khi vẽ lại, không phải người dùng rời đi
@@ -385,6 +396,15 @@ const Kanban = Node.create({
         commit();
       });
       dom.addEventListener('click', e => {
+        const dt = e.target.closest('.ekbd');
+        if(dt){                              // bật / tắt mô tả trên thẻ gập; nhớ theo từng thẻ
+          const id = dt.closest('.ekbk').dataset.id;
+          return save(node.attrs.cards.map(c => {
+            if(c.id !== id) return c;
+            const {dh, ...rest} = c;
+            return dh ? rest : {...rest, dh: true};
+          }));
+        }
         const cp = e.target.closest('.ekbcp');
         if(cp){                              // ⧉ trên một thẻ đang chọn = chép cả loạt đang chọn
           const id = cp.closest('.ekbk').dataset.id;
@@ -400,6 +420,27 @@ const Kanban = Node.create({
           return;
         }
         if(e.target.closest('.ekbbx')){ sel.clear(); return draw(); }
+        const ca = e.target.closest('.ekbca');
+        if(ca){
+          // Chép cả bảng: clipboard có bản HTML của khối bảng (dán vào chữ trong trang khác = ProseMirror dựng lại
+          // nguyên bảng, không kèm chữ gõ dở) và bản chữ (dán vào ô "+ Thêm" của bảng khác = gộp thẻ, giữ cột cũ).
+          const cards = node.attrs.cards;
+          kbClip = cards.map(c => ({...kbClipOf(c), s: c.s}));
+          const box = document.createElement('div');
+          box.setAttribute('data-kanban', JSON.stringify(cards));
+          box.textContent = kbClipText(kbClip);
+          const text = kbClipText(kbClip);
+          const onCopy = ev => { ev.preventDefault(); ev.clipboardData.setData('text/html', box.outerHTML); ev.clipboardData.setData('text/plain', text); };
+          document.addEventListener('copy', onCopy, {once: true, capture: true});
+          let ok = false;
+          try{ ok = document.execCommand('copy'); }catch(err){}
+          document.removeEventListener('copy', onCopy, {capture: true});
+          if(!ok) navigator.clipboard?.writeText(text).catch(() => {});
+          document.querySelectorAll('.ekba').forEach(i => { i.placeholder = o.pastePh; });
+          ca.textContent = '✓'; ca.title = o.copiedAll; ca.classList.add('ok');
+          setTimeout(() => { ca.textContent = '⧉'; ca.title = o.copyAll; ca.classList.remove('ok'); }, 1500);
+          return;
+        }
         const x = e.target.closest('.ekbx');
         if(x){
           const id = x.closest('.ekbk').dataset.id;
@@ -544,7 +585,7 @@ window.TT = {
   /* imgSrc(mã) -> Promise<URL> (dùng cho cả ảnh lẫn file đính kèm);
      fileCanView(tên) -> có nút Xem không; fileView(attrs) -> Promise<false nếu không tìm thấy file>;
      onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ);
-     kanban = {cols, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel}: tên / màu cột và chữ trên bảng việc trong trang */
+     kanban = {cols, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow}: tên / màu cột và chữ trên bảng việc trong trang */
   create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban} = {}){
     return new Editor({
       element: el,
@@ -665,7 +706,7 @@ window.TT = {
   /* hình chữ nhật bao vùng bôi đen — lấy từ ProseMirror nên không phụ thuộc selection của DOM */
   selRect(editor){
     const sel = editor.state.selection;
-    if(sel.empty) return null;
+    if(sel.empty || sel.node) return null;   // chọn cả một khối (bảng việc, ảnh, file): không có chữ để định dạng
     try{
       const a = editor.view.coordsAtPos(sel.from), b = editor.view.coordsAtPos(sel.to);
       const left = Math.min(a.left, b.left);
