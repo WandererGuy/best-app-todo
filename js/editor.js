@@ -90,7 +90,8 @@ function closeEd(id){
   const e = EDS.get(id);
   if(e){ try{ e.destroy(); }catch(err){} EDS.delete(id); }
 }
-function closeEds(){ [...EDS.keys()].forEach(closeEd); closeSlash(); hideFtb(); }
+// render() gọi cái này mỗi lần vẽ trang; widget ghi chú nhanh nằm ngoài trang nên giữ lại
+function closeEds(){ [...EDS.keys()].filter(k => k !== 'qnHost').forEach(closeEd); closeSlash(); hideFtb(); }
 /* khung cuộn gần nhất bọc lấy vùng soạn thảo (.jed bên nhật ký, .npage bên ghi chú, ngăn kéo task…) */
 function edScroller(el){
   for(let p = el.parentElement; p; p = p.parentElement){

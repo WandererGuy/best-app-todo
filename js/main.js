@@ -208,6 +208,7 @@ document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(ui.fFull) return fFull(false);
   if(slash) return closeSlash();
+  if(qnOn && $('#qn').contains(document.activeElement)) return qnToggle(false);
   if(dp) return closeDP();
   if($('#palEl')) return closePal();
   if(!$('#bellP').hidden) return closeBell();

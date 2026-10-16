@@ -75,6 +75,16 @@
 <div id="fzFull" hidden><div class="fzbg"></div><div class="fzimg"></div><div class="fzdim"></div><div id="fzFullBody"></div><div id="fzFullLeft"></div></div>
 <button id="syncBar" hidden data-i18n="top.syncBar">⟳ Cửa sổ khác vừa sửa — bấm để xem bản mới</button>
 <div id="toast"></div>
+<!-- ghi chú nhanh: nút nổi + widget, ở ngoài #view nên đổi trang không mất (xem js/quick.js) -->
+<button id="qnBtn" class="qnbtn" data-i18n-title="qn.btn">✎</button>
+<div id="qn" class="qn">
+  <div class="qnhd"><b data-i18n="qn.title">Ghi chú nhanh</b>
+    <button id="qnAdd" class="qnico" data-i18n-title="qn.new">+ <span data-i18n="qn.newS">Mới</span></button>
+    <button id="qnList" class="qnico" data-i18n-title="qn.list">▾ <span data-i18n="qn.listS">Ghi chú khác</span></button>
+    <button id="qnGo" class="qnico" data-i18n-title="qn.go">↗ <span data-i18n="qn.goS">Mở rộng</span></button></div>
+  <div class="qntabs" id="qnTabs"></div>
+  <div class="qned" id="qnHost"></div>
+</div>
 
 <script src="vendor/tiptap.js"></script>
 
@@ -92,6 +102,7 @@
 <script src="js/plan.js"></script>
 <script src="js/journal.js"></script>
 <script src="js/notes.js"></script>
+<script src="js/quick.js"></script>
 <script src="js/dash.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/garden.js"></script>
