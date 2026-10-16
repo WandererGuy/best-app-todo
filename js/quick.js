@@ -1,5 +1,5 @@
 /* ============ ghi chú nhanh (scratchpad): widget nổi ở mọi trang ============ */
-// Ghi chú nhanh nằm ở mục Ghi chú theo cây Scratchpad → trang ngày "2026-10-16" → "2026-10-16 v1", "v2"…,
+// Ghi chú nhanh nằm ở mục Ghi chú theo cây Scratchpad → trang ngày "2026-10-16" → "2026-10-16 14:32" (giờ tạo),
 // nên ở trang Ghi chú cũng thấy, sửa, tìm được. Widget mở các ghi chú thành tab như VS Code (tab tự xuống hàng):
 // đóng tab có chữ chỉ là thôi hiện; đóng tab trống thì xoá luôn ghi chú đó cho khỏi đọng nháp rác.
 // Nhớ trong S.settings: qn = id trang Scratchpad, qnTabs = các tab đang mở (theo thứ tự), qnCur = tab đang xem.
@@ -46,8 +46,17 @@ function qnTidy(){
     at.forEach((p, i) => { if(S.notes[p] !== sorted[i]){ S.notes[p] = sorted[i]; moved = true; } });
     return moved;
   };
+  // dọn nháp rác: ghi chú nhanh hoàn toàn trống mà không đang mở thành tab thì xoá, trang ngày thành trống cũng xoá
+  const open = new Set(S.settings.qnTabs || []);
+  const dayIds = new Set(qnDays().map(n => n.id));
+  const empty = n => !hasText(n.html) && !S.notes.some(x => x.parent === n.id);
+  const junk = new Set(S.notes.filter(n => dayIds.has(n.parent) && !open.has(n.id) && empty(n)));
+  if(junk.size) S.notes = S.notes.filter(n => !junk.has(n));
+  const bare = new Set(qnDays().filter(empty));
+  if(bare.size) S.notes = S.notes.filter(n => !bare.has(n));
   const days = qnDays();
-  let moved = sortIn(days, (a, b) => b.title.localeCompare(a.title));
+  let moved = junk.size + bare.size > 0;
+  moved = sortIn(days, (a, b) => b.title.localeCompare(a.title)) || moved;
   days.forEach(d => { moved = sortIn(S.notes.filter(n => n.parent === d.id), (a, b) => (a.cr || '').localeCompare(b.cr || '')) || moved; });
   if(loose.length || moved) save();
 }
@@ -57,12 +66,14 @@ function qnTabs(){
   return (S.settings.qnTabs || []).filter(id => kids.has(id));
 }
 function qnSet(tabs, cur){ S.settings.qnTabs = tabs; S.settings.qnCur = cur; save(); }
-// tên mặc định: ngày hôm nay + số thứ tự trong ngày, lấy số lớn nhất đang có + 1 để đổi tên / xoá bớt vẫn không trùng
+// tên mặc định: ngày + giờ tạo ("2026-10-16 14:32"), nhìn là nhớ ghi lúc nào; trùng phút thì thêm " (2)", " (3)"…
 function qnNew(){
-  const d = today(), day = qnDay(d), re = new RegExp(`^${d} v(\\d+)$`);
-  const used = S.notes.filter(n => n.parent === day.id).map(n => +(n.title.match(re) || [])[1]).filter(Boolean);
-  const n = {...qnPage(`${d} v${used.length ? Math.max(...used) + 1 : 1}`, day.id), open:false};
-  S.notes.push(n);                                // cuối mảng = cuối danh sách con của trang ngày: v1, v2, v3 theo thứ tự
+  const d = today(), day = qnDay(d), base = `${d} ${new Date().toTimeString().slice(0, 5)}`;
+  const taken = new Set(S.notes.filter(n => n.parent === day.id).map(n => n.title));
+  let title = base;
+  for(let k = 2; taken.has(title); k++) title = `${base} (${k})`;
+  const n = {...qnPage(title, day.id), open:false};
+  S.notes.push(n);                                // cuối mảng = cuối danh sách con của trang ngày, theo giờ tạo
   day.open = true; qnRoot().open = true;
   qnSet([...qnTabs(), n.id], n.id);
   qnDraw(true);
