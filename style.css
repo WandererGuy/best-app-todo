@@ -401,6 +401,8 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbh i{width:8px;height:8px;border-radius:50%;flex:none}
 .ed .ekbh b{margin-left:auto;font-weight:540;color:var(--tx3)}
 .ed .ekbl{display:flex;flex-direction:column;gap:6px;min-height:4px}
+.ed .ekbin{margin-top:4px;padding:6px;border-style:dashed;background:none}   /* ô Backlog / Không cần làm lồng trong cột */
+.ed .ekbc[data-s="drop"] .ekbk{opacity:.6}   /* chữ gạch ngang như cột Xong (ô nằm trong cột Xong), thêm nhạt để khác thẻ đã làm xong */
 .ed .ekbk{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
   background:var(--panel2);color:var(--tx);cursor:grab}
 .ed .ekbk span{flex:1;min-width:0;word-break:break-word}
@@ -577,6 +579,18 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .dpd.today{box-shadow:inset 0 0 0 1px var(--acc);color:var(--tx)}
 .dpd.sel{background:var(--acc);color:#fff;font-weight:640}
 .dpft{display:flex;gap:6px;margin-top:9px;border-top:1px solid var(--line);padding-top:9px}
+/* lịch chọn bảng ngày trước (lệnh /Bảng ngày trước): sáng = còn việc, tối = xong hết, mờ = không có bảng */
+.kbp .dpd.live,.kbpl i.live{background:color-mix(in srgb,var(--acc) 32%,transparent);color:var(--tx);font-weight:600}
+.kbp .dpd.fin,.kbpl i.fin{background:color-mix(in srgb,#000 35%,var(--panel));color:var(--tx3)}
+.kbp .dpd.none{opacity:.3;cursor:default}
+.kbp .dpd.none:hover{background:none;color:var(--tx2)}
+.kbp .dpd.off{opacity:.55}
+.kbp .dpd.sel{background:var(--acc);color:#fff;font-weight:640}
+.kbpl{display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--tx3)}
+.kbpl i{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:3px;vertical-align:-1px}
+.kbpl i.none{border:1px solid var(--line);opacity:.6}
+.kbp .dpft button.on{background:var(--acc);color:#fff}
+.kbp .dpft button:disabled{opacity:.6;cursor:default}
 .dpft button{flex:1;font-size:11.5px;padding:6px;border-radius:6px;background:var(--panel);color:var(--tx2)}
 .dpft button:hover{color:var(--tx)}
 .fwrap{max-width:660px;margin:0 auto;display:flex;flex-direction:column;gap:14px}

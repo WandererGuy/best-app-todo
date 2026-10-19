@@ -122,7 +122,8 @@ const FileBlock = Node.create({
   },
 });
 
-/* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái.
+/* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái, thêm hai ô lồng (options.nest): Backlog ở cuối cột Cần làm,
+   Không cần làm ở cuối cột Xong. Hai ô này chỉ có trên bảng trong trang, task thật không có trạng thái tương ứng.
    Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả,
    sub?: [{id, t, d?, x?: đã xong}], sh?: đang ẩn danh sách việc con, tk?: id task đã nối ở bảng việc / bảng cuộc sống}];
    Thẻ đã nối (nút ↗): tiêu đề, cột và việc con là của task thật. Bảng hiện lên thì lấy bản mới nhất từ task,
@@ -132,7 +133,8 @@ const FileBlock = Node.create({
    Thẻ gập chỉ hiện tiêu đề (có mô tả thì thêm ≡, có việc con thì thêm số đã xong / tổng) cho bảng đỡ rối; bấm vào thẻ
    thì mở ra sửa tiêu đề, viết mô tả, thêm việc con; bấm ra ngoài / Esc thì lưu rồi gập lại.
    Kéo thả: thả ở mép trên / dưới một thẻ là đổi chỗ, thả vào giữa thẻ là thành việc con của nó (việc con chỉ một tầng:
-   thẻ đã có việc con thì các việc con ấy đi theo, xếp ngay sau nó). Kéo việc con ra cột thì nó lại thành thẻ riêng. */
+   thẻ đã có việc con thì các việc con ấy đi theo, xếp ngay sau nó). Kéo việc con ra cột thì nó lại thành thẻ riêng,
+   kéo lên / xuống trong danh sách việc con của thẻ đang mở thì đổi thứ tự. */
 let kbDrag = null;                           // đang kéo: {dom: bảng chứa nó, id, from?: id thẻ cha nếu là việc con}
 // thẻ vừa chép (nút ⧉), dùng chung cho mọi bảng nên chép ở ngày này dán được sang ngày khác.
 // Clipboard hệ thống nhận thẻ dạng chữ; dán đúng chữ đó vào ô "+ Thêm" thì dựng lại nguyên thẻ.
@@ -157,6 +159,7 @@ const Kanban = Node.create({
   atom: true,
   addOptions(){
     return {cols: [{k:'todo', n:'To do', c:'#64748b'}, {k:'doing', n:'Doing', c:'#6366f1'}, {k:'done', n:'Done', c:'#22c55e'}],
+            nest: {todo: {k:'backlog', n:'Backlog', c:'#94a3b8'}, done: {k:'drop', n:"Won't do", c:'#78716c'}},
             addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
             editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
@@ -176,7 +179,11 @@ const Kanban = Node.create({
       // sang ngày khác hay sang ghi chú, nên bảng của ngày 14 dán vào ngày 16 vẫn ghi ngày 14
       day: {default: '',
         parseHTML: el => /^\d{4}-\d\d-\d\d$/.test(el.getAttribute('data-kbday') || '') ? el.getAttribute('data-kbday') : '',
-        renderHTML: a => a.day ? {'data-kbday': a.day} : {}}};
+        renderHTML: a => a.day ? {'data-kbday': a.day} : {}},
+      // mã của bảng: các bản chép (nút chép cả bảng, lấy bảng ngày trước) giữ nguyên mã, app thấy cùng mã thì đồng bộ thẻ
+      bid: {default: '',
+        parseHTML: el => el.getAttribute('data-kbid') || '',
+        renderHTML: a => a.bid ? {'data-kbid': a.bid} : {}}};
   },
   parseHTML(){ return [{tag: 'div[data-kanban]'}]; },
   renderHTML({node, HTMLAttributes}){
@@ -242,7 +249,9 @@ const Kanban = Node.create({
         if(!T){ const {tk, ...rest} = c; return rest; }
         const sub = T.sub.map(x => { const own = (c.sub || []).find(y => y.id === x.id); return own && own.d ? {...x, d: own.d} : x; });
         const {sub: _, ...rest} = c;
-        return {...rest, t: T.t, s: T.s, ...(sub.length ? {sub} : {})};
+        // thẻ ở ô lồng thì ở yên đó: Backlog khi task còn ở Cần làm, Không cần làm thì luôn luôn (task thật không đổi theo)
+        const s = c.s === 'drop' || (c.s === 'backlog' && T.s === 'todo') ? c.s : T.s;
+        return {...rest, t: T.t, s, ...(sub.length ? {sub} : {})};
       });
       // sửa trên thẻ đã nối: đẩy đúng phần vừa đổi sang task (thẻ mới dán vào thì không đẩy, để task giữ bản của nó)
       const pushLinks = (prev, next) => {
@@ -310,7 +319,7 @@ const Kanban = Node.create({
         const grid = document.createElement('div');
         grid.className = 'ekbcols';
         dom.appendChild(grid);
-        o.cols.forEach(col => {
+        const mkCol = col => {
           const cards = node.attrs.cards.filter(c => c.s === col.k);
           const el = document.createElement('div');
           el.className = 'ekbc'; el.dataset.s = col.k;
@@ -379,6 +388,13 @@ const Kanban = Node.create({
             }
             list.appendChild(k);
           });
+          return el;
+        };
+        o.cols.forEach(col => {
+          const el = mkCol(col);
+          // ô lồng ở cuối cột: cũng là một .ekbc nên thêm, dán, kéo thả, chữ gõ dở đều dùng chung
+          const sub = o.nest && o.nest[col.k];
+          if(sub){ const b = mkCol(sub); b.classList.add('ekbin'); el.appendChild(b); }
           grid.appendChild(el);
         });
         fitAll();
@@ -399,6 +415,7 @@ const Kanban = Node.create({
       draw();
       // bảng chưa có ngày mà đang nằm trong trang nhật ký: đóng dấu ngày của trang (đợi editor dựng xong mới ghi được)
       if(!node.attrs.day && o.day) setTimeout(() => { if(!node.attrs.day) write({day: o.day}, false); }, 0);
+      if(!node.attrs.bid) setTimeout(() => { if(!node.attrs.bid) write({bid: kbId()}, false); }, 0);
       // thẻ đã nối: task có thể vừa đổi ở bảng việc (kéo cột, tick việc con) trong lúc trang này đóng
       setTimeout(() => {
         const fresh = pulled(node.attrs.cards);
@@ -551,6 +568,7 @@ const Kanban = Node.create({
           const box = document.createElement('div');
           box.setAttribute('data-kanban', JSON.stringify(cards));
           if(node.attrs.day || o.day) box.setAttribute('data-kbday', node.attrs.day || o.day);
+          if(node.attrs.bid) box.setAttribute('data-kbid', node.attrs.bid);   // bản dán ra đồng bộ với bảng này
           box.textContent = kbClipText(kbClip);
           const text = kbClipText(kbClip);
           const onCopy = ev => { ev.preventDefault(); ev.clipboardData.setData('text/html', box.outerHTML); ev.clipboardData.setData('text/plain', text); };
@@ -604,7 +622,18 @@ const Kanban = Node.create({
         const col = e.target.closest('.ekbc');
         if(!kbDrag || kbDrag.dom !== dom || !col) return;   // chỉ đổi chỗ trong cùng một bảng
         e.preventDefault();
-        const list = col.querySelector('.ekbl'), y = e.clientY;
+        const y = e.clientY;
+        // việc con kéo trong danh sách việc con của chính thẻ cha: đổi thứ tự giữa các việc con
+        const sl = kbDrag.from && e.target.closest('.ekbsl');
+        if(sl && sl.closest('.ekbk').dataset.id === kbDrag.from){
+          dom.querySelectorAll('.ekbk.into').forEach(k => k.classList.remove('into'));
+          const at = [...sl.querySelectorAll('.ekbs:not(.drag)')].find(r => { const b = r.getBoundingClientRect(); return y < b.top + b.height / 2; }) || null;
+          drop = {sub: kbDrag.from, before: at ? at.dataset.sid : null};
+          if(!ph){ ph = document.createElement('div'); ph.className = 'ekbp'; }
+          if(at) sl.insertBefore(ph, at); else sl.appendChild(ph);
+          return;
+        }
+        const list = col.querySelector('.ekbl');
         const cards = [...list.querySelectorAll('.ekbk:not(.drag)')];
         // con trỏ nằm trên thẻ nào: mép trên / dưới = chèn trước / sau thẻ đó, giữa = thả vào làm việc con
         // (thẻ cha của chính việc con đang kéo thì chỉ có trước / sau)
@@ -642,6 +671,14 @@ const Kanban = Node.create({
         } else {
           item = rest.find(c => c.id === id); if(!item) return;
           rest = rest.filter(c => c.id !== id);
+        }
+        if(d.sub){
+          return save(rest.map(c => {
+            if(c.id !== d.sub) return c;
+            const sub = [...c.sub], i = d.before ? sub.findIndex(x => x.id === d.before) : -1;
+            sub.splice(i < 0 ? sub.length : i, 0, item);
+            return {...c, sub};
+          }));
         }
         if(d.into){
           if(d.into === from) return;
@@ -689,6 +726,7 @@ const CMD = {
   q:   c => c.toggleBlockquote(),
   pre: c => c.toggleCodeBlock(),
   hr:  c => c.setHorizontalRule(),
+  kbp: c => c,                               // chỉ xoá "/lệnh"; app mở lịch chọn ngày rồi gọi TT.kbInsert
   img: c => c,                               // chỉ xoá "/lệnh"; app mở hộp chọn file rồi gọi TT.image
   file: c => c,                              // như trên, rồi gọi TT.file
   kb:  c => c.insertContent({type:'kanban'}),
@@ -784,6 +822,30 @@ window.TT = {
     const nodes = items.map(a => ({type:'file', attrs:a}));
     const c = editor.chain().focus();
     (pos == null ? c.insertContent(nodes) : c.insertContentAt(Math.min(pos, editor.state.doc.content.size), nodes)).run();
+  },
+
+  /* các bảng việc trong trang: [{bid, cards}], theo thứ tự trong trang */
+  kbBoards(editor){
+    const out = [];
+    editor.state.doc.descendants(n => { if(n.type.name === 'kanban') out.push({bid: n.attrs.bid, cards: n.attrs.cards}); });
+    return out;
+  },
+  /* thay thẻ của mọi bảng mang mã bid (bản sửa ở chỗ khác); không vào Ctrl+Z của trang này */
+  kbSet(editor, bid, cards){
+    if(editor.isDestroyed) return;
+    const tr = editor.state.tr, j = JSON.stringify(cards);
+    editor.state.doc.descendants((n, pos) => {
+      if(n.type.name === 'kanban' && n.attrs.bid === bid && JSON.stringify(n.attrs.cards) !== j)
+        tr.setNodeMarkup(pos, null, {...n.attrs, cards});
+    });
+    if(tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false));
+  },
+  /* chèn các bảng tại con trỏ, giữa hai bảng có hai dòng trống; boards = [{bid, day, cards}] */
+  kbInsert(editor, boards){
+    if(editor.isDestroyed || !boards.length) return;
+    const gap = [{type: 'paragraph'}, {type: 'paragraph'}];
+    editor.chain().focus().insertContent(boards.flatMap((b, i) =>
+      [...(i ? gap : []), {type: 'kanban', attrs: {bid: b.bid, day: b.day, cards: b.cards}}])).run();
   },
 
   mark(editor, key){

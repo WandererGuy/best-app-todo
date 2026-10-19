@@ -52,6 +52,7 @@ const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=|data-kanban=
 
 const BLOCKS = [
   {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng việc
+  {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
   {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
@@ -91,7 +92,7 @@ function closeEd(id){
   if(e){ try{ e.destroy(); }catch(err){} EDS.delete(id); }
 }
 // render() gọi cái này mỗi lần vẽ trang; widget ghi chú nhanh nằm ngoài trang nên giữ lại
-function closeEds(){ [...EDS.keys()].filter(k => k !== 'qnHost').forEach(closeEd); closeSlash(); hideFtb(); }
+function closeEds(){ [...EDS.keys()].filter(k => k !== 'qnHost').forEach(closeEd); closeSlash(); hideFtb(); closeKbp(); }
 /* khung cuộn gần nhất bọc lấy vùng soạn thảo (.jed bên nhật ký, .npage bên ghi chú, ngăn kéo task…) */
 function edScroller(el){
   for(let p = el.parentElement; p; p = p.parentElement){
@@ -114,7 +115,9 @@ function keepCaretOffBottom(ed){
 // Bảng đã mang ngày riêng (chép từ ngày khác sang) thì giữ ngày của nó.
 /* nối thẻ của bảng việc trong trang với task thật (xem Kanban trong build/editor.src.js).
    Thẻ dùng {t, s: cột, sub: [{id, t, x: đã xong}]}, task dùng {title, status, subs: [{id, t, d: đã xong}]}.
-   Task "Để sau" hiện ở cột Cần làm; kéo thẻ sang cột khác thì task ra khỏi "Để sau". */
+   Task "Để sau" hiện ở cột Cần làm; kéo thẻ sang cột khác thì task ra khỏi "Để sau".
+   Ô Backlog và Không cần làm chỉ có trên bảng trong trang: với task thật, thẻ ở Backlog tính như ở Cần làm,
+   còn kéo thẻ vào Không cần làm thì task giữ nguyên trạng thái. */
 const kbSubsOf = t => (t.subs || []).map(x => ({id: x.id, t: x.t, ...(x.d ? {x: true} : {})}));
 function kbSetStatus(t, s){                    // như kéo thẻ trên bảng việc (board.js)
   t.status = s;
@@ -139,7 +142,8 @@ const KB_LINK = {
   update(id, p){
     const t = S.tasks.find(x => x.id === id); if(!t) return;
     if(p.t) t.title = p.t;
-    if(p.s && p.s !== (t.status === 'backlog' ? 'todo' : t.status)) kbSetStatus(t, p.s);
+    const s = p.s === 'backlog' ? 'todo' : p.s === 'drop' ? null : p.s;
+    if(s && s !== (t.status === 'backlog' ? 'todo' : t.status)) kbSetStatus(t, s);
     if(p.sub){
       const old = new Map((t.subs || []).map(x => [x.id, x]));   // giữ ghi chú riêng của từng việc con trên task
       t.subs = p.sub.map(x => ({...(old.get(x.id) || {}), id: x.id, t: x.t, d: !!x.x}));
@@ -155,6 +159,7 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
     kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})), day: kbDay, fmtDay: kbFmtDay,
+             nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),
@@ -163,6 +168,9 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
              subHide: tr('kb.subHide'), subShow: tr('kb.subShow'),
              link: KB_LINK, linkT: tr('kb.linkT'), linkWork: tr('nav.board'), linkLife: tr('nav.life'), linkedT: tr('kb.linkedT')}});
   EDS.set(hostId, ed);
+  if(kbDay) KB_DAY.set(ed, kbDay);
+  kbSync(ed);                                                        // bảng ở trang khác có thể vừa sửa: lấy bản mới nhất
+  ed.on('update', () => kbSync(ed));                                 // sửa bảng ở đây thì ghi sang các bản chép của nó
   const dom = ed.view.dom;
   dom.addEventListener('dblclick', e => {                          // bấm đúp ảnh: mở cỡ gốc để đọc chữ trong ảnh
     const img = e.target.closest('img.eimg');
@@ -186,7 +194,7 @@ function syncMenus(ed){
 /* --- menu lệnh "/" --- */
 let slash = null;
 function openSlash(ed, info){
-  const hit = BLOCKS.filter(b => !info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase()));
+  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
   let el = document.getElementById('slashEl');
   if(!el){
     el = document.createElement('div'); el.className = 'slash'; el.id = 'slashEl';
@@ -210,6 +218,7 @@ function pickSlash(k){
   TT.block(ed, k, range);
   if(k === 'img') pickImages(ed);
   if(k === 'file') pickFiles(ed);
+  if(k === 'kbp') kbPickDays(ed);
 }
 function slashKeys(e, ed){
   if(!slash) return;
