@@ -29,6 +29,18 @@ const viewScroll = {};
 const keepScroll = () => { if(shownView) viewScroll[shownView] = $('#view').scrollTop; };
 // trả lại chỗ cũ; trang ngắn hơn trước thì trình duyệt tự kẹp về mức cuộn tối đa
 const restoreScroll = () => { $('#view').scrollTop = viewScroll[ui.view] || 0; };
+/* Trang nhật ký và trang ghi chú cuộn trong khung riêng (.jed, .npage) chứ không trong #view: nhớ chỗ đang đọc
+   theo id từng trang, mở lại trang đó thì cuộn về đúng chỗ. Đặt lại thêm một nhịp sau, vì bảng việc trong trang
+   chỉnh lại chiều cao ô gõ sau khi vẽ; trong lúc đó bỏ qua sự kiện cuộn, kẻo trang chưa đủ cao ghi đè chỗ đã nhớ. */
+const pageScroll = new Map();
+function keepPageScroll(box, key){
+  if(!box) return;
+  let ready = false;
+  const at = pageScroll.get(key) || 0;
+  box.scrollTop = at;
+  requestAnimationFrame(() => { box.scrollTop = at; ready = true; });
+  box.addEventListener('scroll', () => { if(ready) pageScroll.set(key, box.scrollTop); }, {passive: true});
+}
 function fadeView(){
   const changed = ui.view !== shownView;
   shownView = ui.view;

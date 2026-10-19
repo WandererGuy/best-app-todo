@@ -22,6 +22,9 @@ function jSub(k){
 // Nhớ theo id trang chứ không theo vị trí, vì các trang kéo đổi chỗ được.
 const JPAGE_KEY = 'dieukhien.jpage';
 let jKept = (() => { try{ return JSON.parse(localStorage.getItem(JPAGE_KEY)); }catch(e){ return null; } })();
+// trang đang đọc của từng ngày trong phiên này: sang ngày khác rồi quay lại thì mở đúng trang đó.
+// Chỗ chuyển ngày đặt ui.jTab = null để renderJournal() tự chọn theo đây (chưa đọc ngày đó thì trang đầu).
+const jLast = {};
 function renderJournal(){
   if(!ui.jDate) ui.jDate = /^\d{4}-\d\d-\d\d$/.test(jKept?.d) ? jKept.d : today();
   const d = new Date(ui.jDate + 'T00:00:00');
@@ -31,8 +34,10 @@ function renderJournal(){
     if(i >= 0) ui.jTab = i;
     jKept = null;
   }
+  if(ui.jTab == null){ const i = pages.findIndex(p => p.id === jLast[ui.jDate]); ui.jTab = Math.max(0, i); }
   if(ui.jTab >= pages.length) ui.jTab = 0;
   const page = pages[ui.jTab];
+  jLast[ui.jDate] = page.id;
   try{ localStorage.setItem(JPAGE_KEY, JSON.stringify({d: ui.jDate, id: page.id})); }catch(e){}
   const days = Object.keys(S.journal).filter(dayHas).length;
   $('#vSub').textContent = tr('journal.sub', {n: days});
@@ -70,12 +75,12 @@ function renderJournal(){
     </div></div>`;
 
   drawJournalList();
-  const shift = n => { const x = new Date(ui.jDate + 'T00:00:00'); x.setDate(x.getDate() + n); ui.jDate = iso(x); ui.jTab = 0; renderJournal(); };
+  const shift = n => { const x = new Date(ui.jDate + 'T00:00:00'); x.setDate(x.getDate() + n); ui.jDate = iso(x); ui.jTab = null; renderJournal(); };
   $('#pd').onclick = () => shift(-1);
   $('#nd').onclick = () => shift(1);
   $(side ? '#jHide' : '#jShow').onclick = () => { S.settings.jSide = !side; save(); renderJournal(); };
   if(side){
-    $('#jTd').onclick = () => { ui.jDate = today(); ui.jTab = 0; renderJournal(); };
+    $('#jTd').onclick = () => { ui.jDate = today(); ui.jTab = null; renderJournal(); };
     const qi = $('#jQ');
     // ô này và ô tìm trên thanh trên là cùng một câu tìm (ui.q), gõ ở đâu cũng soi sang ô kia
     qi.oninput = () => { ui.q = qi.value; $('#q').value = ui.q; drawJournalList(); };
@@ -85,22 +90,23 @@ function renderJournal(){
         ui.q = ''; qi.value = ''; $('#q').value = ''; return drawJournalList();
       }
       if(e.key === 'Enter' && jHits.length && jHits[0] !== ui.jDate){
-        ui.jDate = jHits[0]; ui.jTab = 0; renderJournal();   // Enter = mở ngày khớp mới nhất
+        ui.jDate = jHits[0]; ui.jTab = null; renderJournal();   // Enter = mở ngày khớp mới nhất
         setTimeout(() => $('#jQ')?.focus(), 0);
       }
     };
   }
   $('#jDp').onclick = e => openDP(e.currentTarget, ui.jDate,
-    v => { if(v){ ui.jDate = v; ui.jTab = 0; renderJournal(); } }, false);
+    v => { if(v){ ui.jDate = v; ui.jTab = null; renderJournal(); } }, false);
   if(side) $('#jList').onclick = e => {
     const b = e.target.closest('[data-jd]');
-    if(b && b.dataset.jd !== ui.jDate){ ui.jDate = b.dataset.jd; ui.jTab = 0; renderJournal(); }
+    if(b && b.dataset.jd !== ui.jDate){ ui.jDate = b.dataset.jd; ui.jTab = null; renderJournal(); }
   };
   mountEd('jHost', page.html, tr('journal.ph'), v => {
     page.html = v; save();
     const sub = $(`#jList [data-jd="${ui.jDate}"] .nsub`);   // ngày trống vừa được viết thì đổi nhãn ở cột trái luôn
     if(sub) sub.textContent = jSub(ui.jDate);
   }, {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
+  keepPageScroll($('#jHost'), page.id);
 
   $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; renderJournal(); });
   wireJTabDnD(pages);

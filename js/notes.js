@@ -142,6 +142,7 @@ function renderNotes(){
   };
   $('#ntTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost')?.commands.focus('start'); } };
   mountEd('ntHost', n.html, tr('note.ph'), v => { n.html = v; touch(); });
+  keepPageScroll($('.npage'), n.id);
   $('#ntPin').onclick = () => { n.pin = !n.pin; save(); renderNotes(); };
   $('#ntKid').onclick = () => newNote(n.id);
   if($('#ntMove')) $('#ntMove').onchange = e => {
