@@ -86,7 +86,8 @@ const kbLeft = list => list.reduce((n, b) => n + b.cards.filter(c => KB_OPEN.inc
 
 /* --- lệnh "/Bảng ngày trước": lịch chọn nhiều ngày --- */
 // Sáng = có bảng còn việc, tối = có bảng nhưng xong hết, mờ = không có bảng (không chọn được).
-// Chỉ chọn được ngày trước ngày của trang. Dán: ngày gần nhất trước, bảng đã có trong trang thì bỏ qua.
+// Chọn được ngày của trang và các ngày trước đó (ngày của trang: lấy bảng ở các trang khác cùng ngày).
+// Dán: ngày gần nhất trước, bảng đã có trong trang thì bỏ qua.
 let kbp = null;                                // {ed, until, month, sel: Set, stat: Map(ngày -> {n, m})}
 function kbPickDays(ed){
   closeKbp();
@@ -122,7 +123,7 @@ function drawKbp(){
   let cells = '';
   for(let i = 0; i < 42; i++){
     const d = new Date(start); d.setDate(start.getDate() + i);
-    const k = iso(d), st = k < kbp.until ? kbpStat(k) : {n: 0, m: 0};
+    const k = iso(d), st = k <= kbp.until ? kbpStat(k) : {n: 0, m: 0};
     const cls = !st.n ? 'none' : st.m ? 'live' : 'fin';
     cells += `<button class="dpd ${cls}${d.getMonth() !== m ? ' off' : ''}${kbp.sel.has(k) ? ' sel' : ''}"
       ${st.n ? `data-k="${k}" title="${tr('kbp.dayT', {n: st.n, m: st.m})}"` : 'disabled'}>${d.getDate()}</button>`;
