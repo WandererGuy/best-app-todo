@@ -125,7 +125,8 @@ const FileBlock = Node.create({
 /* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái, thêm hai ô lồng (options.nest): Backlog ở cuối cột Cần làm,
    Không cần làm ở cuối cột Xong. Hai ô này chỉ có trên bảng trong trang, task thật không có trạng thái tương ứng.
    Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả,
-   sub?: [{id, t, d?, x?: đã xong}], sh?: đang ẩn danh sách việc con, tk?: id task đã nối ở bảng việc / bảng cuộc sống}];
+   sub?: [{id, t, d?, x?: đã xong}], sh?: đang ẩn danh sách việc con, tk?: id task đã nối ở bảng việc / bảng cuộc sống,
+   ds?: ngày bắt đầu, dd?: ngày xong (xem kbStamp)}];
    Thẻ đã nối (nút ↗): tiêu đề, cột và việc con là của task thật. Bảng hiện lên thì lấy bản mới nhất từ task,
    sửa trên thẻ thì đẩy sang task; chép bảng sang ngày khác vẫn trỏ về cùng task nên không sinh task trùng.
    Mô tả chỉ chép sang task lúc nối, về sau mỗi bên một bản (mô tả của task là văn bản có định dạng).
@@ -146,6 +147,20 @@ const kbClipOf = c => ({t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.sub && c.sub.len
   ...(c.tk ? {tk: c.tk} : {})});
 const kbNorm = s => s.replace(/\r\n?/g, '\n').trim();
 const kbId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// ngày bắt đầu / ngày xong của thẻ: ds = ngày vào Đang làm (giữ khi sang Xong, bỏ khi về Cần làm / Backlog),
+// dd = ngày vào Xong (bỏ khi rời Xong). Chỉ đóng khi thẻ đổi cột hoặc mới vào bảng; thẻ đã nối thì dd lấy theo task.
+const kbToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const kbStamp = (prev, next) => {
+  const was = new Map(prev.map(c => [c.id, c.s])), t = kbToday();
+  return next.map(c => {
+    if(was.get(c.id) === c.s) return c;
+    const {ds, dd, ...out} = c;
+    if(c.s === 'doing' || c.s === 'done' || c.s === 'drop'){ if(ds || c.s === 'doing') out.ds = ds || t; }
+    if(c.s === 'done') out.dd = dd || t;
+    return out;
+  });
+};
+const kbShortDay = k => { const [y, m, d] = k.split('-'); return `${+d}/${+m}` + (+y !== new Date().getFullYear() ? `/${y.slice(2)}` : ''); };
 // thẻ -> các việc con khi bị thả vào thẻ khác: chính nó (ở cột Xong thì coi như đã xong) rồi tới việc con của nó
 const kbToSubs = c => [{id: c.id, t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.s === 'done' ? {x: true} : {})}, ...(c.sub || [])];
 const kbToCard = (x, s) => ({id: x.id, t: x.t, s, ...(x.d ? {d: x.d} : {})});
@@ -165,6 +180,8 @@ const Kanban = Node.create({
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
             copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description', subHide: 'Hide subtasks', subShow: 'Show subtasks',
             link: null, linkT: 'Send to a board', linkWork: 'Work board', linkLife: 'Life board', linkedT: 'Linked to a task on {b}. Click to open it',
+            startT: 'Started {d}', doneT: 'Done {d}', startL: 'Started', doneL: 'Done', pickPh: 'Pick a date',
+            pickDate: null,                  // (nút, 'YYYY-MM-DD' | '', onPick(ngày | '')) mở lịch chọn ngày của app
             areas: {work: {n: 'Work', c: '#3b82f6'}, life: {n: 'Life', c: '#a855f7'}}, areaNone: 'Unsorted', areaT: 'Switch between work and life board',
             day: '', fmtDay: d => d};
   },
@@ -256,7 +273,7 @@ const Kanban = Node.create({
         const {sub: _, ...rest} = c;
         // thẻ ở ô lồng thì ở yên đó: Backlog khi task còn ở Cần làm, Không cần làm thì luôn luôn (task thật không đổi theo)
         const s = c.s === 'drop' || (c.s === 'backlog' && T.s === 'todo') ? c.s : T.s;
-        return {...rest, t: T.t, s, ...(sub.length ? {sub} : {})};
+        return {...rest, t: T.t, s, ...(sub.length ? {sub} : {}), ...(s === 'done' && T.done ? {dd: T.done} : {})};
       });
       // sửa trên thẻ đã nối: đẩy đúng phần vừa đổi sang task (thẻ mới dán vào thì không đẩy, để task giữ bản của nó)
       const pushLinks = (prev, next) => {
@@ -266,13 +283,14 @@ const Kanban = Node.create({
           if(p.t !== c.t) patch.t = c.t;
           if(p.s !== c.s) patch.s = c.s;
           if(JSON.stringify(p.sub || []) !== JSON.stringify(c.sub || [])) patch.sub = c.sub || [];
+          if(c.s === 'done' && p.s === 'done' && c.dd && p.dd !== c.dd) patch.dd = c.dd;   // sửa tay ngày xong: task theo luôn
           if(Object.keys(patch).length) L.update(c.tk, patch);
         });
       };
       const save = (cards, drafts) => {
         let next = withLive(cards);
         pushLinks(node.attrs.cards, next);
-        next = pulled(next);
+        next = kbStamp(node.attrs.cards, pulled(next));
         write(drafts ? {cards: next, drafts} : {cards: next});
       };
       let menu = null;                       // menu chọn bảng khi bấm ↗ trên thẻ chưa nối
@@ -358,6 +376,23 @@ const Kanban = Node.create({
               k.querySelector('.ekbt').value = c.d || '';
               k.querySelector('.ekbt').placeholder = o.descPh;
               k.querySelector('.ekbsa').placeholder = o.subPh;
+              // sửa tay ngày bắt đầu (Đang làm, Xong) và ngày xong (Xong); xoá trắng ô thì bỏ ngày đó
+              const dates = c.s === 'doing' ? [['ds', o.startL]] : c.s === 'done' ? [['ds', o.startL], ['dd', o.doneL]] : [];
+              if(dates.length && o.pickDate){     // bấm ô ngày: app mở lịch chọn ngày của nó
+                const row = document.createElement('div');
+                row.className = 'ekbdates';
+                dates.forEach(([f, n]) => {
+                  const lb = document.createElement('label');
+                  lb.innerHTML = '<span></span><button type="button" class="ekbdi"></button>';
+                  lb.querySelector('span').textContent = n;
+                  const b = lb.querySelector('button');
+                  b.dataset.f = f; b.dataset.dt = '1';   // data-dt: app không coi cú bấm mở lịch là bấm ra ngoài lịch
+                  b.textContent = c[f] ? o.fmtDay(c[f]) : o.pickPh;
+                  if(!c[f]) b.classList.add('ph');
+                  row.appendChild(lb);
+                });
+                k.insertBefore(row, k.querySelector('.ekbsl'));
+              }
               const sl = k.querySelector('.ekbsl');
               sub.forEach(x => {
                 const r = document.createElement('div');
@@ -384,6 +419,15 @@ const Kanban = Node.create({
                 + (L ? `<button type="button" class="${c.tk ? 'ekblk' : 'ekbln'}">↗</button>` : '')
                 + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>'
                 + (showD ? '<div class="ekbdt"></div>' : '') + (showS ? '<div class="ekbsv"></div>' : '');
+              // Đang làm: ngày bắt đầu; Xong: ngày xong (rê chuột thấy cả ngày bắt đầu)
+              const when = c.s === 'doing' && c.ds ? o.startT.replace('{d}', kbShortDay(c.ds))
+                : c.s === 'done' && c.dd ? o.doneT.replace('{d}', kbShortDay(c.dd)) : '';
+              if(when){
+                const w = document.createElement('div');
+                w.className = 'ekbwhen'; w.textContent = when;
+                if(c.s === 'done' && c.ds) w.title = o.startT.replace('{d}', kbShortDay(c.ds));
+                k.insertBefore(w, k.querySelector('.ekbdt, .ekbsv'));   // ngay dưới tiêu đề, trên mô tả và việc con
+              }
               if(c.tk) k.classList.add('lk');
               if(L) k.querySelector(c.tk ? '.ekblk' : '.ekbln').title = c.tk
                 ? o.linkedT.replace('{b}', L.get(c.tk)?.area === 'life' ? o.linkLife : o.linkWork) : o.linkT;
@@ -434,7 +478,7 @@ const Kanban = Node.create({
       if(!node.attrs.bid) setTimeout(() => { if(!node.attrs.bid) write({bid: kbId()}, false); }, 0);
       // thẻ đã nối: task có thể vừa đổi ở bảng việc (kéo cột, tick việc con) trong lúc trang này đóng
       setTimeout(() => {
-        const fresh = pulled(node.attrs.cards);
+        const fresh = kbStamp(node.attrs.cards, pulled(node.attrs.cards));
         if(JSON.stringify(fresh) !== JSON.stringify(node.attrs.cards)) write({cards: fresh}, false);
       }, 0);
 
@@ -527,6 +571,19 @@ const Kanban = Node.create({
           return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
         }
         if(e.target.closest('.ekbarea')) return write({area: node.attrs.area === 'work' ? 'life' : 'work'});
+        const di = e.target.closest('.ekbdi');
+        if(di){                              // ô ngày trong thẻ đang mở: chọn ngày mới, hoặc xoá để bỏ ngày đó
+          const id = di.closest('.ekbk').dataset.id, f = di.dataset.f;
+          const cur = (node.attrs.cards.find(c => c.id === id) || {})[f] || '';
+          return o.pickDate(di, cur, v => {
+            if(v && !/^\d{4}-\d\d-\d\d$/.test(v)) return;
+            save(node.attrs.cards.map(c => {
+              if(c.id !== id) return c;
+              const {[f]: _, ...rest} = c;
+              return v ? {...rest, [f]: v} : rest;
+            }));
+          });
+        }
         const ln = e.target.closest('.ekbln');
         if(ln && node.attrs.area){           // bảng đã có loại: đưa thẳng lên bảng lớn cùng loại, khỏi hỏi
           const id = ln.closest('.ekbk').dataset.id;

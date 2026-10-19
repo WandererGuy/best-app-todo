@@ -441,6 +441,12 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbd:hover{color:var(--tx);background:var(--panel)}
 .ed .ekbdt{flex-basis:100%;margin-top:-2px;color:var(--tx2);font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .ed .ekbc[data-s="done"] .ekbdt{color:var(--tx3)}
+.ed .ekbdates{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--tx3)}   /* ô sửa ngày trong thẻ đang mở */
+.ed .ekbdates label{display:flex;align-items:center;gap:6px}
+.ed .ekbdi{padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--tx);font-size:12px}
+.ed .ekbdi.ph{color:var(--tx3);border-style:dashed}
+.ed .ekbdi:hover,.ed .ekbdi.on{border-color:var(--acc)}
+.ed .ekbwhen{flex-basis:100%;margin-top:-2px;color:var(--tx3);font-size:11px}   /* ngày bắt đầu (Đang làm) / ngày xong (Xong) */
 .ed .ekbk.on{flex-direction:column;gap:6px;cursor:default;border-color:var(--acc)}
 .ed .ekbk.on .ekbe{width:100%;flex:none}
 .ed .ekbt{width:100%;min-height:44px;padding:0;border:none;background:none;color:var(--tx2);font:inherit;

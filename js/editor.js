@@ -128,7 +128,7 @@ function kbSetStatus(t, s){                    // như kéo thẻ trên bảng v
 const KB_LINK = {
   get(id){
     const t = S.tasks.find(x => x.id === id); if(!t) return null;
-    return {t: t.title, s: t.status === 'backlog' ? 'todo' : t.status, sub: kbSubsOf(t), area: t.area};
+    return {t: t.title, s: t.status === 'backlog' ? 'todo' : t.status, sub: kbSubsOf(t), area: t.area, done: t.done};
   },
   create(c, area){
     const note = c.d ? c.d.split('\n').map(l => `<p>${esc(l)}</p>`).join('') : '';
@@ -145,6 +145,7 @@ const KB_LINK = {
     if(p.t) t.title = p.t;
     const s = p.s === 'backlog' ? 'todo' : p.s === 'drop' ? null : p.s;
     if(s && s !== (t.status === 'backlog' ? 'todo' : t.status)) kbSetStatus(t, s);
+    if(p.dd && t.status === 'done') t.done = p.dd;   // sửa tay ngày xong trên thẻ
     if(p.sub){
       const old = new Map((t.subs || []).map(x => [x.id, x]));   // giữ ghi chú riêng của từng việc con trên task
       t.subs = p.sub.map(x => ({...(old.get(x.id) || {}), id: x.id, t: x.t, d: !!x.x}));
@@ -163,7 +164,8 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
              nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
              // màu riêng của bảng trong trang (nhạt hơn màu mảng ở bảng lớn): công việc xanh dương nhạt, cuộc sống xanh lá nhạt
              areas: {work: {n: AREAS.work.n, c: '#93c5fd'}, life: {n: AREAS.life.n, c: '#86efac'}},
-             areaNone: tr('kb.areaNone'), areaT: tr('kb.areaT'),
+             areaNone: tr('kb.areaNone'), areaT: tr('kb.areaT'), startT: tr('kb.startT'), doneT: tr('kb.doneT'), startL: tr('kb.startL'), doneL: tr('kb.doneL'),
+             pickPh: tr('common.pickDate'), pickDate: (el, cur, cb) => openDP(el, cur, cb, tr('kb.clearDay')),
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),

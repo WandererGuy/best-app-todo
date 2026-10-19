@@ -11,6 +11,7 @@ function openDP(anchor, cur, onPick, clear){
   dp = {onPick, clear, sel:cur || '', month: new Date((cur || today()) + 'T00:00:00'), anchor};
   anchor.classList.add('on');
   const el = document.createElement('div'); el.className = 'dp'; el.id = 'dpEl';
+  el.onmousedown = e => e.preventDefault();   // không lấy focus: thẻ đang mở trong bảng việc không tưởng bị bấm ra ngoài mà gập lại
   document.body.appendChild(el);
   const r = anchor.getBoundingClientRect();
   el.style.left = Math.max(8, Math.min(r.left, innerWidth - 284)) + 'px';
@@ -36,7 +37,7 @@ function drawDP(){
       <b>${tr('cal.monthTitle', {m: m + 1, M: tr(`mon.${m + 1}`), y})}</b><button class="dpnav" data-mv="1">›</button></div>
     <div class="dpg">${DOW.map(d => `<div class="w">${d}</div>`).join('')}${cells}</div>
     <div class="dpft"><button data-pick="${today()}">${tr('common.today')}</button>
-      ${dp.clear ? `<button data-pick="">${tr('dp.clearDue')}</button>` : ''}</div>`;
+      ${dp.clear ? `<button data-pick="">${typeof dp.clear === 'string' ? dp.clear : tr('dp.clearDue')}</button>` : ''}</div>`;
 
   $('#dpEl').querySelectorAll('[data-mv]').forEach(b => b.onclick = () => {
     dp.month = new Date(dp.month.getFullYear(), dp.month.getMonth() + (+b.dataset.mv), 1); drawDP();
