@@ -40,6 +40,9 @@ button{background:none;border:none;cursor:pointer}
    Để nguyên background trên nút thì chữ và số đếm sẽ bị kéo giãn theo trong lúc trượt. */
 .nav.on::before{content:'';position:absolute;inset:0;z-index:-1;border-radius:8px;background:var(--acc);
   view-transition-name:navpill}
+/* Ô trượt nằm ở lớp riêng phía trên ảnh chụp cả trang, nên nó che chữ các mục nó đi qua. Tách chữ,
+   icon và số đếm của mỗi mục thành lớp riêng: chúng vẽ sau ::before nên lớp của chúng nằm trên ô trượt. */
+.nav > *{view-transition-name:match-element;view-transition-class:navtx}
 .nav .ic{width:16px;text-align:center;font-size:14px}
 .nav .ct{margin-left:auto;font-size:11px;color:var(--tx3);background:var(--panel2);padding:1px 7px;border-radius:20px}
 .nav.on .ct{background:rgba(255,255,255,.2);color:#fff}
@@ -90,6 +93,7 @@ button{background:none;border:none;cursor:pointer}
    cùng màu cùng cỡ nên kéo dài chỉ làm màu bị nhạt đi ở quãng giữa */
 ::view-transition-group(navpill){animation-duration:var(--vt);animation-timing-function:cubic-bezier(.2,0,.2,1)}
 ::view-transition-old(navpill),::view-transition-new(navpill){animation-duration:calc(var(--vt) * .45)}
+::view-transition-group(*.navtx){animation-duration:var(--vt)}
 ::view-transition-old(view){animation:vhide calc(var(--vt) * .6) ease-in both}
 ::view-transition-new(view){animation:vfade var(--vt) cubic-bezier(.2,0,.2,1) both}
 #view.vfade{animation:vfade calc(var(--vt) * .65) cubic-bezier(.2,0,.2,1)}   /* dự phòng cho trình duyệt chưa có View Transitions */
