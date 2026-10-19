@@ -459,6 +459,13 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbbar button:hover{border-color:var(--acc);color:var(--acc2)}
 .ed .ekbhd{display:flex;align-items:center;gap:8px;min-height:20px;margin-bottom:-2px}   /* ngày + nút chép, nằm riêng trên các cột */
 .ed .ekbdate{color:var(--tx2);font-size:12px;font-weight:620;white-space:nowrap}
+/* loại bảng: viền trái và nhãn đầu bảng theo màu mảng (công việc / cuộc sống) */
+.ed .ekb.ar{padding-left:10px;border-left:3px solid var(--kba)}
+.ed .ekbarea{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:620;
+  color:var(--kba);background:color-mix(in srgb,var(--kba) 16%,transparent);white-space:nowrap}
+.ed .ekbarea i{width:7px;height:7px;border-radius:50%;background:var(--kba)}
+.ed .ekbarea:hover{background:color-mix(in srgb,var(--kba) 26%,transparent)}
+.ed .ekbarea.none{--kba:var(--tx3);border:1px dashed var(--line);background:none}
 .ed .ekbca{margin-left:auto;width:22px;height:20px;padding:0;border-radius:5px;
   border:1px solid var(--line);background:var(--panel2);color:var(--tx3);font-size:11px;line-height:18px}
 .ed .ekbca:hover{border-color:var(--acc);color:var(--acc2)}

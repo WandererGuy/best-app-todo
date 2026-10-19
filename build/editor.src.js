@@ -165,6 +165,7 @@ const Kanban = Node.create({
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
             copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description', subHide: 'Hide subtasks', subShow: 'Show subtasks',
             link: null, linkT: 'Send to a board', linkWork: 'Work board', linkLife: 'Life board', linkedT: 'Linked to a task on {b}. Click to open it',
+            areas: {work: {n: 'Work', c: '#3b82f6'}, life: {n: 'Life', c: '#a855f7'}}, areaNone: 'Unsorted', areaT: 'Switch between work and life board',
             day: '', fmtDay: d => d};
   },
   addAttributes(){
@@ -183,7 +184,11 @@ const Kanban = Node.create({
       // mã của bảng: các bản chép (nút chép cả bảng, lấy bảng ngày trước) giữ nguyên mã, app thấy cùng mã thì đồng bộ thẻ
       bid: {default: '',
         parseHTML: el => el.getAttribute('data-kbid') || '',
-        renderHTML: a => a.bid ? {'data-kbid': a.bid} : {}}};
+        renderHTML: a => a.bid ? {'data-kbid': a.bid} : {}},
+      // loại bảng: 'work' | 'life' | '' (bảng cũ chưa phân loại); nhãn và màu do app đưa vào qua options.areas
+      area: {default: '',
+        parseHTML: el => ['work', 'life'].includes(el.getAttribute('data-kbarea')) ? el.getAttribute('data-kbarea') : '',
+        renderHTML: a => a.area ? {'data-kbarea': a.area} : {}}};
   },
   parseHTML(){ return [{tag: 'div[data-kanban]'}]; },
   renderHTML({node, HTMLAttributes}){
@@ -291,9 +296,20 @@ const Kanban = Node.create({
         // hàng mỏng trên cùng, tách khỏi các cột: bên trái ngày của trang chứa bảng, bên phải nút chép cả bảng
         const canCopy = node.attrs.cards.length && !sel.size;
         const day = node.attrs.day || o.day, label = day ? o.fmtDay(day) : '';
-        if(label || canCopy){
+        // loại bảng: viền trái mang màu của loại, nhãn đầu bảng bấm để đổi
+        const ar = o.areas && o.areas[node.attrs.area];
+        dom.classList.toggle('ar', !!ar);
+        if(ar) dom.style.setProperty('--kba', ar.c); else dom.style.removeProperty('--kba');
+        if(label || canCopy || o.areas){
           const hd = document.createElement('div');
           hd.className = 'ekbhd';
+          if(o.areas){
+            const ab = document.createElement('button');
+            ab.type = 'button'; ab.className = 'ekbarea' + (ar ? '' : ' none'); ab.title = o.areaT;
+            ab.innerHTML = '<i></i><span></span>';
+            ab.querySelector('span').textContent = ar ? ar.n : o.areaNone;
+            hd.appendChild(ab);
+          }
           if(label){
             const lb = document.createElement('span');
             lb.className = 'ekbdate'; lb.textContent = label;
@@ -510,7 +526,14 @@ const Kanban = Node.create({
           const tk = L.create(c, mi.dataset.area);
           return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
         }
+        if(e.target.closest('.ekbarea')) return write({area: node.attrs.area === 'work' ? 'life' : 'work'});
         const ln = e.target.closest('.ekbln');
+        if(ln && node.attrs.area){           // bảng đã có loại: đưa thẳng lên bảng lớn cùng loại, khỏi hỏi
+          const id = ln.closest('.ekbk').dataset.id;
+          const c = withLive(node.attrs.cards).find(x => x.id === id); if(!c || c.tk) return;
+          const tk = L.create(c, node.attrs.area);
+          return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
+        }
         if(ln){
           menu = document.createElement('div');
           menu.className = 'ekbmenu'; menu.dataset.id = ln.closest('.ekbk').dataset.id;
@@ -569,6 +592,7 @@ const Kanban = Node.create({
           box.setAttribute('data-kanban', JSON.stringify(cards));
           if(node.attrs.day || o.day) box.setAttribute('data-kbday', node.attrs.day || o.day);
           if(node.attrs.bid) box.setAttribute('data-kbid', node.attrs.bid);   // bản dán ra đồng bộ với bảng này
+          if(node.attrs.area) box.setAttribute('data-kbarea', node.attrs.area);
           box.textContent = kbClipText(kbClip);
           const text = kbClipText(kbClip);
           const onCopy = ev => { ev.preventDefault(); ev.clipboardData.setData('text/html', box.outerHTML); ev.clipboardData.setData('text/plain', text); };
@@ -701,7 +725,8 @@ const Kanban = Node.create({
         stopEvent: () => true,               // mọi thao tác trong bảng do bảng tự lo, ProseMirror đứng ngoài
         update(n){
           if(n.type !== node.type) return false;
-          const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards) && n.attrs.day === node.attrs.day;
+          const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards) && n.attrs.day === node.attrs.day
+            && n.attrs.area === node.attrs.area;
           node = n;
           if(!same) draw();
           else dom.querySelectorAll('.ekba').forEach(i => {   // chỉ chữ gõ dở đổi (vd. Ctrl+Z): khỏi vẽ lại kẻo mất con trỏ
@@ -729,7 +754,8 @@ const CMD = {
   kbp: c => c,                               // chỉ xoá "/lệnh"; app mở lịch chọn ngày rồi gọi TT.kbInsert
   img: c => c,                               // chỉ xoá "/lệnh"; app mở hộp chọn file rồi gọi TT.image
   file: c => c,                              // như trên, rồi gọi TT.file
-  kb:  c => c.insertContent({type:'kanban'}),
+  kb:  c => c.insertContent({type:'kanban', attrs:{area:'work'}}),
+  kbl: c => c.insertContent({type:'kanban', attrs:{area:'life'}}),
 };
 const MARK = {
   bold:   c => c.toggleBold(),
@@ -824,28 +850,28 @@ window.TT = {
     (pos == null ? c.insertContent(nodes) : c.insertContentAt(Math.min(pos, editor.state.doc.content.size), nodes)).run();
   },
 
-  /* các bảng việc trong trang: [{bid, cards}], theo thứ tự trong trang */
+  /* các bảng việc trong trang: [{bid, cards, area}], theo thứ tự trong trang */
   kbBoards(editor){
     const out = [];
-    editor.state.doc.descendants(n => { if(n.type.name === 'kanban') out.push({bid: n.attrs.bid, cards: n.attrs.cards}); });
+    editor.state.doc.descendants(n => { if(n.type.name === 'kanban') out.push({bid: n.attrs.bid, cards: n.attrs.cards, area: n.attrs.area}); });
     return out;
   },
-  /* thay thẻ của mọi bảng mang mã bid (bản sửa ở chỗ khác); không vào Ctrl+Z của trang này */
-  kbSet(editor, bid, cards){
+  /* thay thẻ và loại của mọi bảng mang mã bid (bản sửa ở chỗ khác); không vào Ctrl+Z của trang này */
+  kbSet(editor, bid, cards, area){
     if(editor.isDestroyed) return;
     const tr = editor.state.tr, j = JSON.stringify(cards);
     editor.state.doc.descendants((n, pos) => {
-      if(n.type.name === 'kanban' && n.attrs.bid === bid && JSON.stringify(n.attrs.cards) !== j)
-        tr.setNodeMarkup(pos, null, {...n.attrs, cards});
+      if(n.type.name === 'kanban' && n.attrs.bid === bid && (JSON.stringify(n.attrs.cards) !== j || n.attrs.area !== area))
+        tr.setNodeMarkup(pos, null, {...n.attrs, cards, area});
     });
     if(tr.docChanged) editor.view.dispatch(tr.setMeta('addToHistory', false));
   },
-  /* chèn các bảng tại con trỏ, giữa hai bảng có hai dòng trống; boards = [{bid, day, cards}] */
+  /* chèn các bảng tại con trỏ, giữa hai bảng có hai dòng trống; boards = [{bid, day, cards, area}] */
   kbInsert(editor, boards){
     if(editor.isDestroyed || !boards.length) return;
     const gap = [{type: 'paragraph'}, {type: 'paragraph'}];
     editor.chain().focus().insertContent(boards.flatMap((b, i) =>
-      [...(i ? gap : []), {type: 'kanban', attrs: {bid: b.bid, day: b.day, cards: b.cards}}])).run();
+      [...(i ? gap : []), {type: 'kanban', attrs: {bid: b.bid, day: b.day, cards: b.cards, area: b.area || ''}}])).run();
   },
 
   mark(editor, key){

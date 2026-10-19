@@ -51,7 +51,8 @@ const plain   = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g,
 const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=|data-kanban=/i.test(h || '');
 
 const BLOCKS = [
-  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng việc
+  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
+  {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:''},
   {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
@@ -160,6 +161,9 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
     kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})), day: kbDay, fmtDay: kbFmtDay,
              nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
+             // màu riêng của bảng trong trang (nhạt hơn màu mảng ở bảng lớn): công việc xanh dương nhạt, cuộc sống xanh lá nhạt
+             areas: {work: {n: AREAS.work.n, c: '#93c5fd'}, life: {n: AREAS.life.n, c: '#86efac'}},
+             areaNone: tr('kb.areaNone'), areaT: tr('kb.areaT'),
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),

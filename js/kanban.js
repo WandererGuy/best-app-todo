@@ -1,8 +1,9 @@
 /* ============ bảng việc trong trang: đồng bộ các bản chép, lấy bảng của ngày trước ============ */
 // Mỗi bảng mang một mã (bid, xem Kanban trong build/editor.src.js). Chép cả bảng hay lấy bảng ngày trước thì bản mới
-// giữ nguyên mã, nên mọi bản cùng mã là một bảng: sửa ở đâu cũng ghi sang các bản còn lại, cả trang đang mở
+// giữ nguyên mã, nên mọi bản cùng mã là một bảng: sửa thẻ hay đổi loại bảng ở đâu cũng ghi sang các bản còn lại, cả trang đang mở
 // lẫn trang đã lưu. Chữ gõ dở ở ô thêm của từng cột thì mỗi bản giữ riêng.
-const KB_LAST = new Map();      // bid -> JSON thẻ mới nhất trong phiên này
+const KB_LAST = new Map();      // bid -> JSON [thẻ, loại bảng] mới nhất trong phiên này
+const kbKey = b => JSON.stringify([b.cards, b.area || '']);
 const KB_SEEN = new WeakMap();  // editor -> Map(bid -> số bản trong trang) ở lần xem trước, để nhận ra bản vừa dán vào
 const KB_DAY  = new WeakMap();  // editor -> ngày của trang nhật ký nó đang soạn
 const KB_OPEN = ['backlog', 'todo', 'doing'];   // thẻ ở các cột này là việc chưa xong
@@ -23,8 +24,8 @@ let kbSrc = null;
 function kbSync(ed){
   // applyData() thay nguyên S khi nạp lại / cửa sổ khác vừa ghi: bản nhớ trong phiên đã cũ hơn dữ liệu mới nạp
   if(kbSrc !== S){ KB_LAST.clear(); kbSrc = S; }
-  const groups = new Map();                    // bid -> [JSON thẻ của từng bản trong trang]
-  TT.kbBoards(ed).forEach(b => { if(b.bid){ if(!groups.has(b.bid)) groups.set(b.bid, []); groups.get(b.bid).push(JSON.stringify(b.cards)); } });
+  const groups = new Map();                    // bid -> [JSON [thẻ, loại] của từng bản trong trang]
+  TT.kbBoards(ed).forEach(b => { if(b.bid){ if(!groups.has(b.bid)) groups.set(b.bid, []); groups.get(b.bid).push(kbKey(b)); } });
   const seen = KB_SEEN.get(ed) || new Map();
   KB_SEEN.set(ed, new Map([...groups].map(([bid, js]) => [bid, js.length])));
   const out = [];
@@ -45,21 +46,26 @@ function kbSync(ed){
   if(out.length) kbSpread(out, ed);
 }
 function kbSpread(list, src){
-  const want = new Map(list);
+  const want = new Map(list.map(([bid, j]) => [bid, JSON.parse(j)]));
   let dirty = false;
   kbHolders().forEach(([o, f]) => {
     const h = o[f];
     if(!h || !list.some(([bid]) => h.includes(`data-kbid="${bid}"`))) return;
     const t = kbParse(h); let ch = false;
     t.content.querySelectorAll('div[data-kbid]').forEach(el => {
-      const j = want.get(el.getAttribute('data-kbid'));
-      if(j !== undefined && el.getAttribute('data-kanban') !== j){ el.setAttribute('data-kanban', j); ch = true; }
+      const w = want.get(el.getAttribute('data-kbid')); if(!w) return;
+      const cards = JSON.stringify(w[0]);
+      if(el.getAttribute('data-kanban') !== cards){ el.setAttribute('data-kanban', cards); ch = true; }
+      if((el.getAttribute('data-kbarea') || '') !== w[1]){
+        if(w[1]) el.setAttribute('data-kbarea', w[1]); else el.removeAttribute('data-kbarea');
+        ch = true;
+      }
     });
     if(ch){ o[f] = t.innerHTML; dirty = true; }
   });
   // trình soạn thảo đang mở; chính ed vừa sửa thì đợi nó xong lượt này (trang có hai bản của cùng một bảng)
   EDS.forEach(ed => {
-    const go = () => list.forEach(([bid, j]) => TT.kbSet(ed, bid, JSON.parse(j)));
+    const go = () => want.forEach(([cards, area], bid) => TT.kbSet(ed, bid, cards, area));
     if(ed === src) setTimeout(go, 0); else go();
   });
   if(dirty) save();
@@ -76,7 +82,7 @@ function kbOfDay(k, stamp = false){
     t.content.querySelectorAll('div[data-kanban]').forEach(el => {
       if((el.getAttribute('data-kbday') || k) !== k) return;
       if(stamp && !el.getAttribute('data-kbid')){ el.setAttribute('data-kbid', uid()); ch = true; }
-      out.push({bid: el.getAttribute('data-kbid') || '', day: k, cards: kbCardsOf(el)});
+      out.push({bid: el.getAttribute('data-kbid') || '', day: k, cards: kbCardsOf(el), area: el.getAttribute('data-kbarea') || ''});
     });
     if(ch) p.html = t.innerHTML;
   });
@@ -150,7 +156,7 @@ function kbpClick(e){
       if(have.has(x.bid)) return;
       have.add(x.bid);
       // trang gốc đã lưu có thể cũ hơn bản đang mở ở đâu đó trong phiên này
-      if(KB_LAST.has(x.bid)) x.cards = JSON.parse(KB_LAST.get(x.bid)); else KB_LAST.set(x.bid, JSON.stringify(x.cards));
+      if(KB_LAST.has(x.bid)) [x.cards, x.area] = JSON.parse(KB_LAST.get(x.bid)); else KB_LAST.set(x.bid, kbKey(x));
       boards.push(x);
     }));
     save();                                    // mã vừa đóng vào bảng gốc
