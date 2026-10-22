@@ -6,7 +6,7 @@ const KB_LAST = new Map();      // bid -> JSON [thẻ, loại bảng] mới nh�
 const kbKey = b => JSON.stringify([b.cards, b.area || '']);
 const KB_SEEN = new WeakMap();  // editor -> Map(bid -> số bản trong trang) ở lần xem trước, để nhận ra bản vừa dán vào
 const KB_DAY  = new WeakMap();  // editor -> ngày của trang nhật ký nó đang soạn
-const KB_OPEN = ['backlog', 'todo', 'doing'];   // thẻ ở các cột này là việc chưa xong
+const KB_OPEN = ['backlog', 'todo', 'doing', 'key'];   // thẻ ở các cột này là việc chưa xong
 
 const kbParse = html => { const t = document.createElement('template'); t.innerHTML = html || ''; return t; };
 const kbCardsOf = el => { try{ const v = JSON.parse(el.getAttribute('data-kanban')); return Array.isArray(v) ? v : []; }catch(e){ return []; } };

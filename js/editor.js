@@ -117,8 +117,9 @@ function keepCaretOffBottom(ed){
 /* nối thẻ của bảng việc trong trang với task thật (xem Kanban trong build/editor.src.js).
    Thẻ dùng {t, s: cột, sub: [{id, t, x: đã xong}]}, task dùng {title, status, subs: [{id, t, d: đã xong}]}.
    Task "Để sau" hiện ở cột Cần làm; kéo thẻ sang cột khác thì task ra khỏi "Để sau".
-   Ô Backlog và Không cần làm chỉ có trên bảng trong trang: với task thật, thẻ ở Backlog tính như ở Cần làm,
-   còn kéo thẻ vào Không cần làm thì task giữ nguyên trạng thái. */
+   Ô Backlog, Quan trọng và Không cần làm chỉ có trên bảng trong trang: với task thật, thẻ ở Backlog tính như ở Cần làm,
+   ở Quan trọng tính như ở Đang làm, ở Quan trọng đã xong tính như ở Xong, còn kéo thẻ vào Không cần làm thì task giữ nguyên trạng thái.
+   Hạn chót của thẻ (dl) là hạn của task (due). */
 const kbSubsOf = t => (t.subs || []).map(x => ({id: x.id, t: x.t, ...(x.d ? {x: true} : {})}));
 function kbSetStatus(t, s){                    // như kéo thẻ trên bảng việc (board.js)
   t.status = s;
@@ -128,13 +129,14 @@ function kbSetStatus(t, s){                    // như kéo thẻ trên bảng v
 const KB_LINK = {
   get(id){
     const t = S.tasks.find(x => x.id === id); if(!t) return null;
-    return {t: t.title, s: t.status === 'backlog' ? 'todo' : t.status, sub: kbSubsOf(t), area: t.area, done: t.done};
+    return {t: t.title, s: t.status === 'backlog' ? 'todo' : t.status, sub: kbSubsOf(t), area: t.area, done: t.done, due: t.due};
   },
   create(c, area){
     const note = c.d ? c.d.split('\n').map(l => `<p>${esc(l)}</p>`).join('') : '';
-    const t = {id: uid(), title: c.t, area, prio: 'med', status: c.s, pg: 0, tags: [], due: '', time: '', dur: 60, remind: 30,
+    const s = c.s === 'key' ? 'doing' : c.s === 'won' ? 'done' : c.s;
+    const t = {id: uid(), title: c.t, area, prio: c.s === 'key' || c.s === 'won' ? 'high' : 'med', status: s, pg: 0, tags: [], due: c.dl || '', time: '', dur: 60, remind: 30,
       note, cr: today(), subs: (c.sub || []).map(x => ({id: x.id || uid(), t: x.t, d: !!x.x})), done: null};
-    kbSetStatus(t, c.s);
+    kbSetStatus(t, s);
     if(t.status === 'todo') t.pg = 0;
     S.tasks.unshift(t); save();
     toast(tr('kb.linked', {b: tr(area === 'life' ? 'nav.life' : 'nav.board')}));
@@ -143,9 +145,10 @@ const KB_LINK = {
   update(id, p){
     const t = S.tasks.find(x => x.id === id); if(!t) return;
     if(p.t) t.title = p.t;
-    const s = p.s === 'backlog' ? 'todo' : p.s === 'drop' ? null : p.s;
+    const s = p.s === 'backlog' ? 'todo' : p.s === 'key' ? 'doing' : p.s === 'won' ? 'done' : p.s === 'drop' ? null : p.s;
     if(s && s !== (t.status === 'backlog' ? 'todo' : t.status)) kbSetStatus(t, s);
     if(p.dd && t.status === 'done') t.done = p.dd;   // sửa tay ngày xong trên thẻ
+    if('due' in p){ t.due = p.due; if(!p.due) t.time = ''; }   // bỏ hạn thì bỏ luôn giờ, như ở form task
     if(p.sub){
       const old = new Map((t.subs || []).map(x => [x.id, x]));   // giữ ghi chú riêng của từng việc con trên task
       t.subs = p.sub.map(x => ({...(old.get(x.id) || {}), id: x.id, t: x.t, d: !!x.x}));
@@ -162,6 +165,9 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
     imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
     kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})), day: kbDay, fmtDay: kbFmtDay,
              nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
+             nestTop: {doing: {k: 'key', n: tr('kb.key'), c: '#ef4444', ic: '🔥', tip: tr('kb.keyT')},
+                       done: {k: 'won', n: tr('kb.won'), c: '#eab308', ic: '🏆', tip: tr('kb.wonT')}},
+             dueT: tr('kb.dueT'), dueL: tr('kb.dueL'), dueNone: tr('kb.dueNone'), dueEdit: tr('kb.dueEdit'),
              // màu riêng của bảng trong trang (nhạt hơn màu mảng ở bảng lớn): công việc xanh dương nhạt, cuộc sống xanh lá nhạt
              areas: {work: {n: AREAS.work.n, c: '#93c5fd'}, life: {n: AREAS.life.n, c: '#86efac'}},
              areaNone: tr('kb.areaNone'), areaT: tr('kb.areaT'), startT: tr('kb.startT'), doneT: tr('kb.doneT'), startL: tr('kb.startL'), doneL: tr('kb.doneL'),

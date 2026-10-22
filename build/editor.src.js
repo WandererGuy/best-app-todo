@@ -122,11 +122,13 @@ const FileBlock = Node.create({
   },
 });
 
-/* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái, thêm hai ô lồng (options.nest): Backlog ở cuối cột Cần làm,
-   Không cần làm ở cuối cột Xong. Hai ô này chỉ có trên bảng trong trang, task thật không có trạng thái tương ứng.
+/* bảng việc nhỏ ngay trong trang: mỗi cột một trạng thái, thêm các ô lồng: Backlog ở cuối cột Cần làm, Không cần làm
+   ở cuối cột Xong (options.nest), Quan trọng ở đầu cột Đang làm và Quan trọng đã xong ở đầu cột Xong (options.nestTop).
+   Các ô này chỉ có trên bảng trong trang, task thật không có trạng thái tương ứng (Quan trọng tính như Đang làm,
+   Quan trọng đã xong tính như Xong). Thẻ Quan trọng kéo sang Xong thì tự vào ô Quan trọng đã xong.
    Thẻ lưu trong data-kanban (JSON) dạng [{id, t: tiêu đề, s: mã cột, d?: mô tả, dh?: đang ẩn mô tả,
    sub?: [{id, t, d?, x?: đã xong}], sh?: đang ẩn danh sách việc con, tk?: id task đã nối ở bảng việc / bảng cuộc sống,
-   ds?: ngày bắt đầu, dd?: ngày xong (xem kbStamp)}];
+   ds?: ngày bắt đầu, dd?: ngày xong (xem kbStamp), dl?: hạn chót (YYYY-MM-DD, cho việc chưa xong)}];
    Thẻ đã nối (nút ↗): tiêu đề, cột và việc con là của task thật. Bảng hiện lên thì lấy bản mới nhất từ task,
    sửa trên thẻ thì đẩy sang task; chép bảng sang ngày khác vẫn trỏ về cùng task nên không sinh task trùng.
    Mô tả chỉ chép sang task lúc nối, về sau mỗi bên một bản (mô tả của task là văn bản có định dạng).
@@ -150,19 +152,23 @@ const kbId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,
 // ngày bắt đầu / ngày xong của thẻ: ds = ngày vào Đang làm (giữ khi sang Xong, bỏ khi về Cần làm / Backlog),
 // dd = ngày vào Xong (bỏ khi rời Xong). Chỉ đóng khi thẻ đổi cột hoặc mới vào bảng; thẻ đã nối thì dd lấy theo task.
 const kbToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const kbDone = s => s === 'done' || s === 'won';   // ô Quan trọng đã xong (won) ở đầu cột Xong cũng là xong
 const kbStamp = (prev, next) => {
   const was = new Map(prev.map(c => [c.id, c.s])), t = kbToday();
   return next.map(c => {
     if(was.get(c.id) === c.s) return c;
     const {ds, dd, ...out} = c;
-    if(c.s === 'doing' || c.s === 'done' || c.s === 'drop'){ if(ds || c.s === 'doing') out.ds = ds || t; }
-    if(c.s === 'done') out.dd = dd || t;
+    const busy = c.s === 'doing' || c.s === 'key';
+    if(busy || kbDone(c.s) || c.s === 'drop'){ if(ds || busy) out.ds = ds || t; }
+    if(kbDone(c.s)) out.dd = dd || t;
     return out;
   });
 };
+// cột còn việc phải làm: thẻ ở đây mới có hạn chót; ô Quan trọng thì bắt buộc có hạn (chưa có thì hiện nhắc)
+const KB_DUE = ['todo', 'backlog', 'doing', 'key'];
 const kbShortDay = k => { const [y, m, d] = k.split('-'); return `${+d}/${+m}` + (+y !== new Date().getFullYear() ? `/${y.slice(2)}` : ''); };
 // thẻ -> các việc con khi bị thả vào thẻ khác: chính nó (ở cột Xong thì coi như đã xong) rồi tới việc con của nó
-const kbToSubs = c => [{id: c.id, t: c.t, ...(c.d ? {d: c.d} : {}), ...(c.s === 'done' ? {x: true} : {})}, ...(c.sub || [])];
+const kbToSubs = c => [{id: c.id, t: c.t, ...(c.d ? {d: c.d} : {}), ...(kbDone(c.s) ? {x: true} : {})}, ...(c.sub || [])];
 const kbToCard = (x, s) => ({id: x.id, t: x.t, s, ...(x.d ? {d: x.d} : {})});
 // thẻ chỉ thả được trong bảng của nó: kéo ra ngoài thì chặn trước khi ProseMirror kịp hiện vạch thả hay nhận thả
 ['dragover', 'drop'].forEach(t => window.addEventListener(t, e => {
@@ -175,12 +181,14 @@ const Kanban = Node.create({
   addOptions(){
     return {cols: [{k:'todo', n:'To do', c:'#64748b'}, {k:'doing', n:'Doing', c:'#6366f1'}, {k:'done', n:'Done', c:'#22c55e'}],
             nest: {todo: {k:'backlog', n:'Backlog', c:'#94a3b8'}, done: {k:'drop', n:"Won't do", c:'#78716c'}},
+            nestTop: {doing: {k:'key', n:'Important', c:'#ef4444', ic:'🔥'}, done: {k:'won', n:'Important, done', c:'#eab308', ic:'🏆'}},
             addPh: '+ Add', addT: 'Enter to add, Shift+Enter for a new line', pastePh: '+ Add · Ctrl+V to paste', delT: 'Delete', copyT: 'Copy card', copied: '✓',
             editT: 'Click to edit, drag to move', descPh: 'Description…', subPh: '+ Subtask', subT: 'Drag to a column to make it a card',
             selN: '{n} selected', copySel: '⧉ Copy', copiedSel: '✓ Copied', clearSel: 'Clear',
             copyAll: 'Copy board', copiedAll: 'Copied', descHide: 'Hide description', descShow: 'Show description', subHide: 'Hide subtasks', subShow: 'Show subtasks',
             link: null, linkT: 'Send to a board', linkWork: 'Work board', linkLife: 'Life board', linkedT: 'Linked to a task on {b}. Click to open it',
             startT: 'Started {d}', doneT: 'Done {d}', startL: 'Started', doneL: 'Done', pickPh: 'Pick a date',
+            dueT: 'Due {d}', dueL: 'Due', dueNone: 'No due date', dueEdit: 'Click to change the due date',
             pickDate: null,                  // (nút, 'YYYY-MM-DD' | '', onPick(ngày | '')) mở lịch chọn ngày của app
             areas: {work: {n: 'Work', c: '#3b82f6'}, life: {n: 'Life', c: '#a855f7'}}, areaNone: 'Unsorted', areaT: 'Switch between work and life board',
             day: '', fmtDay: d => d};
@@ -270,10 +278,14 @@ const Kanban = Node.create({
         const T = L.get(c.tk);
         if(!T){ const {tk, ...rest} = c; return rest; }
         const sub = T.sub.map(x => { const own = (c.sub || []).find(y => y.id === x.id); return own && own.d ? {...x, d: own.d} : x; });
-        const {sub: _, ...rest} = c;
-        // thẻ ở ô lồng thì ở yên đó: Backlog khi task còn ở Cần làm, Không cần làm thì luôn luôn (task thật không đổi theo)
-        const s = c.s === 'drop' || (c.s === 'backlog' && T.s === 'todo') ? c.s : T.s;
-        return {...rest, t: T.t, s, ...(sub.length ? {sub} : {}), ...(s === 'done' && T.done ? {dd: T.done} : {})};
+        const {sub: _, dl: __, ...rest} = c;
+        // thẻ ở ô lồng thì ở yên đó: Backlog khi task còn ở Cần làm, Quan trọng khi task còn ở Đang làm,
+        // Không cần làm thì luôn luôn (task thật không đổi theo)
+        // Quan trọng mà task đã xong ở bảng lớn thì sang ô Quan trọng đã xong
+        const s = c.s === 'drop' || (c.s === 'backlog' && T.s === 'todo') || (c.s === 'key' && T.s === 'doing')
+          || (c.s === 'won' && T.s === 'done') ? c.s : c.s === 'key' && T.s === 'done' ? 'won' : T.s;
+        return {...rest, t: T.t, s, ...(sub.length ? {sub} : {}), ...(kbDone(s) && T.done ? {dd: T.done} : {}),
+          ...(T.due ? {dl: T.due} : {})};   // hạn chót là hạn của task
       });
       // sửa trên thẻ đã nối: đẩy đúng phần vừa đổi sang task (thẻ mới dán vào thì không đẩy, để task giữ bản của nó)
       const pushLinks = (prev, next) => {
@@ -283,14 +295,22 @@ const Kanban = Node.create({
           if(p.t !== c.t) patch.t = c.t;
           if(p.s !== c.s) patch.s = c.s;
           if(JSON.stringify(p.sub || []) !== JSON.stringify(c.sub || [])) patch.sub = c.sub || [];
-          if(c.s === 'done' && p.s === 'done' && c.dd && p.dd !== c.dd) patch.dd = c.dd;   // sửa tay ngày xong: task theo luôn
+          if(kbDone(c.s) && kbDone(p.s) && c.dd && p.dd !== c.dd) patch.dd = c.dd;   // sửa tay ngày xong: task theo luôn
+          if((p.dl || '') !== (c.dl || '')) patch.due = c.dl || '';
           if(Object.keys(patch).length) L.update(c.tk, patch);
         });
       };
+      let askDue = null;                     // thẻ vừa vào ô Quan trọng mà chưa có hạn: vẽ xong mở lịch chọn hạn cho nó
+      const cheer = new Set();                // thẻ vừa vào ô Quan trọng đã xong: vẽ xong cho nó một nhịp ăn mừng
       const save = (cards, drafts) => {
-        let next = withLive(cards);
+        const was = new Map(node.attrs.cards.map(c => [c.id, c.s]));
+        // thẻ Quan trọng kéo sang Xong thì vào thẳng ô Quan trọng đã xong
+        let next = withLive(cards).map(c => c.s === 'done' && was.get(c.id) === 'key' ? {...c, s: 'won'} : c);
         pushLinks(node.attrs.cards, next);
         next = kbStamp(node.attrs.cards, pulled(next));
+        const need = next.find(c => c.s === 'key' && !c.dl && was.get(c.id) !== 'key');
+        if(need) askDue = need.id;
+        next.forEach(c => { if(c.s === 'won' && was.has(c.id) && was.get(c.id) !== 'won') cheer.add(c.id); });
         write(drafts ? {cards: next, drafts} : {cards: next});
       };
       let menu = null;                       // menu chọn bảng khi bấm ↗ trên thẻ chưa nối
@@ -358,8 +378,11 @@ const Kanban = Node.create({
           const el = document.createElement('div');
           el.className = 'ekbc'; el.dataset.s = col.k;
           el.innerHTML = '<div class="ekbh"><i></i><span></span><b></b></div><div class="ekbl"></div><textarea class="ekba" rows="1"></textarea>';
-          el.querySelector('i').style.background = col.c;
+          // ô có biểu tượng riêng (col.ic, vd. Quan trọng): hiện biểu tượng thay chấm màu, và gắn nó lên đầu mỗi thẻ trong ô
+          if(col.ic){ el.querySelector('i').textContent = col.ic; el.querySelector('i').className = 'ic'; }
+          else el.querySelector('i').style.background = col.c;
           el.querySelector('span').textContent = col.n;
+          if(col.tip) el.querySelector('.ekbh').title = col.tip;   // rê chuột vào tên ô: ô này dùng cho việc gì
           el.querySelector('b').textContent = cards.length || '';
           el.querySelector('.ekba').placeholder = kbClip ? o.pastePh : o.addPh;
           el.querySelector('.ekba').title = o.addT;
@@ -377,7 +400,8 @@ const Kanban = Node.create({
               k.querySelector('.ekbt').placeholder = o.descPh;
               k.querySelector('.ekbsa').placeholder = o.subPh;
               // sửa tay ngày bắt đầu (Đang làm, Xong) và ngày xong (Xong); xoá trắng ô thì bỏ ngày đó
-              const dates = c.s === 'doing' ? [['ds', o.startL]] : c.s === 'done' ? [['ds', o.startL], ['dd', o.doneL]] : [];
+              const dates = c.s === 'doing' || c.s === 'key' ? [['ds', o.startL]] : kbDone(c.s) ? [['ds', o.startL], ['dd', o.doneL]] : [];
+              if(KB_DUE.includes(c.s)) dates.push(['dl', o.dueL]);   // hạn chót cho việc chưa xong
               if(dates.length && o.pickDate){     // bấm ô ngày: app mở lịch chọn ngày của nó
                 const row = document.createElement('div');
                 row.className = 'ekbdates';
@@ -414,24 +438,36 @@ const Kanban = Node.create({
               k.title = c.d && c.dh ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
               // việc con cũng vậy: hiện ngay trên thẻ, tick được tại chỗ, bấm nhãn ☑ n/m để ẩn / hiện (sh lưu cùng thẻ)
               const n = sub.filter(x => x.x).length, showS = sub.length && !c.sh;
-              k.innerHTML = '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
+              k.innerHTML = (col.ic ? '<i class="ekbic"></i>' : '') + '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
                 + (sub.length ? `<button type="button" class="ekbsb${n === sub.length ? ' all' : ''}${showS ? ' on' : ''}">☑ ${n}/${sub.length}</button>` : '')
                 + (L ? `<button type="button" class="${c.tk ? 'ekblk' : 'ekbln'}">↗</button>` : '')
                 + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>'
                 + (showD ? '<div class="ekbdt"></div>' : '') + (showS ? '<div class="ekbsv"></div>' : '');
               // Đang làm: ngày bắt đầu; Xong: ngày xong (rê chuột thấy cả ngày bắt đầu)
-              const when = c.s === 'doing' && c.ds ? o.startT.replace('{d}', kbShortDay(c.ds))
-                : c.s === 'done' && c.dd ? o.doneT.replace('{d}', kbShortDay(c.dd)) : '';
-              if(when){
+              const when = (c.s === 'doing' || c.s === 'key') && c.ds ? o.startT.replace('{d}', kbShortDay(c.ds))
+                : kbDone(c.s) && c.dd ? o.doneT.replace('{d}', kbShortDay(c.dd)) : '';
+              // hạn chót: nút bấm đổi hạn ngay trên thẻ gập; quá hạn đỏ, hạn hôm nay cam; ô Quan trọng chưa có hạn thì nhắc
+              const due = o.pickDate && KB_DUE.includes(c.s) && (c.dl || c.s === 'key');
+              if(when || due){
                 const w = document.createElement('div');
-                w.className = 'ekbwhen'; w.textContent = when;
-                if(c.s === 'done' && c.ds) w.title = o.startT.replace('{d}', kbShortDay(c.ds));
+                w.className = 'ekbwhen';
+                if(when){ const t = document.createElement('span'); t.textContent = when; w.appendChild(t); }
+                if(kbDone(c.s) && c.ds) w.title = o.startT.replace('{d}', kbShortDay(c.ds));
+                if(due){
+                  const b = document.createElement('button'), t = kbToday();
+                  b.type = 'button'; b.dataset.f = 'dl'; b.dataset.dt = '1'; b.title = o.dueEdit;
+                  b.className = 'ekbdl' + (!c.dl ? ' ph' : c.dl < t ? ' over' : c.dl === t ? ' now' : '');
+                  b.textContent = c.dl ? o.dueT.replace('{d}', kbShortDay(c.dl)) : o.dueNone;
+                  w.appendChild(b);
+                }
                 k.insertBefore(w, k.querySelector('.ekbdt, .ekbsv'));   // ngay dưới tiêu đề, trên mô tả và việc con
               }
               if(c.tk) k.classList.add('lk');
+              if(cheer.has(c.id)) k.classList.add('cheer');
               if(L) k.querySelector(c.tk ? '.ekblk' : '.ekbln').title = c.tk
                 ? o.linkedT.replace('{b}', L.get(c.tk)?.area === 'life' ? o.linkLife : o.linkWork) : o.linkT;
               k.querySelector('span').textContent = c.t;
+              if(col.ic){ k.querySelector('.ekbic').textContent = col.ic; if(col.tip) k.querySelector('.ekbic').title = col.tip; }
               if(c.d) k.querySelector('.ekbd').title = showD ? o.descHide : o.descShow;
               if(showD) k.querySelector('.ekbdt').textContent = c.d;
               if(sub.length) k.querySelector('.ekbsb').title = showS ? o.subHide : o.subShow;
@@ -452,24 +488,33 @@ const Kanban = Node.create({
         };
         o.cols.forEach(col => {
           const el = mkCol(col);
-          // ô lồng ở cuối cột: cũng là một .ekbc nên thêm, dán, kéo thả, chữ gõ dở đều dùng chung
+          // ô lồng ở cuối / đầu cột: cũng là một .ekbc nên thêm, dán, kéo thả, chữ gõ dở đều dùng chung
           const sub = o.nest && o.nest[col.k];
           if(sub){ const b = mkCol(sub); b.classList.add('ekbin'); el.appendChild(b); }
+          const top = o.nestTop && o.nestTop[col.k];
+          if(top){ const b = mkCol(top); b.classList.add('ekbin', 'top'); el.insertBefore(b, el.querySelector('.ekbl')); }
           grid.appendChild(el);
         });
+        cheer.clear();                       // ăn mừng một lần, lần vẽ sau thẻ đứng yên
         fitAll();
         if(!dom.isConnected) requestAnimationFrame(fitAll);
         let f = null;
+        // tìm theo .ekbc gần nhất: ô lồng nằm trong cột, chọn theo cột cha sẽ vớ nhầm ô của ô lồng
+        const inCol = (cls, s) => [...dom.querySelectorAll('.' + cls)].filter(x => x.closest('.ekbc').dataset.s === s);
         if(justOpened){ f = dom.querySelector('.ekbk.on .ekbt'); justOpened = false; }
-        else if(refocus){ f = dom.querySelector(`.ekbc[data-s="${refocus}"] .ekba`); }
-        else if(keep) f = [...dom.querySelectorAll(`.ekbc[data-s="${keep.s}"] .${keep.cls}`)]
-          .find(x => (x.closest('[data-sid]')?.dataset.sid) === keep.sid);
+        else if(refocus){ f = inCol('ekba', refocus)[0]; }
+        else if(keep) f = inCol(keep.cls, keep.s).find(x => (x.closest('[data-sid]')?.dataset.sid) === keep.sid);
         // ô cũ không còn (vd. vừa kéo việc con ra ngoài) mà thẻ vẫn mở: giữ con trỏ trong thẻ để bấm ra ngoài còn gập được
         if(!f && keep && keep.on) f = dom.querySelector('.ekbk.on .ekbt');
         refocus = null;
         if(f){
           f.focus();
           if(f.setSelectionRange && f.type !== 'checkbox') f.setSelectionRange(f.value.length, f.value.length);
+        }
+        if(askDue){
+          const b = dom.querySelector(`.ekbk[data-id="${askDue}"] .ekbdl`);
+          askDue = null;
+          if(b) setTimeout(() => { if(b.isConnected) b.click(); }, 0);   // đợi cú bấm / thả hiện tại xong rồi mới mở lịch
         }
       };
       draw();
@@ -571,8 +616,8 @@ const Kanban = Node.create({
           return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
         }
         if(e.target.closest('.ekbarea')) return write({area: node.attrs.area === 'work' ? 'life' : 'work'});
-        const di = e.target.closest('.ekbdi');
-        if(di){                              // ô ngày trong thẻ đang mở: chọn ngày mới, hoặc xoá để bỏ ngày đó
+        const di = e.target.closest('.ekbdi, .ekbdl');
+        if(di){                              // ô ngày trong thẻ đang mở / nút hạn trên thẻ gập: chọn ngày mới, hoặc xoá để bỏ ngày đó
           const id = di.closest('.ekbk').dataset.id, f = di.dataset.f;
           const cur = (node.attrs.cards.find(c => c.id === id) || {})[f] || '';
           return o.pickDate(di, cur, v => {
@@ -714,8 +759,8 @@ const Kanban = Node.create({
           if(at) sl.insertBefore(ph, at); else sl.appendChild(ph);
           return;
         }
-        const list = col.querySelector('.ekbl');
-        const cards = [...list.querySelectorAll('.ekbk:not(.drag)')];
+        const list = col.querySelector(':scope > .ekbl');   // không lấy danh sách của ô lồng đầu cột
+        const cards = [...list.querySelectorAll(':scope > .ekbk:not(.drag)')];
         // con trỏ nằm trên thẻ nào: mép trên / dưới = chèn trước / sau thẻ đó, giữa = thả vào làm việc con
         // (thẻ cha của chính việc con đang kéo thì chỉ có trước / sau)
         let at = null, into = null;
@@ -797,6 +842,101 @@ const Kanban = Node.create({
   },
 });
 
+/* chữ trơn dán vào (Sublime, Notepad, VS Code…) -> các khối của trình soạn thảo, theo đúng những gì gõ tay cũng tự đổi:
+   "- " / "* " / "+ " gạch đầu dòng, "1. " danh sách số, "[ ] " / "- [x] " việc cần làm (thụt đầu dòng = mục con),
+   "# " tới "### " tiêu đề, "> " trích dẫn, ``` khối code, "---" đường kẻ; trong dòng: **đậm**, *nghiêng*, ~~gạch~~, `code`, link.
+   Dòng thường thì như trước: mỗi dòng một đoạn, dòng trắng giữ thành đoạn trống, thụt đầu dòng đổi sang dấu cách cứng
+   (không thì mở lại trang HTML sẽ nuốt mất). Ctrl+Shift+V thì dán nguyên chữ, không đổi gì. */
+const MD_INLINE = /(`[^`\n]+`)|(\*\*[^*\n]+\*\*|__[^_\n]+__)|(~~[^~\n]+~~)|(\*[^*\s][^*\n]*\*|(?<!\w)_[^_\s][^_\n]*_(?!\w))|(https?:\/\/[^\s<>]*[^\s<>()[\]{}.,;:!?'"])/g;
+function mdInline(schema, s, marks){
+  const out = [];
+  let at = 0, m;
+  const re = new RegExp(MD_INLINE.source, 'g');
+  const add = (t, ms) => { if(t) out.push(schema.text(t, ms)); };
+  while((m = re.exec(s))){
+    add(s.slice(at, m.index), marks);
+    const [w] = m;
+    if(m[1]) add(w.slice(1, -1), schema.marks.code.create().addToSet(marks));
+    else if(m[2]) out.push(...mdInline(schema, w.slice(2, -2), schema.marks.bold.create().addToSet(marks)));
+    else if(m[3]) out.push(...mdInline(schema, w.slice(2, -2), schema.marks.strike.create().addToSet(marks)));
+    else if(m[4]) out.push(...mdInline(schema, w.slice(1, -1), schema.marks.italic.create().addToSet(marks)));
+    else add(w, schema.marks.link.create({href: w}).addToSet(marks));
+    at = m.index + w.length;
+  }
+  add(s.slice(at), marks);
+  return out;
+}
+const mdIndent = s => s.replace(/\t/g, '    ').length;
+const MD_ITEM = /^([ \t]*)(?:([-*+])|(\d+)[.)])[ \t]+(?:\[([ xX])\][ \t]+)?(.*)$/;
+const MD_TASK = /^([ \t]*)\[([ xX])\][ \t]+(.*)$/;
+function mdItem(ln){
+  let m = ln.match(MD_TASK);
+  if(m) return {ind: mdIndent(m[1]), kind: 'task', x: m[2] !== ' ', t: m[3]};
+  m = ln.match(MD_ITEM); if(!m) return null;
+  if(m[4] !== undefined) return {ind: mdIndent(m[1]), kind: 'task', x: m[4] !== ' ', t: m[5]};
+  return {ind: mdIndent(m[1]), kind: m[2] ? 'ul' : 'ol', n: m[3] ? +m[3] : 1, t: m[5]};
+}
+// các mục liền nhau -> danh sách lồng theo thụt đầu dòng; đổi loại (gạch / số / việc) ở cùng tầng thì sang danh sách mới
+function mdLists(schema, items, marks){
+  const N = schema.nodes, out = [];
+  let i = 0;
+  const level = ind => {
+    const lists = [];
+    while(i < items.length && items[i].ind >= ind){
+      const kind = items[i].kind, start = items[i].n, myInd = items[i].ind, kids = [];
+      while(i < items.length && items[i].ind === myInd && items[i].kind === kind){
+        const it = items[i++];
+        const body = [N.paragraph.create(null, mdInline(schema, it.t, marks))];
+        if(i < items.length && items[i].ind > myInd) body.push(...level(items[i].ind));
+        kids.push(kind === 'task' ? N.taskItem.create({checked: it.x}, body) : N.listItem.create(null, body));
+      }
+      lists.push(kind === 'task' ? N.taskList.create(null, kids)
+        : kind === 'ol' ? N.orderedList.create({start}, kids) : N.bulletList.create(null, kids));
+    }
+    return lists;
+  };
+  while(i < items.length) out.push(...level(items[i].ind));
+  return out;
+}
+function mdBlocks(schema, text, marks){
+  const N = schema.nodes, lines = text.replace(/\r\n?/g, '\n').split('\n'), out = [];
+  const para = ln => N.paragraph.create(null, ln ? mdInline(schema,
+    ln.replace(/^[ \t]+/, w => w.replace(/\t/g, '    ').replace(/ /g, '\u00a0')), marks) : null);
+  for(let i = 0; i < lines.length;){
+    const ln = lines[i];
+    let m;
+    if((m = ln.match(/^[ \t]*```(\S*)/))){             // khối code: giữ nguyên chữ tới dấu ``` đóng
+      const body = [];
+      for(i++; i < lines.length && !/^[ \t]*```/.test(lines[i]); i++) body.push(lines[i]);
+      i++;
+      out.push(N.codeBlock.create(m[1] ? {language: m[1]} : null, body.length ? schema.text(body.join('\n')) : null));
+      continue;
+    }
+    if(/^[ \t]*([-*_])([ \t]*\1){2,}[ \t]*$/.test(ln)){ out.push(N.horizontalRule.create()); i++; continue; }
+    if((m = ln.match(/^(#{1,6})[ \t]+(.*)$/))){
+      out.push(N.heading.create({level: Math.min(3, m[1].length)}, mdInline(schema, m[2], marks))); i++; continue;
+    }
+    if(/^[ \t]*>/.test(ln)){
+      const body = [];
+      for(; i < lines.length && /^[ \t]*>/.test(lines[i]); i++) body.push(para(lines[i].replace(/^[ \t]*>[ \t]?/, '')));
+      out.push(N.blockquote.create(null, body));
+      continue;
+    }
+    if(mdItem(ln)){
+      const items = [];
+      for(let it; i < lines.length && (it = mdItem(lines[i])); i++) items.push(it);
+      out.push(...mdLists(schema, items, marks));
+      continue;
+    }
+    out.push(para(ln)); i++;
+  }
+  return out;
+}
+// HTML mà trình soạn code chép kèm (VS Code, JetBrains…) chỉ là chữ tô màu: dán như chữ trơn để các dòng "- " thành danh sách
+const codeHTML = h => /white-space:\s*pre|^\s*(<meta[^>]*>\s*)?<pre\b/i.test(h) && !/<(p|li|h[1-6]|table|img|br)\b/i.test(h);
+let pasteMd = false;                         // dán chữ trơn do handlePaste chuyển sang: vẫn đổi kiểu markdown
+let mdSlice = null;                          // slice clipboardTextParser vừa dựng, chờ transformPasted trả lại nguyên vẹn
+
 const CMD = {
   p:   c => c.setParagraph(),
   h1:  c => c.toggleHeading({level:1}),
@@ -858,19 +998,32 @@ window.TT = {
       editorProps:{
         attributes:{ class:'ed' },
         handlePaste(view, e){
-          const files = [...(e.clipboardData && e.clipboardData.files || [])];
-          if(!files.length) return false;
-          onFiles(files, null); return true;
+          const cd = e.clipboardData;
+          const files = [...(cd && cd.files || [])];
+          if(files.length){ onFiles(files, null); return true; }
+          const html = cd && cd.getData('text/html'), text = cd && cd.getData('text/plain');
+          if(!pasteMd && html && text && codeHTML(html) && !view.state.selection.$from.parent.type.spec.code){
+            pasteMd = true;
+            try{ view.pasteText(text); } finally{ pasteMd = false; }
+            return true;
+          }
+          return false;
         },
-        /* dán chữ trơn (Sublime, Notepad…): mỗi dòng một đoạn, dòng trắng giữ thành đoạn trống.
-           Mặc định ProseMirror gộp các dòng trắng liền nhau, nên đoạn văn dán vào dính hết vào nhau.
-           Thụt đầu dòng đổi sang dấu cách cứng, không thì lúc mở lại trang HTML sẽ nuốt mất. */
-        clipboardTextParser(text, $ctx){
+        // ProseMirror mở hết cỡ mọi slice dán vào, nên mục đầu của danh sách bị nhập vào dòng đang gõ: trả lại slice đúng như mdBlocks dựng
+        transformPasted(slice){
+          const s = mdSlice; mdSlice = null;
+          return s || slice;
+        },
+        /* dán chữ trơn: xem mdBlocks. Mặc định ProseMirror gộp các dòng trắng liền nhau, nên đoạn văn dán vào dính hết vào nhau. */
+        clipboardTextParser(text, $ctx, plain){
           const {schema} = $ctx.parent.type, marks = $ctx.marks();
-          const lines = text.replace(/\r\n?/g, '\n').split('\n').map(ln =>
-            ln.replace(/^[ \t]+/, w => w.replace(/\t/g, '    ').replace(/ /g, '\u00a0')));
-          const nodes = lines.map(ln => schema.nodes.paragraph.create(null, ln ? schema.text(ln, marks) : null));
-          return new Slice(Fragment.from(nodes), 1, 1);   // mở hai đầu: dòng đầu / dòng cuối nối vào đoạn đang gõ
+          const nodes = plain && !pasteMd
+            ? text.replace(/\r\n?/g, '\n').split('\n').map(ln => schema.nodes.paragraph.create(null, ln ? schema.text(
+              ln.replace(/^[ \t]+/, w => w.replace(/\t/g, '    ').replace(/ /g, '\u00a0')), marks) : null))
+            : mdBlocks(schema, text, marks);
+          // đầu / cuối là đoạn thường thì mở ra để nối vào đoạn đang gõ; là danh sách, tiêu đề… thì để nguyên khối
+          const open = n => n && n.type === schema.nodes.paragraph ? 1 : 0;
+          return (mdSlice = new Slice(Fragment.from(nodes), open(nodes[0]), open(nodes[nodes.length - 1])));
         },
         handleDrop(view, e, slice, moved){
           const files = moved ? [] : [...(e.dataTransfer && e.dataTransfer.files || [])];

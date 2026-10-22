@@ -446,7 +446,34 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbdi{padding:3px 9px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--tx);font-size:12px}
 .ed .ekbdi.ph{color:var(--tx3);border-style:dashed}
 .ed .ekbdi:hover,.ed .ekbdi.on{border-color:var(--acc)}
-.ed .ekbwhen{flex-basis:100%;margin-top:-2px;color:var(--tx3);font-size:11px}   /* ngày bắt đầu (Đang làm) / ngày xong (Xong) */
+.ed .ekbwhen{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;flex-basis:100%;margin-top:-2px;color:var(--tx3);font-size:11px}   /* ngày bắt đầu (Đang làm) / ngày xong (Xong), hạn chót */
+/* hạn chót trên thẻ gập: bấm để đổi; quá hạn đỏ, hạn hôm nay cam, ô Quan trọng chưa có hạn thì viền đứt đỏ */
+.ed .ekbdl{padding:0 6px;border:1px solid var(--line);border-radius:4px;color:var(--tx2);font-size:11px;line-height:17px}
+.ed .ekbdl:hover{border-color:var(--acc)}
+.ed .ekbdl.now{color:var(--warn);border-color:var(--warn)}
+.ed .ekbdl.over{color:var(--high);border-color:var(--high)}
+.ed .ekbdl.ph{color:var(--high);border-style:dashed;border-color:var(--high)}
+.ed .ekbin.top{margin:0 0 4px;border-color:color-mix(in srgb,#ef4444 45%,var(--line))}   /* ô Quan trọng ở đầu cột Đang làm */
+.ed .ekbh i.ic{width:auto;height:auto;border-radius:0;font-style:normal;font-size:13px;line-height:1}   /* biểu tượng thay chấm màu */
+/* thẻ Quan trọng: 🔥 trước tiêu đề, viền trái đỏ, tiêu đề đậm, nhìn lướt là nhận ra */
+.ed .ekbc[data-s="key"] .ekbk{border-left:3px solid #ef4444;background:color-mix(in srgb,#ef4444 7%,var(--panel2))}
+.ed .ekbc[data-s="key"] .ekbk > span{font-weight:600}
+.ed .ekbic{flex:none;font-style:normal;font-size:13px;line-height:19px}
+/* ô Quan trọng đã xong ở đầu cột Xong: vàng, không gạch ngang chữ như thẻ Xong thường; thẻ vừa vào thì nảy lên một nhịp */
+.ed .ekbin.top[data-s="won"]{border-color:color-mix(in srgb,#eab308 55%,var(--line));background:color-mix(in srgb,#eab308 6%,transparent)}
+.ed .ekbh i.ic + span{color:var(--kbic,#ef4444)}
+.ed .ekbc[data-s="won"]{--kbic:#eab308}
+.ed .ekbc[data-s="won"] .ekbk{border-left:3px solid #eab308;background:color-mix(in srgb,#eab308 9%,var(--panel2))}
+.ed .ekbc[data-s="won"] .ekbk span{text-decoration:none}
+.ed .ekbc[data-s="won"] .ekbk > span{color:var(--tx);font-weight:600}
+.ed .ekbk.cheer{animation:ekbcheer .9s ease-out}
+@keyframes ekbcheer{
+  0%{transform:scale(.92);box-shadow:0 0 0 0 rgba(234,179,8,.7)}
+  35%{transform:scale(1.04);box-shadow:0 0 0 6px rgba(234,179,8,.35)}
+  100%{transform:scale(1);box-shadow:0 0 0 14px rgba(234,179,8,0)}}
+.ed .ekbk.cheer .ekbic{display:inline-block;animation:ekbtrophy .9s ease-out}
+@keyframes ekbtrophy{0%{transform:scale(.4) rotate(-20deg)}50%{transform:scale(1.5) rotate(10deg)}100%{transform:scale(1) rotate(0)}}
+@media (prefers-reduced-motion:reduce){.ed .ekbk.cheer,.ed .ekbk.cheer .ekbic{animation:none}}
 .ed .ekbk.on{flex-direction:column;gap:6px;cursor:default;border-color:var(--acc)}
 .ed .ekbk.on .ekbe{width:100%;flex:none}
 .ed .ekbt{width:100%;min-height:44px;padding:0;border:none;background:none;color:var(--tx2);font:inherit;
