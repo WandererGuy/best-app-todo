@@ -54,6 +54,13 @@ const BLOCKS = [
   {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
   {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:''},
   {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
+  {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:''},
+  // sửa bảng: chỉ hiện khi con trỏ đang trong bảng (tb: true)
+  {k:'tbRow',    n:tr('blk.tbRow'),    ic:'↓', key:'Tab', tb:true},
+  {k:'tbCol',    n:tr('blk.tbCol'),    ic:'→', key:'',    tb:true},
+  {k:'tbDelRow', n:tr('blk.tbDelRow'), ic:'✕', key:'',    tb:true},
+  {k:'tbDelCol', n:tr('blk.tbDelCol'), ic:'✕', key:'',    tb:true},
+  {k:'tbDel',    n:tr('blk.tbDel'),    ic:'✕', key:'',    tb:true},
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
   {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
@@ -207,7 +214,8 @@ function syncMenus(ed){
 /* --- menu lệnh "/" --- */
 let slash = null;
 function openSlash(ed, info){
-  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
+  const inTb = TT.inTable(ed);
+  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!b.tb || inTb) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
   let el = document.getElementById('slashEl');
   if(!el){
     el = document.createElement('div'); el.className = 'slash'; el.id = 'slashEl';

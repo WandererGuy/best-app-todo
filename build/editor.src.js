@@ -5,6 +5,7 @@ import { Editor, Node } from '@tiptap/core';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Link } from '@tiptap/extension-link';
+import { TableKit } from '@tiptap/extension-table';
 import { Placeholder, TrailingNode } from '@tiptap/extensions';
 import { Slice, Fragment } from '@tiptap/pm/model';
 
@@ -1017,6 +1018,13 @@ const CMD = {
   file: c => c,                              // như trên, rồi gọi TT.file
   kb:  c => c.insertContent({type:'kanban', attrs:{area:'work'}}),
   kbl: c => c.insertContent({type:'kanban', attrs:{area:'life'}}),
+  tbl:   c => c.insertTable({rows:3, cols:3, withHeaderRow:true}),
+  // các lệnh dưới chỉ hiện khi con trỏ đang trong bảng (xem TT.inTable)
+  tbRow: c => c.addRowAfter(),
+  tbCol: c => c.addColumnAfter(),
+  tbDelRow: c => c.deleteRow(),
+  tbDelCol: c => c.deleteColumn(),
+  tbDel: c => c.deleteTable(),
 };
 const MARK = {
   bold:   c => c.toggleBold(),
@@ -1058,6 +1066,7 @@ window.TT = {
           ...(fileView ? {canView: fileCanView, view: fileView} : {}),
         }),
         Kanban.configure(kanban || {}),
+        TableKit.configure({table: {resizable: false}}),   // Tab ở ô cuối thêm dòng mới
       ],
       editorProps:{
         attributes:{ class:'ed' },
@@ -1169,6 +1178,8 @@ window.TT = {
       return editor.isActive('heading', {level:+key[1]});
     return editor.isActive(n);
   },
+
+  inTable(editor){ return editor.isActive('table'); },
 
   /* đang gõ "/lệnh" ở đâu? trả về vị trí để xoá và chữ đã gõ để lọc menu */
   slash(editor){

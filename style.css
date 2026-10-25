@@ -362,6 +362,13 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed blockquote{border-left:3px solid var(--acc);padding:2px 0 2px 14px;margin:0 0 10px;color:var(--tx2)}
 .ed hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 .ed hr.ProseMirror-selectednode{border-top-color:var(--acc)}
+/* bảng (lệnh /bảng): kẻ ô, hàng đầu là tiêu đề; bảng rộng thì cuộn ngang trong khung */
+.ed .tableWrapper{overflow-x:auto;margin:0 0 10px}
+.ed table{border-collapse:collapse;table-layout:fixed;width:100%;margin:0}
+.ed th,.ed td{border:1px solid var(--line);padding:6px 10px;vertical-align:top;min-width:60px;position:relative}
+.ed th{background:var(--panel2);font-weight:600;text-align:left}
+.ed th p,.ed td p{margin:0}
+.ed .selectedCell::after{content:'';position:absolute;inset:0;background:var(--acc);opacity:.15;pointer-events:none}
 .ed a{color:var(--acc2);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .ed strong{font-weight:680;color:#fff}
 .ed em{font-style:italic}
