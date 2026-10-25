@@ -558,6 +558,20 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .slash button.on .ic3,.slash button.on .k{color:rgba(255,255,255,.75)}
 .slash .k{margin-left:auto;font-size:10.5px;color:var(--tx3)}
 .slash .none{font-size:12px;color:var(--tx3);padding:8px 9px}
+/* ô chọn gõ để tìm (select[data-find], xem openFind ở core.js) */
+.sfind{position:fixed;z-index:120;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.55)}
+.sfind input{width:100%;padding:7px 9px;margin-bottom:4px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--tx);font-size:13px;outline:none}
+.sfind input:focus{border-color:var(--acc)}
+.sfind .sfl{max-height:260px;overflow-y:auto;overscroll-behavior:contain}
+.sfind button{display:block;width:100%;padding:6px 9px;border-radius:7px;font-size:13px;color:var(--tx2);
+  text-align:left;white-space:pre;overflow:hidden;text-overflow:ellipsis}
+.sfind button:hover{background:var(--panel)}
+.sfind button.on{background:var(--acc);color:#fff}
+.sfind button mark{background:none;color:inherit;font-weight:700}
+.sfind .sfg{padding:6px 9px 2px;font-size:11px;color:var(--tx3)}
+.sfind .none{font-size:12px;color:var(--tx3);padding:8px 9px}
 
 /* thanh công cụ nổi lên khi bôi đen chữ */
 .ftb{position:fixed;z-index:101;display:flex;gap:2px;background:var(--panel2);border:1px solid var(--line);

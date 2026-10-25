@@ -424,6 +424,8 @@ const STR = {
   'note.pin':       ['☆ Ghim', '☆ Pin'],
   'note.addKid':    ['+ Trang con', '+ Sub-page'],
   'note.moveT':     ['Chuyển trang này vào trong trang khác', 'Move this page inside another page'],
+  'common.findPh':   ['Gõ để tìm…', 'Type to search…'],
+  'common.findNone': ['Không có mục nào khớp', 'Nothing matches'],
   'note.movePh':    ['Chuyển vào…', 'Move into…'],
   'note.moveRoot':  ['Cấp gốc', 'Top level'],
   'note.toTrash':   ['Chuyển vào thùng rác', 'Move to trash'],

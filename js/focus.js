@@ -451,7 +451,7 @@ function fQueueHTML(){
       : `<div class="empty">${tr('fz.queueEmptyB')}</div>`}
     ${q.length < c.qmax
       // chia nhóm theo ưu tiên, cao lên đầu — chọn được việc quan trọng nhất trước
-      ? pool.length ? `<select class="inp" id="fzPick"><option value="">${tr('fz.pickPh')}</option>
+      ? pool.length ? `<select class="inp" id="fzPick" data-find><option value="">${tr('fz.pickPh')}</option>
           ${PRIO_ORDER.map(p => { const g = pool.filter(t => t.prio === p); return g.length ? `<optgroup label="${tr('fz.prioGroup', {n: PRIOS[p].n})}">
             ${g.map(t => `<option value="${t.id}">${esc(t.title.trim() || tr('task.untitled'))}</option>`).join('')}</optgroup>` : ''; }).join('')}</select>`
         : `<div class="fzhint">${tr('fz.poolEmpty')}</div>`

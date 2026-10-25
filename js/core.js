@@ -170,3 +170,75 @@ function nqSnip(e, toks){
 }
 const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const today = () => iso(new Date());
+
+/* --- ô chọn gõ để tìm: <select data-find> ---
+   Select gốc gõ một chữ là nhảy luôn tới mục đầu tiên bắt đầu bằng chữ đó. Với select có data-find,
+   bấm vào hoặc gõ phím thì mở khung có ô tìm (không dấu, nhiều từ) thay cho danh sách của trình duyệt;
+   chọn xong thì gán value rồi bắn 'change', nên chỗ dùng vẫn bắt 'change' như select thường. */
+function openFind(sel, q = ''){
+  closeFind();
+  const items = [...sel.querySelectorAll('option')].filter(o => !o.disabled && o.value)
+    .map(o => ({v: o.value, t: o.textContent, g: o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '', b: fold(o.textContent)}));
+  const el = document.createElement('div');
+  el.className = 'sfind'; el.id = 'sfindEl';
+  el.innerHTML = `<input autocomplete="off" placeholder="${tr('common.findPh')}"><div class="sfl"></div>`;
+  const inp = el.querySelector('input'), list = el.querySelector('.sfl');
+  const draw = () => {
+    const toks = nqToks(inp.value);
+    const hit = items.filter(x => toks.every(tk => x.b.includes(tk)));
+    let g = null;
+    list.innerHTML = hit.length ? hit.map((x, i) => {
+      // nhóm (optgroup) chỉ hiện khi không tìm; đang tìm thì bỏ thụt lề, tô chữ khớp
+      const head = !toks.length && x.g && x.g !== g ? `<div class="sfg">${esc(g = x.g)}</div>` : '';
+      const tt = x.t.trim();
+      return head + `<button type="button" class="${i ? '' : 'on'}" data-v="${esc(x.v)}">${toks.length
+        ? nqHi(tt, fold(tt), toks) : esc(x.t)}</button>`;
+    }).join('') : `<div class="none">${tr('common.findNone')}</div>`;
+  };
+  const pick = v => {
+    closeFind();
+    sel.value = v; sel.dispatchEvent(new Event('change', {bubbles: true}));
+  };
+  inp.oninput = draw;
+  inp.onkeydown = e => {
+    const btns = [...list.querySelectorAll('button')], i = btns.findIndex(b => b.classList.contains('on'));
+    if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+      e.preventDefault();
+      if(!btns.length) return;
+      btns[i]?.classList.remove('on');
+      const j = (i + (e.key === 'ArrowDown' ? 1 : btns.length - 1) + btns.length) % btns.length;
+      btns[j].classList.add('on'); btns[j].scrollIntoView({block: 'nearest'});
+    } else if(e.key === 'Enter'){
+      e.preventDefault();
+      if(btns[Math.max(0, i)]) pick(btns[Math.max(0, i)].dataset.v);
+    } else if(e.key === 'Escape'){
+      e.preventDefault(); e.stopPropagation();   // Esc chỉ đóng khung này, không đóng panel phía sau
+      closeFind(); sel.focus();
+    }
+  };
+  list.onmousedown = e => { e.preventDefault(); const b = e.target.closest('button'); if(b) pick(b.dataset.v); };
+  document.body.appendChild(el);
+  const r = sel.getBoundingClientRect(), w = Math.max(r.width, 260);
+  el.style.width = w + 'px';
+  el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  el.style.top = (r.bottom + 320 > innerHeight ? Math.max(8, r.top - 324) : r.bottom + 4) + 'px';
+  inp.value = q; draw(); inp.focus();
+}
+function closeFind(){
+  const el = $('#sfindEl'); if(el) el.remove();
+}
+document.addEventListener('mousedown', e => {
+  const sel = e.target.closest && e.target.closest('select[data-find]');
+  if(sel){ e.preventDefault(); return $('#sfindEl') ? closeFind() : openFind(sel); }   // chặn danh sách của trình duyệt
+  if(!e.target.closest || !e.target.closest('#sfindEl')) closeFind();
+}, true);
+// khung đứng yên theo màn hình: trang cuộn thì đóng, kẻo khung lệch khỏi ô chọn
+document.addEventListener('scroll', e => { if(!e.target.closest || !e.target.closest('#sfindEl')) closeFind(); }, true);
+document.addEventListener('keydown', e => {
+  const sel = e.target;
+  if(!sel.matches || !sel.matches('select[data-find]') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const ch = e.key.length === 1 && e.key !== ' ';
+  if(!ch && !['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) return;
+  e.preventDefault();
+  openFind(sel, ch ? e.key : '');                 // phím vừa gõ thành chữ đầu tiên trong ô tìm
+}, true);

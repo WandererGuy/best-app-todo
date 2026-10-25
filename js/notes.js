@@ -85,7 +85,7 @@ function renderNotes(){
         <div class="nacts">
           <button class="btn ghost" id="ntPin">${tr(n.pin ? 'note.unpin' : 'note.pin')}</button>
           <button class="btn ghost" id="ntKid">${tr('note.addKid')}</button>
-          ${n.parent || moveTo.length ? `<select class="inp nmove" id="ntMove" title="${tr('note.moveT')}">
+          ${n.parent || moveTo.length ? `<select class="inp nmove" id="ntMove" data-find title="${tr('note.moveT')}">
             <option value="" selected disabled>${tr('note.movePh')}</option>
             ${n.parent ? `<option value="/">${tr('note.moveRoot')}</option>` : ''}
             ${moveTo.map(x => `<option value="${x.n.id}">${'   '.repeat(x.depth)}${nName(x.n)}</option>`).join('')}
