@@ -30,16 +30,30 @@ const keepScroll = () => { if(shownView) viewScroll[shownView] = $('#view').scro
 // trả lại chỗ cũ; trang ngắn hơn trước thì trình duyệt tự kẹp về mức cuộn tối đa
 const restoreScroll = () => { $('#view').scrollTop = viewScroll[ui.view] || 0; };
 /* Trang nhật ký và trang ghi chú cuộn trong khung riêng (.jed, .npage) chứ không trong #view: nhớ chỗ đang đọc
-   theo id từng trang, mở lại trang đó thì cuộn về đúng chỗ. Đặt lại thêm một nhịp sau, vì bảng việc trong trang
-   chỉnh lại chiều cao ô gõ sau khi vẽ; trong lúc đó bỏ qua sự kiện cuộn, kẻo trang chưa đủ cao ghi đè chỗ đã nhớ. */
-const pageScroll = new Map();
+   theo id từng trang, mở lại trang đó thì cuộn về đúng chỗ. Nhớ cả trong localStorage của trình duyệt này
+   (như VIEW_KEY), nên tải lại trang vẫn về chỗ đang gõ.
+   Ảnh và bảng việc trong trang làm trang cao dần sau khi vẽ, nên trong PSCROLL_WAIT ms đầu cứ đặt lại chỗ đã nhớ
+   mỗi khung hình, và bỏ qua sự kiện cuộn, kẻo trang chưa đủ cao ghi đè chỗ đã nhớ. Người dùng tự cuộn thì thôi ngay. */
+const PSCROLL_KEY = 'dieukhien.pscroll', PSCROLL_WAIT = 1500;
+const pageScroll = (() => { try{ return new Map(Object.entries(JSON.parse(localStorage.getItem(PSCROLL_KEY)) || {})); }catch(e){ return new Map(); } })();
+let pScrollT = null;
+const flushPageScroll = () => { clearTimeout(pScrollT); try{ localStorage.setItem(PSCROLL_KEY, JSON.stringify(Object.fromEntries(pageScroll))); }catch(e){} };
+const savePageScroll = () => { clearTimeout(pScrollT); pScrollT = setTimeout(flushPageScroll, 300); };
+addEventListener('pagehide', flushPageScroll);   // tải lại ngay sau khi cuộn: ghi luôn, không chờ hết 300 ms
 function keepPageScroll(box, key){
   if(!box) return;
-  let ready = false;
-  const at = pageScroll.get(key) || 0;
+  const at = pageScroll.get(key) || 0, end = performance.now() + PSCROLL_WAIT;
+  let ready = !at;
+  const stop = () => { ready = true; };
+  ['wheel', 'pointerdown', 'keydown', 'touchstart'].forEach(t => box.addEventListener(t, stop, {once: true, passive: true}));
+  const hold = () => {
+    if(ready || !box.isConnected) return;
+    if(box.scrollTop !== at) box.scrollTop = at;
+    if(performance.now() < end) requestAnimationFrame(hold); else ready = true;
+  };
   box.scrollTop = at;
-  requestAnimationFrame(() => { box.scrollTop = at; ready = true; });
-  box.addEventListener('scroll', () => { if(ready) pageScroll.set(key, box.scrollTop); }, {passive: true});
+  requestAnimationFrame(hold);
+  box.addEventListener('scroll', () => { if(ready){ pageScroll.set(key, box.scrollTop); savePageScroll(); } }, {passive: true});
 }
 function fadeView(){
   const changed = ui.view !== shownView;

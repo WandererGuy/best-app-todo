@@ -56,8 +56,12 @@ function trashNote(id){
   toast(tree.length > 1 ? tr('note.trashed', {k: tree.length - 1}) : tr('trash.movedTask'));
 }
 
+// trang đang mở, nhớ riêng trong trình duyệt này như JPAGE_KEY ở nhật ký: tải lại app vẫn ở đúng trang cũ
+const NPAGE_KEY = 'dieukhien.npage';
 function renderNotes(){
+  if(!ui.nOpen) try{ ui.nOpen = localStorage.getItem(NPAGE_KEY); }catch(e){}
   if(!S.notes.some(n => n.id === ui.nOpen)) ui.nOpen = (S.notes.find(n => n.pin) || S.notes.find(n => !n.parent) || {}).id || null;
+  if(ui.nOpen) try{ localStorage.setItem(NPAGE_KEY, ui.nOpen); }catch(e){}
   const n = S.notes.find(x => x.id === ui.nOpen);
   $('#vSub').textContent = tr('note.sub', {n: S.notes.length});
 
