@@ -352,6 +352,8 @@ const STR = {
   'kb.keyT':      ['Việc team đang cần output trong ngày. Trách nhiệm của mình là hỗ trợ việc team đang cần',
                     'Work the team needs output on today. My job is to support what the team needs'],
   'kb.won':       ['Quan trọng đã xong', 'Important, done'],
+  'kb.setT':      ['Tuỳ chọn của bảng này', 'Board settings'],
+  'kb.prefKey':   ['Hiện ô 🔥 Quan trọng và 🏆 Quan trọng đã xong', 'Show the 🔥 Important and 🏆 Important, done boxes'],
   'kb.wonT':      ['Việc team cần đã có output. Mình đã làm tròn phần của mình 💪',
                     'The team got the output it needed. I did my part 💪'],
   'kb.dueT':      ['Hạn {d}', 'Due {d}'],

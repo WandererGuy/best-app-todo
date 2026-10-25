@@ -164,6 +164,10 @@ const kbStamp = (prev, next) => {
     return out;
   });
 };
+// tuỳ chọn trong menu ⚙ của từng bảng: k = khoá trong attrs.prefs, def = mặc định, n = tên khoá chữ trong options.prefN.
+// key: hiện hai ô lồng đầu cột (Quan trọng, Quan trọng đã xong); tắt thì thẻ trong đó hiện chung với cột cha,
+// vẫn giữ mã ô nên bật lại là về đúng chỗ
+const KB_PREFS = [{k: 'key', def: true}];
 // cột còn việc phải làm: thẻ ở đây mới có hạn chót; ô Quan trọng thì bắt buộc có hạn (chưa có thì hiện nhắc)
 const KB_DUE = ['todo', 'backlog', 'doing', 'key'];
 const kbShortDay = k => { const [y, m, d] = k.split('-'); return `${+d}/${+m}` + (+y !== new Date().getFullYear() ? `/${y.slice(2)}` : ''); };
@@ -191,6 +195,7 @@ const Kanban = Node.create({
             dueT: 'Due {d}', dueL: 'Due', dueNone: 'No due date', dueEdit: 'Click to change the due date',
             pickDate: null,                  // (nút, 'YYYY-MM-DD' | '', onPick(ngày | '')) mở lịch chọn ngày của app
             areas: {work: {n: 'Work', c: '#3b82f6'}, life: {n: 'Life', c: '#a855f7'}}, areaNone: 'Unsorted', areaT: 'Switch between work and life board',
+            prefN: {key: 'Show Important boxes'}, setT: 'Board settings',
             day: '', fmtDay: d => d};
   },
   addAttributes(){
@@ -213,7 +218,12 @@ const Kanban = Node.create({
       // loại bảng: 'work' | 'life' | '' (bảng cũ chưa phân loại); nhãn và màu do app đưa vào qua options.areas
       area: {default: '',
         parseHTML: el => ['work', 'life'].includes(el.getAttribute('data-kbarea')) ? el.getAttribute('data-kbarea') : '',
-        renderHTML: a => a.area ? {'data-kbarea': a.area} : {}}};
+        renderHTML: a => a.area ? {'data-kbarea': a.area} : {}},
+      // tuỳ chọn riêng của bảng này (nút ⚙ trên đầu bảng), chỉ lưu những mục khác mặc định; xem KB_PREFS.
+      // Mỗi bản chép của bảng có tuỳ chọn riêng
+      prefs: {default: {},
+        parseHTML: el => { try{ const v = JSON.parse(el.getAttribute('data-kbprefs')); return v && typeof v === 'object' ? v : {}; }catch(e){ return {}; } },
+        renderHTML: a => Object.keys(a.prefs || {}).length ? {'data-kbprefs': JSON.stringify(a.prefs)} : {}}};
   },
   parseHTML(){ return [{tag: 'div[data-kanban]'}]; },
   renderHTML({node, HTMLAttributes}){
@@ -262,6 +272,32 @@ const Kanban = Node.create({
       // chữ gõ dở chờ ghi (pend), ghi sau một nhịp ngừng gõ; lần lưu thẻ nào cũng mang theo luôn
       let pend = null, pendT = null;
       const curDrafts = () => pend || node.attrs.drafts || {};
+      const pref = k => { const v = (node.attrs.prefs || {})[k]; return v === undefined ? KB_PREFS.find(x => x.k === k).def : v; };
+      // menu ⚙: mỗi tuỳ chọn một ô tick; vẽ lại bảng thì dựng lại menu nếu đang mở
+      let setOpen = false;
+      const offSet = ev => { if(!ev.target.closest?.('.ekbsetm, .ekbset')){ setOpen = false; dom.querySelector('.ekbsetm')?.remove();
+        dom.querySelector('.ekbset')?.classList.remove('on'); document.removeEventListener('pointerdown', offSet, true); } };
+      const setMenu = () => {
+        dom.querySelector('.ekbsetm')?.remove();
+        const gb = dom.querySelector('.ekbset'); if(!gb) return;
+        const m = document.createElement('div');
+        m.className = 'ekbmenu ekbsetm';
+        KB_PREFS.forEach(x => {
+          const r = document.createElement('label');
+          r.className = 'ekbopt';
+          r.innerHTML = '<input type="checkbox"><span></span>';
+          r.querySelector('input').dataset.pref = x.k;
+          r.querySelector('input').checked = !!pref(x.k);
+          r.querySelector('span').textContent = o.prefN[x.k] || x.k;
+          m.appendChild(r);
+        });
+        const r = gb.getBoundingClientRect(), b = dom.getBoundingClientRect();
+        m.style.top = (r.bottom - b.top + 4) + 'px';
+        m.style.right = (b.right - r.right) + 'px';
+        dom.appendChild(m);
+        document.removeEventListener('pointerdown', offSet, true);
+        document.addEventListener('pointerdown', offSet, true);   // bấm ra ngoài thì đóng
+      };
       const write = (attrs, history = true) => {
         clearTimeout(pendT); pend = null;
         if(editor.isDestroyed) return;
@@ -269,7 +305,14 @@ const Kanban = Node.create({
         if(typeof pos !== 'number') return;
         const tr = editor.view.state.tr.setNodeMarkup(pos, null, {...node.attrs, drafts: curDrafts(), ...attrs});
         if(!history) tr.setMeta('addToHistory', false);   // gõ dở không chiếm chỗ trong Ctrl+Z của trang
+        // ProseMirror đặt lại con trỏ của trang sau mỗi lần ghi, Chrome cuộn tới con trỏ đó (vd. đang ở cuối trang
+        // sau khi dán): giữ nguyên chỗ cuộn của mọi khung chứa bảng, sửa bảng thì trang đứng yên
+        const scrolled = [];
+        for(let n = dom.parentElement; n; n = n.parentElement) if(n.scrollHeight > n.clientHeight) scrolled.push([n, n.scrollTop]);
+        const wy = window.scrollY;
         editor.view.dispatch(tr);
+        scrolled.forEach(([n, t]) => { if(n.scrollTop !== t) n.scrollTop = t; });
+        if(window.scrollY !== wy) window.scrollTo(window.scrollX, wy);
       };
       // thẻ đã nối: lấy tiêu đề / cột / việc con từ task; task không còn (đã bỏ vào thùng rác) thì thôi nối, giữ chữ
       const L = o.link;
@@ -338,7 +381,7 @@ const Kanban = Node.create({
         const ar = o.areas && o.areas[node.attrs.area];
         dom.classList.toggle('ar', !!ar);
         if(ar) dom.style.setProperty('--kba', ar.c); else dom.style.removeProperty('--kba');
-        if(label || canCopy || o.areas){
+        if(label || canCopy || o.areas || o.prefN){
           const hd = document.createElement('div');
           hd.className = 'ekbhd';
           if(o.areas){
@@ -358,6 +401,11 @@ const Kanban = Node.create({
             ca.type = 'button'; ca.className = 'ekbca'; ca.textContent = '⧉'; ca.title = o.copyAll;
             hd.appendChild(ca);
           }
+          if(o.prefN){                       // ⚙ tuỳ chọn của bảng này, mở menu (setMenu)
+            const gb = document.createElement('button');
+            gb.type = 'button'; gb.className = 'ekbset' + (setOpen ? ' on' : ''); gb.textContent = '⚙'; gb.title = o.setT;
+            hd.appendChild(gb);
+          }
           dom.appendChild(hd);
         }
         if(sel.size){                        // thanh chọn nhiều: nằm trên cả ba cột
@@ -374,7 +422,10 @@ const Kanban = Node.create({
         grid.className = 'ekbcols';
         dom.appendChild(grid);
         const mkCol = col => {
-          const cards = node.attrs.cards.filter(c => c.s === col.k);
+          // ô lồng đầu cột đang tắt: thẻ của nó hiện trong cột cha, vẫn mang biểu tượng của ô
+          const fold = !pref('key') && o.nestTop && o.nestTop[col.k];
+          const cards = node.attrs.cards.filter(c => c.s === col.k || (fold && c.s === fold.k));
+          const icOf = c => col.ic || (fold && c.s === fold.k ? fold.ic : '');
           const el = document.createElement('div');
           el.className = 'ekbc'; el.dataset.s = col.k;
           el.innerHTML = '<div class="ekbh"><i></i><span></span><b></b></div><div class="ekbl"></div><textarea class="ekba" rows="1"></textarea>';
@@ -438,7 +489,7 @@ const Kanban = Node.create({
               k.title = c.d && c.dh ? (c.d.length > 300 ? c.d.slice(0, 300) + '…' : c.d) : o.editT;
               // việc con cũng vậy: hiện ngay trên thẻ, tick được tại chỗ, bấm nhãn ☑ n/m để ẩn / hiện (sh lưu cùng thẻ)
               const n = sub.filter(x => x.x).length, showS = sub.length && !c.sh;
-              k.innerHTML = (col.ic ? '<i class="ekbic"></i>' : '') + '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
+              k.innerHTML = (icOf(c) ? '<i class="ekbic"></i>' : '') + '<span></span>' + (c.d ? `<button type="button" class="ekbd${showD ? ' on' : ''}">≡</button>` : '')
                 + (sub.length ? `<button type="button" class="ekbsb${n === sub.length ? ' all' : ''}${showS ? ' on' : ''}">☑ ${n}/${sub.length}</button>` : '')
                 + (L ? `<button type="button" class="${c.tk ? 'ekblk' : 'ekbln'}">↗</button>` : '')
                 + '<button type="button" class="ekbcp">⧉</button><button type="button" class="ekbx">✕</button>'
@@ -467,7 +518,7 @@ const Kanban = Node.create({
               if(L) k.querySelector(c.tk ? '.ekblk' : '.ekbln').title = c.tk
                 ? o.linkedT.replace('{b}', L.get(c.tk)?.area === 'life' ? o.linkLife : o.linkWork) : o.linkT;
               k.querySelector('span').textContent = c.t;
-              if(col.ic){ k.querySelector('.ekbic').textContent = col.ic; if(col.tip) k.querySelector('.ekbic').title = col.tip; }
+              if(icOf(c)){ const ic = k.querySelector('.ekbic'), from = col.ic ? col : fold; ic.textContent = from.ic; if(from.tip) ic.title = from.tip; }
               if(c.d) k.querySelector('.ekbd').title = showD ? o.descHide : o.descShow;
               if(showD) k.querySelector('.ekbdt').textContent = c.d;
               if(sub.length) k.querySelector('.ekbsb').title = showS ? o.subHide : o.subShow;
@@ -492,10 +543,11 @@ const Kanban = Node.create({
           const sub = o.nest && o.nest[col.k];
           if(sub){ const b = mkCol(sub); b.classList.add('ekbin'); el.appendChild(b); }
           const top = o.nestTop && o.nestTop[col.k];
-          if(top){ const b = mkCol(top); b.classList.add('ekbin', 'top'); el.insertBefore(b, el.querySelector('.ekbl')); }
+          if(top && pref('key')){ const b = mkCol(top); b.classList.add('ekbin', 'top'); el.insertBefore(b, el.querySelector('.ekbl')); }
           grid.appendChild(el);
         });
         cheer.clear();                       // ăn mừng một lần, lần vẽ sau thẻ đứng yên
+        if(setOpen) setMenu();
         fitAll();
         if(!dom.isConnected) requestAnimationFrame(fitAll);
         let f = null;
@@ -565,6 +617,11 @@ const Kanban = Node.create({
         }
       });
       dom.addEventListener('change', e => {
+        if(e.target.dataset.pref){           // tick trong menu ⚙: chỉ lưu khi khác mặc định
+          const k = e.target.dataset.pref, def = KB_PREFS.find(x => x.k === k).def;
+          const {[k]: _, ...rest} = node.attrs.prefs || {};
+          return write({prefs: e.target.checked === def ? rest : {...rest, [k]: e.target.checked}});
+        }
         if(!e.target.matches('.ekbsc')) return;
         const id = e.target.closest('.ekbk').dataset.id, sid = e.target.closest('[data-sid]').dataset.sid, on = e.target.checked;
         save(editSubs(id, sub => sub.map(x => {
@@ -615,6 +672,13 @@ const Kanban = Node.create({
           const tk = L.create(c, mi.dataset.area);
           return save(node.attrs.cards.map(x => x.id === id ? {...x, tk} : x));
         }
+        if(e.target.closest('.ekbset')){
+          setOpen = !setOpen;
+          e.target.closest('.ekbset').classList.toggle('on', setOpen);
+          if(setOpen) setMenu(); else dom.querySelector('.ekbsetm')?.remove();
+          return;
+        }
+        if(e.target.closest('.ekbsetm')) return;
         if(e.target.closest('.ekbarea')) return write({area: node.attrs.area === 'work' ? 'life' : 'work'});
         const di = e.target.closest('.ekbdi, .ekbdl');
         if(di){                              // ô ngày trong thẻ đang mở / nút hạn trên thẻ gập: chọn ngày mới, hoặc xoá để bỏ ngày đó
@@ -828,7 +892,7 @@ const Kanban = Node.create({
         update(n){
           if(n.type !== node.type) return false;
           const same = JSON.stringify(n.attrs.cards) === JSON.stringify(node.attrs.cards) && n.attrs.day === node.attrs.day
-            && n.attrs.area === node.attrs.area;
+            && n.attrs.area === node.attrs.area && JSON.stringify(n.attrs.prefs) === JSON.stringify(node.attrs.prefs);
           node = n;
           if(!same) draw();
           else dom.querySelectorAll('.ekba').forEach(i => {   // chỉ chữ gõ dở đổi (vd. Ctrl+Z): khỏi vẽ lại kẻo mất con trỏ

@@ -503,6 +503,15 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
   border:1px solid var(--line);background:var(--panel2);color:var(--tx3);font-size:11px;line-height:18px}
 .ed .ekbca:hover{border-color:var(--acc);color:var(--acc2)}
 .ed .ekbca.ok{color:#22c55e;border-color:#22c55e}
+/* ⚙ tuỳ chọn của bảng: góc phải hàng đầu, cạnh nút chép cả bảng; menu là các ô tick */
+.ed .ekbset{margin-left:auto;width:22px;height:20px;padding:0;border-radius:5px;
+  border:1px solid var(--line);background:var(--panel2);color:var(--tx3);font-size:12px;line-height:18px}
+.ed .ekbca + .ekbset{margin-left:-2px}
+.ed .ekbset:hover,.ed .ekbset.on{border-color:var(--acc);color:var(--acc2)}
+.ed .ekbsetm{min-width:220px}
+.ed .ekbopt{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;color:var(--tx);font-size:12.5px;cursor:pointer}
+.ed .ekbopt:hover{background:var(--panel)}
+.ed .ekbopt input{margin:0;accent-color:var(--acc)}
 /* việc con: nhãn đã xong / tổng trên thẻ gập, danh sách tick được trong thẻ đang mở */
 .ed .ekbsb{flex:none;color:var(--tx3);font-size:11.5px;line-height:18px;white-space:nowrap;padding:0 3px;border-radius:4px}
 .ed .ekbsb.on{color:var(--acc2)}

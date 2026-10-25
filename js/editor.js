@@ -167,6 +167,7 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
              nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
              nestTop: {doing: {k: 'key', n: tr('kb.key'), c: '#ef4444', ic: '🔥', tip: tr('kb.keyT')},
                        done: {k: 'won', n: tr('kb.won'), c: '#eab308', ic: '🏆', tip: tr('kb.wonT')}},
+             prefN: {key: tr('kb.prefKey')}, setT: tr('kb.setT'),
              dueT: tr('kb.dueT'), dueL: tr('kb.dueL'), dueNone: tr('kb.dueNone'), dueEdit: tr('kb.dueEdit'),
              // màu riêng của bảng trong trang (nhạt hơn màu mảng ở bảng lớn): công việc xanh dương nhạt, cuộc sống xanh lá nhạt
              areas: {work: {n: AREAS.work.n, c: '#93c5fd'}, life: {n: AREAS.life.n, c: '#86efac'}},
