@@ -70,6 +70,7 @@ function renderJournal(){
         ${pages.map((t, i) => `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`).join('')}
         <button class="jtab ico" id="jAdd" title="${tr('journal.addPage')}">+</button>
         <button class="jtab ico" id="jRen" title="${tr('journal.renPage')}">✎</button>
+        <button class="jtab ico" id="jLink" title="${tr('plink.copyT')}">🔗</button>
         ${pages.length > 1 ? `<button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>` : ''}
       </div>
       <div class="jed" id="jHost"></div>
@@ -116,6 +117,7 @@ function renderJournal(){
     pages.push({id:uid(), name:tr('journal.newPage', {n: pages.length + 1}), html:''});
     ui.jTab = pages.length - 1; save(); renderJournal();
   };
+  $('#jLink').onclick = () => copyPageLink(`#j/${ui.jDate}/${page.id}`, tr('nav.journal') + ' ' + jPageName(ui.jDate, pages, page));
   $('#jRen').onclick = () => {
     const n = prompt(tr('journal.askName'), page.name);
     if(n && n.trim()){ page.name = n.trim(); save(); renderJournal(); }

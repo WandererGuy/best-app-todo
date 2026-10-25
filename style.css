@@ -363,6 +363,9 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed hr{border:none;border-top:1px solid var(--line);margin:16px 0}
 .ed hr.ProseMirror-selectednode{border-top-color:var(--acc)}
 /* bảng (lệnh /bảng): kẻ ô, hàng đầu là tiêu đề; bảng rộng thì cuộn ngang trong khung */
+/* link tới trang trong app (#n/… ghi chú, #j/… nhật ký): có biểu tượng trang, bấm là chuyển trang */
+.ed a[href*="#n/"]::before{content:'📄 ';font-size:.85em}
+.ed a[href*="#j/"]::before{content:'📓 ';font-size:.85em}
 .ed .tableWrapper{overflow-x:auto;margin:0 0 10px}
 .ed table{border-collapse:collapse;table-layout:fixed;width:100%;margin:0}
 .ed th,.ed td{border:1px solid var(--line);padding:6px 10px;vertical-align:top;min-width:60px;position:relative}

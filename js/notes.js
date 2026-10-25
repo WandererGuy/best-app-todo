@@ -90,6 +90,7 @@ function renderNotes(){
         <div class="nacts">
           <button class="btn ghost" id="ntPin">${tr(n.pin ? 'note.unpin' : 'note.pin')}</button>
           <button class="btn ghost" id="ntKid">${tr('note.addKid')}</button>
+          <button class="btn ghost" id="ntLink" title="${tr('plink.copyT')}">${tr('plink.copy')}</button>
           ${n.parent || moveTo.length ? `<select class="inp nmove" id="ntMove" data-find title="${tr('note.moveT')}">
             <option value="" selected disabled>${tr('note.movePh')}</option>
             ${n.parent ? `<option value="/">${tr('note.moveRoot')}</option>` : ''}
@@ -155,6 +156,7 @@ function renderNotes(){
     save(); renderNotes();
   };
   $('#ntKid').onclick = () => newNote(n.id);
+  $('#ntLink').onclick = () => copyPageLink('#n/' + n.id, n.title.trim() || tr('note.untitled'));
   if($('#ntMove')) $('#ntMove').onchange = e => {
     nPlace(n, e.target.value === '/' ? null : e.target.value, null);   // xuống cuối danh sách con của cha mới
     save(); renderNotes();

@@ -176,16 +176,25 @@ const today = () => iso(new Date());
    bấm vào hoặc gõ phím thì mở khung có ô tìm (không dấu, nhiều từ) thay cho danh sách của trình duyệt;
    chọn xong thì gán value rồi bắn 'change', nên chỗ dùng vẫn bắt 'change' như select thường. */
 function openFind(sel, q = ''){
-  closeFind();
   const items = [...sel.querySelectorAll('option')].filter(o => !o.disabled && o.value)
-    .map(o => ({v: o.value, t: o.textContent, g: o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : '', b: fold(o.textContent)}));
+    .map(o => ({v: o.value, t: o.textContent, g: o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : ''}));
+  openPick(items, sel.getBoundingClientRect(), {q,
+    onPick: v => { sel.value = v; sel.dispatchEvent(new Event('change', {bubbles: true})); },
+    onEsc: () => sel.focus()});
+}
+/* khung tìm dùng chung: items = [{v, t, g?}] (g = tên nhóm), đặt dưới hình chữ nhật r (left, top, bottom, width);
+   chọn thì gọi onPick(v), Esc thì onEsc(). Chỉ vẽ PICK_MAX mục đầu, gõ thêm để lọc */
+const PICK_MAX = 80;
+function openPick(items, r, {q = '', onPick, onEsc = () => {}, width = 260} = {}){
+  closeFind();
+  items = items.map(x => ({...x, b: fold(x.t)}));
   const el = document.createElement('div');
   el.className = 'sfind'; el.id = 'sfindEl';
   el.innerHTML = `<input autocomplete="off" placeholder="${tr('common.findPh')}"><div class="sfl"></div>`;
   const inp = el.querySelector('input'), list = el.querySelector('.sfl');
   const draw = () => {
     const toks = nqToks(inp.value);
-    const hit = items.filter(x => toks.every(tk => x.b.includes(tk)));
+    const hit = items.filter(x => toks.every(tk => x.b.includes(tk))).slice(0, PICK_MAX);
     let g = null;
     list.innerHTML = hit.length ? hit.map((x, i) => {
       // nhóm (optgroup) chỉ hiện khi không tìm; đang tìm thì bỏ thụt lề, tô chữ khớp
@@ -195,10 +204,7 @@ function openFind(sel, q = ''){
         ? nqHi(tt, fold(tt), toks) : esc(x.t)}</button>`;
     }).join('') : `<div class="none">${tr('common.findNone')}</div>`;
   };
-  const pick = v => {
-    closeFind();
-    sel.value = v; sel.dispatchEvent(new Event('change', {bubbles: true}));
-  };
+  const pick = v => { closeFind(); onPick(v); };
   inp.oninput = draw;
   inp.onkeydown = e => {
     const btns = [...list.querySelectorAll('button')], i = btns.findIndex(b => b.classList.contains('on'));
@@ -213,12 +219,12 @@ function openFind(sel, q = ''){
       if(btns[Math.max(0, i)]) pick(btns[Math.max(0, i)].dataset.v);
     } else if(e.key === 'Escape'){
       e.preventDefault(); e.stopPropagation();   // Esc chỉ đóng khung này, không đóng panel phía sau
-      closeFind(); sel.focus();
+      closeFind(); onEsc();
     }
   };
   list.onmousedown = e => { e.preventDefault(); const b = e.target.closest('button'); if(b) pick(b.dataset.v); };
   document.body.appendChild(el);
-  const r = sel.getBoundingClientRect(), w = Math.max(r.width, 260);
+  const w = Math.max(r.width || 0, width);
   el.style.width = w + 'px';
   el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
   el.style.top = (r.bottom + 320 > innerHeight ? Math.max(8, r.top - 324) : r.bottom + 4) + 'px';

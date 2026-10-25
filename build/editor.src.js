@@ -999,6 +999,12 @@ function mdBlocks(schema, text, marks){
 }
 // HTML mà trình soạn code chép kèm (VS Code, JetBrains…) chỉ là chữ tô màu: dán như chữ trơn để các dòng "- " thành danh sách
 const codeHTML = h => /white-space:\s*pre|^\s*(<meta[^>]*>\s*)?<pre\b/i.test(h) && !/<(p|li|h[1-6]|table|img|br)\b/i.test(h);
+// link tới trang trong app: trả '#n/…' (ghi chú) | '#j/…' (nhật ký), không phải thì null.
+// Chrome chép HTML vào clipboard thì đổi link thành dạng đầy đủ (http://máy-này/#n/…), nên nhận cả dạng đó
+const pageHref = href => {
+  try{ const u = new URL(href, location.href); return u.origin === location.origin && /^#[nj]\//.test(u.hash) ? u.hash : null; }
+  catch(e){ return null; }
+};
 let pasteMd = false;                         // dán chữ trơn do handlePaste chuyển sang: vẫn đổi kiểu markdown
 let mdSlice = null;                          // slice clipboardTextParser vừa dựng, chờ transformPasted trả lại nguyên vẹn
 
@@ -1019,6 +1025,7 @@ const CMD = {
   kb:  c => c.insertContent({type:'kanban', attrs:{area:'work'}}),
   kbl: c => c.insertContent({type:'kanban', attrs:{area:'life'}}),
   tbl:   c => c.insertTable({rows:3, cols:3, withHeaderRow:true}),
+  plink: c => c,                             // chỉ xoá "/lệnh"; app mở khung chọn trang rồi gọi TT.pageLink
   // các lệnh dưới chạy từ menu tay nắm của bảng (TT.tableCmd), không có trong menu "/"
   tbRow: c => c.addRowAfter(),
   tbRowUp: c => c.addRowBefore(),
@@ -1045,7 +1052,7 @@ window.TT = {
      onFiles(files, pos) nhận file được dán / kéo thả vào (pos = null: tại con trỏ);
      kanban = {cols, day, fmtDay, addPh, addT, pastePh, delT, copyT, copied, editT, descPh, subPh, subT, selN, copySel, copiedSel, clearSel, copyAll, copiedAll, descHide, descShow, subHide, subShow, link, linkT, linkWork, linkLife, linkedT}:
      link = {get(id) -> {t, s, sub, area} | null, create(thẻ, 'work' | 'life') -> id task, update(id, {t?, s?, sub?}), open(id)} tên / màu cột và chữ trên bảng việc trong trang */
-  create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban} = {}){
+  create(el, {content = '', placeholder = '', onChange = () => {}, imgSrc, fileCanView, fileView, onFiles = () => {}, kanban, onPageLink} = {}){
     return new Editor({
       element: el,
       content,
@@ -1072,6 +1079,19 @@ window.TT = {
       ],
       editorProps:{
         attributes:{ class:'ed' },
+        // link tới trang trong app (#n/… ghi chú, #j/… nhật ký): chuyển trang thay vì mở tab mới như link thường.
+        // editorProps chạy trước plugin của Link nên chặn được ở đây
+        handleClick(view, pos, e){
+          const a = e.button === 0 && e.target.closest && e.target.closest('a[href]');
+          const h = a && pageHref(a.getAttribute('href'));
+          if(!h || !onPageLink) return false;
+          onPageLink(h);
+          return true;
+        },
+        // dán link trang (nút 🔗): đưa về dạng ngắn #n/… như lúc chèn bằng /lệnh
+        transformPastedHTML(html){
+          return html.replace(/href="([^"]*)"/g, (m, h) => { const p = pageHref(h.replace(/&amp;/g, '&')); return p ? `href="${p}"` : m; });
+        },
         handlePaste(view, e){
           const cd = e.clipboardData;
           const files = [...(cd && cd.files || [])];
@@ -1179,6 +1199,12 @@ window.TT = {
     if(key === 'h1' || key === 'h2' || key === 'h3')
       return editor.isActive('heading', {level:+key[1]});
     return editor.isActive(n);
+  },
+
+  /* chèn link tới trang khác trong app tại con trỏ, kèm một dấu cách không thuộc link để gõ tiếp */
+  pageLink(editor, href, text){
+    if(editor.isDestroyed) return;
+    editor.chain().focus().insertContent([{type: 'text', text, marks: [{type: 'link', attrs: {href}}]}, {type: 'text', text: ' '}]).run();
   },
 
   /* nút + và tay nắm của bảng (xem editor.js): đặt con trỏ vào ô cell (phần tử td / th) rồi chạy lệnh key của CMD */

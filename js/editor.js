@@ -54,6 +54,7 @@ const BLOCKS = [
   {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
   {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:''},
   {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
+  {k:'plink', n:tr('blk.plink'), ic:'↗', key:''},
   {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:''},     // sửa bảng thì dùng nút + và tay nắm trên bảng (showTbAdd)
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
@@ -163,7 +164,7 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
   closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
-    imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos),
+    imgSrc, fileCanView, fileView, onFiles: (files, pos) => dropFiles(ed, files, pos), onPageLink: openPageLink,
     kanban: {cols: Object.entries(COLS).map(([k, c]) => ({k, n: c.n, c: c.c})), day: kbDay, fmtDay: kbFmtDay,
              nest: {todo: {k: 'backlog', n: 'Backlog', c: STATUSES.backlog.c}, done: {k: 'drop', n: tr('kb.drop'), c: '#78716c'}},
              nestTop: {doing: {k: 'key', n: tr('kb.key'), c: '#ef4444', ic: '🔥', tip: tr('kb.keyT')},
@@ -234,6 +235,51 @@ function pickSlash(k){
   if(k === 'img') pickImages(ed);
   if(k === 'file') pickFiles(ed);
   if(k === 'kbp') kbPickDays(ed);
+  if(k === 'plink') pickPageLink(ed);
+}
+
+/* --- liên kết tới trang: gõ /, chọn "Liên kết tới trang", tìm trong cả ghi chú lẫn nhật ký.
+   Link lưu dạng #n/<id trang ghi chú> hoặc #j/<ngày>/<id trang nhật ký>; chữ của link là tên trang lúc chèn --- */
+function pageItems(){
+  const notes = S.notes.map(n => ({v: '#n/' + n.id, g: tr('nav.notes'), lt: n.title.trim() || tr('note.untitled'),
+    t: [...nPath(n), n].map(p => p.title.trim() || tr('note.untitled')).join(' / ')}));
+  const days = Object.keys(S.journal).filter(dayHas).sort().reverse().flatMap(d => {
+    const pgs = Array.isArray(S.journal[d]) ? S.journal[d] : [];
+    return pgs.map(p => { const t = jPageName(d, pgs, p);
+      return {v: `#j/${d}/${p.id}`, g: tr('nav.journal'), t, lt: tr('nav.journal') + ' ' + t}; });
+  });
+  return [...notes, ...days];
+}
+// tên trang nhật ký trong link: ngày, thêm tên trang nếu ngày đó có nhiều trang
+const jPageName = (d, pgs, p) => fmtVN(d) + (pgs.length > 1 ? ' · ' + p.name : '');
+/* nút 🔗 ở trang ghi chú / nhật ký: chép link của trang đang mở. Chép cả dạng HTML nên dán (Ctrl+V) vào trang khác
+   là ra đúng link bấm được như /lệnh; dấu cách sau link để gõ tiếp không bị dính vào link */
+async function copyPageLink(href, text){
+  const html = `<a href="${esc(href)}">${esc(text)}</a>&nbsp;`;
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html], {type: 'text/html'}), 'text/plain': new Blob([text], {type: 'text/plain'})})]);
+    toast(tr('plink.copied'));
+  }catch(e){ toast(tr('plink.copyFail')); }
+}
+function pickPageLink(ed){
+  const items = pageItems(), c = TT.caretRect(ed) || {left: 200, top: 200, bottom: 200};
+  openPick(items, {left: c.left, top: c.top, bottom: c.bottom}, {width: 340,
+    onPick: v => TT.pageLink(ed, v, items.find(x => x.v === v).lt),
+    onEsc: () => ed.commands.focus()});
+}
+function openPageLink(href){
+  let m;
+  if((m = href.match(/^#n\/(.+)$/))){
+    if(!S.notes.some(n => n.id === m[1])) return toast(tr('plink.gone'));
+    ui.nOpen = m[1];
+    if(ui.view === 'notes') renderNotes(); else goView('notes');
+  }else if((m = href.match(/^#j\/(\d{4}-\d\d-\d\d)\/(.+)$/))){
+    const pgs = Array.isArray(S.journal[m[1]]) ? S.journal[m[1]] : [], i = pgs.findIndex(p => p.id === m[2]);
+    if(i < 0) return toast(tr('plink.gone'));
+    ui.jDate = m[1]; ui.jTab = i; jKept = null;   // jKept: trang nhớ từ lần trước, không được giành chỗ trang vừa bấm
+    if(ui.view === 'journal') renderJournal(); else goView('journal');
+  }
 }
 function slashKeys(e, ed){
   if(!slash) return;
