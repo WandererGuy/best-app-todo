@@ -36,7 +36,8 @@ function paintSave(){
 /* ---- dữ liệu chính nằm ở server: serve.py ghi ra data/dieukhien.json ----
    localStorage chỉ là bản đệm, nên xoá cache hay đổi profile Chrome không mất gì.
    Mỗi lần ghi kèm mã phiên bản (ETag) của bản trên server mà dữ liệu đang dựa vào; cửa sổ khác đã ghi
-   trước thì server trả 409 — lúc đó tab này nạp lại bản mới (xem pullSrv) thay vì đè lên.
+   trước thì server trả 409 — lúc đó tab này lấy bản mới về và gộp với thay đổi của mình (xem pullSrv, merge3)
+   rồi mới gửi lại, không đè lên nhau và không bỏ thứ đang gõ.
    localStorage 'dieukhien.srv' = {tag, dirty, next?}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt);
    next = mã phiên bản server sẽ có nếu lượt ghi đang gửi đi lọt (serve.py đặt ETag = sha1 của đúng nội dung nhận được).
    Tải lại trang giữa lúc đang gửi thì server đã ghi mà tab không kịp nghe trả lời: nhờ next, lần mở sau
@@ -49,6 +50,7 @@ const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
 let srvOn = false;      // phiên này đang ghi lên server
 let srvErr = null;      // null | 'off': không nối / không gửi được | 'conflict': cửa sổ khác đã ghi
 let srvTag = null, srvTimer = null, srvBusy = false, srvKeep = false, srvGen = 0, srvNext = null;
+let srvBase = null;     // bản server ứng với srvTag (đã qua applyData, không có images): mốc để biết tab này đã sửa gì
 function setMeta(dirty){
   if(srvTag) try{ localStorage.setItem(SRV_KEY, JSON.stringify({tag:srvTag, dirty, ...(srvNext ? {next:srvNext} : {})})); }catch(e){}
 }
@@ -76,13 +78,14 @@ async function pushSrv(){
                           {method:'PUT', headers:{...SRV_H, 'If-Match':srvTag}, body});
     srvNext = null;
     if(r.status === 409){
-      // cửa sổ khác vừa ghi: cất bản ở đây vào data/backups rồi nạp bản mới về, không đè lên nhau
-      await stashSrv();
+      // cửa sổ khác vừa ghi: lấy bản mới về, gộp với thay đổi ở đây rồi gửi lại (pullSrv tự queueSrv)
       srvErr = 'conflict'; paintSave();
       srvBusy = false;
       await pullSrv(true);
       return;
     }else if(r.ok){
+      const {images, ...sent} = JSON.parse(body);
+      srvBase = sent;
       srvTag = r.headers.get('ETag'); srvErr = null; srvKeep = srvKeep && !keep;
       setMeta(gen !== srvGen);
       bcSend();
@@ -135,17 +138,90 @@ async function pullSrv(force){
       imgData.set(id, url);
       if(!await imgGet(id)) await imgPut(id, await (await fetch(url)).blob());
     }
-    applyData(d);
+    const mine = S;
+    applyData(d);                    // applyData ghi vào S: lấy bản đã chuẩn hoá ra rồi trả S về như cũ,
+    const theirs = S, c = {n: 0};    // gộp có lỗi thì dữ liệu ở đây vẫn còn nguyên
+    S = mine;
+    // tab này có thay đổi chưa lên server (so với srvBase): gộp vào bản mới thay vì bỏ đi
+    const mineDirty = srvBase && !same(mine, srvBase);
+    S = mineDirty ? merge3(srvBase, mine, theirs, c) : theirs;
+    srvBase = JSON.parse(JSON.stringify(theirs));
     srvTag = tag; srvErr = null; pullWait = false;
     try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); }catch(e){ storageOK = false; }
-    setMeta(false);
-    render();
-    if(ui.open) drawTask();          // render() không vẽ lại panel task đang mở
+    if(mineDirty) queueSrv(); else setMeta(false);   // bản gộp khác bản server: gửi lên
+    if(c.n){                         // cùng một chỗ bị sửa ở cả hai nơi: giữ bản ở đây, cất bản kia vào data/backups
+      fetch('/api/backup', {method:'POST', headers:SRV_H, body: JSON.stringify(d)}).catch(() => {});   // không chờ: vẽ lại ngay
+    }
+    renderKeep();
     if(S.focus.run) fStartTick(); else fStopTick();   // tab khác vừa bắt đầu / dừng phiên: nhịp đồng hồ ở đây theo kịp
-    if(force) toast(tr('sv.pulled'));
+    if(c.n) toast(tr('sv.mergedKept'));
+    else if(mineDirty) toast(tr('sv.merged'));
   }catch(e){ /* server tắt: pushSrv sẽ báo, ở đây im lặng */ }
   finally{ pullBusy = false; }
 }
+/* vẽ lại sau khi nạp bản mới mà không làm mất chỗ đang gõ: render() dựng lại trình soạn và ô nhập,
+   nên nhớ ô đang focus cùng vị trí con trỏ rồi đặt lại */
+function renderKeep(){
+  const a = document.activeElement;
+  const hit = [...EDS].find(([, e]) => !e.isDestroyed && e.view.hasFocus());
+  const sel = hit && {from: hit[1].state.selection.from, to: hit[1].state.selection.to};
+  const inp = !hit && a && a.id && a.matches('input, textarea') ? {id: a.id, s: a.selectionStart, e: a.selectionEnd} : null;
+  render();
+  if(ui.open) drawTask();          // render() không vẽ lại panel task đang mở
+  const e = hit && EDS.get(hit[0]);
+  if(e && !e.isDestroyed){
+    const max = e.state.doc.content.size;
+    e.chain().focus(null, {scrollIntoView: false}).setTextSelection({from: Math.min(sel.from, max), to: Math.min(sel.to, max)}).run();
+  }
+  const el = inp && document.getElementById(inp.id);
+  if(el){ el.focus({preventScroll: true}); try{ el.setSelectionRange(inp.s, inp.e); }catch(err){} }
+}
+
+/* ---- gộp ba bên: base = bản server tab này dựa vào, mine = dữ liệu ở tab này, theirs = bản server mới ----
+   Gộp theo từng khoá của object và theo id của từng phần tử trong mảng (task, trang ghi chú, trang nhật ký,
+   thói quen…), nên sửa hai trang khác nhau ở hai cửa sổ thì giữ cả hai. Một bên xoá, bên kia sửa thì giữ bản sửa.
+   Cùng một giá trị bị sửa ở cả hai bên (vd. cùng một trang) thì bản ở tab này thắng và c.n tăng. */
+const same = (a, b) => a === b || JSON.stringify(a) === JSON.stringify(b);
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const idList = (b, m, t) => Array.isArray(m) && Array.isArray(t) && (b === undefined || Array.isArray(b))
+  && [b || [], m, t].every(a => a.every(x => isObj(x) && x.id != null));
+function merge3(base, mine, theirs, c){
+  if(same(mine, base)) return theirs;
+  if(same(theirs, base) || same(mine, theirs)) return mine;
+  if(isObj(mine) && isObj(theirs)){
+    const b = isObj(base) ? base : {}, out = {};
+    for(const k of new Set([...Object.keys(mine), ...Object.keys(theirs)])){
+      const v = !(k in theirs) ? (k in b && same(mine[k], b[k]) ? undefined : mine[k])     // bên kia đã xoá khoá này
+        : !(k in mine) ? (k in b && same(theirs[k], b[k]) ? undefined : theirs[k])        // ở đây đã xoá
+        : merge3(b[k], mine[k], theirs[k], c);
+      if(v !== undefined) out[k] = v;
+    }
+    return out;
+  }
+  if(idList(base, mine, theirs)) return mergeList(base || [], mine, theirs, c);
+  c.n++;
+  return mine;
+}
+function mergeList(base, mine, theirs, c){
+  const B = new Map(base.map(x => [x.id, x])), M = new Map(mine.map(x => [x.id, x])), T = new Map(theirs.map(x => [x.id, x]));
+  const keep = new Map();
+  for(const id of new Set([...M.keys(), ...T.keys()])){
+    const b = B.get(id), m = M.get(id), t = T.get(id);
+    const v = m && t ? merge3(b, m, t, c)
+      : m ? (b && same(m, b) ? null : m)        // bên kia đã xoá: chỉ giữ khi ở đây có sửa
+      : (b && same(t, b) ? null : t);           // ở đây đã xoá: chỉ giữ khi bên kia có sửa
+    if(v) keep.set(id, v);
+  }
+  // thứ tự: tab này có đổi thứ tự (kéo thả) thì theo tab này, không thì theo bản mới;
+  // phần tử chỉ bên còn lại có thì chèn ngay sau phần tử đứng trước nó ở bên đó
+  const ids = a => a.map(x => x.id).filter(id => keep.has(id));
+  const common = (a, s) => a.map(x => x.id).filter(id => s.has(id));
+  const moved = !same(common(mine, B), common(base, M));
+  const order = ids(moved ? mine : theirs), rest = ids(moved ? theirs : mine);
+  rest.forEach((id, i) => { if(!order.includes(id)) order.splice(i ? order.indexOf(rest[i - 1]) + 1 : 0, 0, id); });
+  return order.map(id => keep.get(id));
+}
+
 function paintSync(){
   const b = $('#syncBar'); if(!b) return;
   b.hidden = !pullWait;
@@ -181,6 +257,7 @@ async function boot(){
   const d = await res.json(); srvTag = res.headers.get('ETag');
   // thay đổi lần trước chưa kịp gửi, hoặc đã gửi tới nơi mà tab tắt trước khi nghe trả lời (next)
   if(local && meta && meta.dirty && (meta.tag === srvTag || (meta.next && meta.next === srvTag))){
+    applyData(d); srvBase = JSON.parse(JSON.stringify(S));
     applyData(local); save(); return '';
   }
   if(local && !(meta && !meta.dirty)){                      // dữ liệu riêng của trình duyệt này, chưa lên server
@@ -193,6 +270,7 @@ async function boot(){
     if(!await imgGet(id)) await imgPut(id, await (await fetch(url)).blob());
   }
   applyData(d);
+  srvBase = JSON.parse(JSON.stringify(S));
   try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); }catch(e){ storageOK = false; }
   setMeta(false);
   return msg;
