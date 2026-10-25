@@ -54,13 +54,7 @@ const BLOCKS = [
   {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
   {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:''},
   {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
-  {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:''},
-  // sửa bảng: chỉ hiện khi con trỏ đang trong bảng (tb: true)
-  {k:'tbRow',    n:tr('blk.tbRow'),    ic:'↓', key:'Tab', tb:true},
-  {k:'tbCol',    n:tr('blk.tbCol'),    ic:'→', key:'',    tb:true},
-  {k:'tbDelRow', n:tr('blk.tbDelRow'), ic:'✕', key:'',    tb:true},
-  {k:'tbDelCol', n:tr('blk.tbDelCol'), ic:'✕', key:'',    tb:true},
-  {k:'tbDel',    n:tr('blk.tbDel'),    ic:'✕', key:'',    tb:true},
+  {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:''},     // sửa bảng thì dùng nút + và tay nắm trên bảng (showTbAdd)
   {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
   {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
   {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
@@ -197,6 +191,7 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
     if(img && img.src && !img.classList.contains('miss')) openLightbox(img.src);
   });
   dom.addEventListener('keydown', e => slashKeys(e, ed), true);   // chặn trước ProseMirror
+  dom.addEventListener('mousemove', e => { const w = e.target.closest('.tableWrapper'); if(w) showTbAdd(ed, w, e.target.closest('td, th')); });
   ed.on('update',          () => { syncMenus(ed); keepCaretOffBottom(ed); });   // bám theo TipTap, không bám phím
   ed.on('selectionUpdate', () => syncMenus(ed));
   dom.addEventListener('keydown', e => {
@@ -214,8 +209,7 @@ function syncMenus(ed){
 /* --- menu lệnh "/" --- */
 let slash = null;
 function openSlash(ed, info){
-  const inTb = TT.inTable(ed);
-  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!b.tb || inTb) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
+  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
   let el = document.getElementById('slashEl');
   if(!el){
     el = document.createElement('div'); el.className = 'slash'; el.id = 'slashEl';
@@ -256,6 +250,99 @@ function slashKeys(e, ed){
   if(e.key === 'Enter' && btns.length){ e.preventDefault(); e.stopPropagation(); pickSlash(btns[Math.max(0,i)].dataset.b); return; }
   if(e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); closeSlash(); }
 }
+
+// menu "/" và menu tay nắm bảng: chuột tới mục nào thì mục đó sáng, dùng chung ô sáng với phím ↑↓ (Enter chọn đúng mục đang sáng)
+document.addEventListener('mouseover', e => {
+  const b = e.target.closest && e.target.closest('.slash button');
+  if(!b || b.classList.contains('on')) return;
+  b.parentElement.querySelectorAll('button.on').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+});
+
+/* --- bảng, như Notion: nút + ở mép phải / mép dưới (thêm cột / dòng cuối), tay nắm ⋮ ở đầu dòng và ⋯ trên đầu
+   cột của ô đang trỏ (bấm ra menu thêm / xoá). Rê chuột vào bảng thì hiện, ra xa thì ẩn --- */
+let tbHover = null;                          // {ed, wrap, cell}: bảng và ô đang trỏ
+const TB_MENU = {
+  row: [['tbRowUp', '↑'], ['tbRow', '↓'], ['tbDelRow', '✕'], ['tbDel', '✕']],
+  col: [['tbColL', '←'], ['tbCol', '→'], ['tbDelCol', '✕'], ['tbDel', '✕']],
+};
+function showTbAdd(ed, wrap, cell){
+  if(document.getElementById('tbMenuEl')) return;   // menu đang mở: giữ nguyên dòng / cột đã chọn
+  let el = document.getElementById('tbAddEl');
+  if(!el){
+    el = document.createElement('div'); el.id = 'tbAddEl';
+    el.innerHTML = `<button type="button" class="tbadd" data-k="col" title="${tr('blk.tbCol')}">+</button>`
+      + `<button type="button" class="tbadd" data-k="row" title="${tr('blk.tbRow')}">+</button>`
+      + `<button type="button" class="tbh" data-h="row" title="${tr('tb.rowT')}">⋮</button>`
+      + `<button type="button" class="tbh" data-h="col" title="${tr('tb.colT')}">⋯</button>`;
+    el.onmousedown = e => {
+      e.preventDefault();
+      if(!tbHover) return;
+      const h = e.target.closest('[data-h]');
+      if(h) return openTbMenu(h);
+      const b = e.target.closest('[data-k]'); if(!b) return;
+      const rows = tbHover.wrap.querySelectorAll('tr'); if(!rows.length) return;
+      const last = (b.dataset.k === 'col' ? rows[0] : rows[rows.length - 1]).lastElementChild;
+      TT.tableCmd(tbHover.ed, last, b.dataset.k === 'col' ? 'tbCol' : 'tbRow');
+      requestAnimationFrame(placeTbAdd);     // bảng vừa to ra: dời nút theo
+    };
+    document.body.appendChild(el);
+  }
+  // trỏ vào mép khung chứ không vào ô nào: giữ ô cũ nếu vẫn là bảng ấy
+  tbHover = {ed, wrap, cell: cell || (tbHover && tbHover.wrap === wrap ? tbHover.cell : null)};
+  placeTbAdd();
+}
+function placeTbAdd(){
+  const el = document.getElementById('tbAddEl'), t = tbHover && tbHover.wrap.querySelector('table');
+  if(!el || !t || !tbHover.wrap.isConnected) return hideTbAdd();
+  const r = t.getBoundingClientRect(), w = tbHover.wrap.getBoundingClientRect();
+  const right = Math.min(r.right, w.right);  // bảng rộng hơn khung thì cuộn ngang: nút bám mép khung
+  const [col, row, rh, ch] = el.children, px = v => v + 'px';
+  Object.assign(col.style, {left: px(right + 4), top: px(r.top), width: '18px', height: px(r.height)});
+  Object.assign(row.style, {left: px(r.left), top: px(r.bottom + 4), width: px(right - r.left), height: '18px'});
+  const c = tbHover.cell && tbHover.cell.isConnected ? tbHover.cell : null;
+  rh.style.display = ch.style.display = c ? '' : 'none';
+  if(!c) return;
+  const rr = c.parentElement.getBoundingClientRect(), cr = c.getBoundingClientRect();
+  Object.assign(rh.style, {left: px(r.left - 18), top: px(rr.top), width: '14px', height: px(rr.height)});
+  Object.assign(ch.style, {left: px(cr.left), top: px(r.top - 16), width: px(cr.width), height: '12px'});
+}
+function hideTbAdd(){ closeTbMenu(); document.getElementById('tbAddEl')?.remove(); tbHover = null; }
+function openTbMenu(h){
+  closeTbMenu();
+  const {ed, cell} = tbHover; if(!cell) return;
+  const m = document.createElement('div');
+  m.className = 'slash'; m.id = 'tbMenuEl';
+  m.innerHTML = TB_MENU[h.dataset.h].map(([k, ic]) =>
+    `<button type="button" data-b="${k}"><span class="ic3">${ic}</span>${tr('blk.' + k)}</button>`).join('');
+  m.onmousedown = e => {
+    e.preventDefault();
+    const b = e.target.closest('[data-b]'); if(!b) return;
+    hideTbAdd();
+    TT.tableCmd(ed, cell, b.dataset.b);
+  };
+  document.body.appendChild(m);
+  const r = h.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - 248)) + 'px';
+  m.style.top = (r.bottom + 190 > innerHeight ? Math.max(8, r.top - 190) : r.bottom + 4) + 'px';
+  h.classList.add('on');
+}
+function closeTbMenu(){
+  document.getElementById('tbMenuEl')?.remove();
+  document.querySelectorAll('#tbAddEl .tbh.on').forEach(b => b.classList.remove('on'));
+}
+document.addEventListener('mousemove', e => {
+  if(!tbHover || document.getElementById('tbMenuEl')) return;
+  const r = tbHover.wrap.getBoundingClientRect();   // chừa mép quanh bảng cho chuột đi tới nút + và tay nắm
+  if(!tbHover.wrap.isConnected || e.clientX < r.left - 24 || e.clientX > r.right + 28 || e.clientY < r.top - 22 || e.clientY > r.bottom + 28) hideTbAdd();
+});
+document.addEventListener('mousedown', e => {
+  if(document.getElementById('tbMenuEl') && !(e.target.closest && e.target.closest('#tbMenuEl, #tbAddEl'))) hideTbAdd();
+}, true);
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('tbMenuEl')){ e.preventDefault(); e.stopPropagation(); hideTbAdd(); }
+}, true);
+document.addEventListener('scroll', () => { if(tbHover) hideTbAdd(); }, true);
 
 /* --- thanh công cụ nổi khi bôi đen --- */
 const MARKS = [

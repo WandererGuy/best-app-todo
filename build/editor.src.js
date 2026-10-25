@@ -1019,9 +1019,11 @@ const CMD = {
   kb:  c => c.insertContent({type:'kanban', attrs:{area:'work'}}),
   kbl: c => c.insertContent({type:'kanban', attrs:{area:'life'}}),
   tbl:   c => c.insertTable({rows:3, cols:3, withHeaderRow:true}),
-  // các lệnh dưới chỉ hiện khi con trỏ đang trong bảng (xem TT.inTable)
+  // các lệnh dưới chạy từ menu tay nắm của bảng (TT.tableCmd), không có trong menu "/"
   tbRow: c => c.addRowAfter(),
+  tbRowUp: c => c.addRowBefore(),
   tbCol: c => c.addColumnAfter(),
+  tbColL: c => c.addColumnBefore(),
   tbDelRow: c => c.deleteRow(),
   tbDelCol: c => c.deleteColumn(),
   tbDel: c => c.deleteTable(),
@@ -1066,7 +1068,7 @@ window.TT = {
           ...(fileView ? {canView: fileCanView, view: fileView} : {}),
         }),
         Kanban.configure(kanban || {}),
-        TableKit.configure({table: {resizable: false}}),   // Tab ở ô cuối thêm dòng mới
+        TableKit.configure({table: {resizable: true, cellMinWidth: 60}}),   // kéo mép cột để giãn; Tab ở ô cuối thêm dòng mới
       ],
       editorProps:{
         attributes:{ class:'ed' },
@@ -1179,7 +1181,12 @@ window.TT = {
     return editor.isActive(n);
   },
 
-  inTable(editor){ return editor.isActive('table'); },
+  /* nút + và tay nắm của bảng (xem editor.js): đặt con trỏ vào ô cell (phần tử td / th) rồi chạy lệnh key của CMD */
+  tableCmd(editor, cell, key){
+    if(editor.isDestroyed || !cell.isConnected) return;
+    const c = editor.chain().focus().setTextSelection(editor.view.posAtDOM(cell, 0) + 1);
+    (CMD[key] || CMD.p)(c).run();
+  },
 
   /* đang gõ "/lệnh" ở đâu? trả về vị trí để xoá và chữ đã gõ để lọc menu */
   slash(editor){
