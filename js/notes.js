@@ -143,7 +143,11 @@ function renderNotes(){
   $('#ntTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost')?.commands.focus('start'); } };
   mountEd('ntHost', n.html, tr('note.ph'), v => { n.html = v; touch(); });
   keepPageScroll($('.npage'), n.id);
-  $('#ntPin').onclick = () => { n.pin = !n.pin; save(); renderNotes(); };
+  $('#ntPin').onclick = () => {
+    n.pin = !n.pin;
+    S.settings.nPinOrd = S.settings.nPinOrd.filter(id => id !== n.id);   // ghim lại thì lên đầu như trang mới ghim
+    save(); renderNotes();
+  };
   $('#ntKid').onclick = () => newNote(n.id);
   if($('#ntMove')) $('#ntMove').onchange = e => {
     nPlace(n, e.target.value === '/' ? null : e.target.value, null);   // xuống cuối danh sách con của cha mới
@@ -231,11 +235,11 @@ function drawNoteList(){
     return;
   }
   nHits = [];
-  const row = (n, depth, tree, mark) => {
+  const row = (n, depth, tree, mark, sec) => {
     const kids = tree ? nKids(n.id) : [];
     return `<div class="nrow${n.id === ui.nOpen ? ' on' : ''}" data-nid="${n.id}"
         ${tree ? `draggable="true" data-tree data-depth="${depth}" title="${tr('note.dragT')}"`
-               : `title="${tr('note.rowAgo', {a: fmtAgo(n.mod)})}"`}
+               : `draggable="true" data-sec="${sec}" title="${tr('note.rowAgo', {a: fmtAgo(n.mod)})}"`}
         style="padding-left:${2 + depth * 14}px">
         ${!tree ? `<span class="ncar">${mark}</span>`
           : kids.length ? `<button class="ncar" data-ntog="${n.id}">${n.open ? '▾' : '▸'}</button>` : '<span class="ncar">·</span>'}
@@ -243,28 +247,43 @@ function drawNoteList(){
         ${tree ? `<button class="nadd" data-nkid="${n.id}" title="${tr('note.addKidT')}">+</button>` : ''}</div>
       ${kids.length && n.open ? kids.map(k => row(k, depth + 1, true)).join('') : ''}`;
   };
-  const pins = S.notes.filter(n => n.pin), roots = nKids(null);
-  const recent = [...S.notes].sort((a, b) => b.mod.localeCompare(a.mod)).slice(0, 5);
+  const pins = nOrd(S.notes.filter(n => n.pin), S.settings.nPinOrd), roots = nKids(null);
+  const recent = nOrd([...S.notes].sort((a, b) => b.mod.localeCompare(a.mod)).slice(0, 5), S.settings.nRecOrd);
   // nhãn mục bấm được: thu gọn hay mở nhớ trong settings theo khoá của mục
   const sect = (key, label, body) =>
     `<button class="nlbl" data-nsec="${key}">${tr(label)}<span class="nlcar">${S.settings[key] ? '▾' : '▸'}</span></button>`
     + (S.settings[key] ? body : '');
-  box.innerHTML = (pins.length ? sect('nPinned', 'note.pinned', pins.map(n => row(n, 0, false, '★')).join('')) : '')
-    + (recent.length ? sect('nRecent', 'note.recent', recent.map(n => row(n, 0, false, '◷')).join('')) : '')
+  box.innerHTML = (pins.length ? sect('nPinned', 'note.pinned', pins.map(n => row(n, 0, false, '★', 'nPinned')).join('')) : '')
+    + (recent.length ? sect('nRecent', 'note.recent', recent.map(n => row(n, 0, false, '◷', 'nRecent')).join('')) : '')
     + sect('nAll', 'note.all', roots.length ? roots.map(n => row(n, 0, true)).join('')
         : `<div class="nofil" style="padding:4px 8px">${tr('note.none')}</div>`);
   wireNoteDnD();
 }
 
+// mục Đã ghim / Gần đây xếp theo ord (kéo thả); trang chưa có trong ord (mới ghim, mới sửa) lên đầu
+const N_ORD = {nPinned: 'nPinOrd', nRecent: 'nRecOrd'};
+function nOrd(list, ord){
+  const i = n => ord.indexOf(n.id);
+  return [...list.filter(n => i(n) < 0), ...list.filter(n => i(n) >= 0).sort((a, b) => i(a) - i(b))];
+}
+
 /* ============ kéo thả: đổi thứ tự trang, hoặc thả vào trang khác thành trang con ============ */
+// Ở mục Đã ghim / Gần đây (nDragSec) thì chỉ đổi thứ tự trong mục đó, không đụng tới cây.
 // Trỏ vào mép trên / mép dưới một hàng thì thành khe chèn trước / sau hàng ấy (hiện vạch);
 // trỏ vào giữa hàng thì thành trang con, xuống cuối danh sách con của nó (hàng sáng viền).
 // Thả dưới hàng cuối cùng thì về cấp gốc. Chỉ làm ở chế độ cây, lúc đang tìm hay lọc tag thì thôi.
-let nDragId = null, nDragTree = null, nPh = null, nDrop = null;
+let nDragId = null, nDragTree = null, nPh = null, nDrop = null, nDragSec = null;
 function wireNoteDnD(){
   const box = $('#ntList'); if(!box || box.dataset.dnd) return;
   box.dataset.dnd = 1;                      // cây vẽ lại nhiều lần, chỉ gắn một lần rồi bắt theo sự kiện nổi lên
   box.addEventListener('dragstart', e => {
+    const fl = e.target.closest('.nrow[data-sec]');
+    if(fl){
+      nDragId = fl.dataset.nid; nDragSec = fl.dataset.sec; fl.classList.add('drag');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', nDragId);
+      return;
+    }
     const el = e.target.closest('.nrow[data-tree]'); if(!el) return;
     nDragId = el.dataset.nid; el.classList.add('drag');
     nDragTree = new Set(nTree(S.notes, S.notes.find(x => x.id === nDragId)).map(x => x.id));
@@ -274,11 +293,25 @@ function wireNoteDnD(){
   box.addEventListener('dragend', e => { e.target.closest('.nrow')?.classList.remove('drag'); nDragEnd(); });
   box.addEventListener('dragover', e => {
     if(!nDragId) return;
+    if(nDragSec){
+      const d = nFlatAt(box, e.clientY);
+      if(d) e.preventDefault();               // ra ngoài mục đang kéo thì không thả được
+      return nMarkFlat(d);
+    }
     e.preventDefault();
     nMark(box, nDropAt(box, e.clientY));
   });
   box.addEventListener('drop', e => {
     e.preventDefault();
+    if(nDragSec){
+      const sec = nDragSec, id = nDragId, d = nDrop;
+      nDragEnd();
+      if(!d || d.id === id) return;
+      const ids = [...box.querySelectorAll(`.nrow[data-sec="${sec}"]`)].map(el => el.dataset.nid).filter(x => x !== id);
+      ids.splice(ids.indexOf(d.id) + (d.where === 'after' ? 1 : 0), 0, id);
+      S.settings[N_ORD[sec]] = ids;
+      save(); return drawNoteList();
+    }
     const n = S.notes.find(x => x.id === nDragId), d = nDrop;
     nDragEnd();
     if(!n || (d && d.where === 'no')) return;
@@ -327,8 +360,24 @@ function nMark(box, d){
   if(d) d.el.insertAdjacentElement(d.where === 'before' ? 'beforebegin' : 'afterend', nPh);
   else box.appendChild(nPh);
 }
+// khe chèn trong mục đang kéo: trước hàng có nửa dưới chưa bị con trỏ vượt qua, hoặc sau hàng cuối; null = ra ngoài mục
+function nFlatAt(box, y){
+  const rows = [...box.querySelectorAll(`.nrow[data-sec="${nDragSec}"]`)];
+  if(!rows.length) return null;
+  const last = rows[rows.length - 1];
+  if(y < rows[0].getBoundingClientRect().top - 8 || y > last.getBoundingClientRect().bottom + 8) return null;
+  for(const el of rows){ const r = el.getBoundingClientRect(); if(y < r.top + r.height / 2) return {id: el.dataset.nid, el, where: 'before'}; }
+  return {id: last.dataset.nid, el: last, where: 'after'};
+}
+function nMarkFlat(d){
+  nDrop = d;
+  if(!d){ if(nPh) nPh.remove(); return; }
+  if(!nPh){ nPh = document.createElement('div'); nPh.className = 'drop'; }
+  nPh.style.margin = '-1px 8px';
+  d.el.insertAdjacentElement(d.where === 'before' ? 'beforebegin' : 'afterend', nPh);
+}
 function nDragEnd(){
-  nDragId = null; nDragTree = null; nDrop = null;
+  nDragId = null; nDragTree = null; nDrop = null; nDragSec = null;
   if(nPh) nPh.remove(); nPh = null;
   $$('.nrow.into').forEach(el => el.classList.remove('into'));
 }
