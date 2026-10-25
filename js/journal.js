@@ -44,6 +44,7 @@ function renderJournal(){
 
   const due = S.tasks.filter(t => t.due === ui.jDate && t.status !== 'backlog');
   const side = S.settings.jSide;
+  const sideAt = $('.jside')?.scrollTop || 0;   // như ở ghi chú: vẽ lại cột trái mà vẫn giữ chỗ đang cuộn
   $('#view').innerHTML = `<div class="jwrap">
     ${side ? `<div class="jside">
       <div class="nshead">
@@ -75,6 +76,7 @@ function renderJournal(){
     </div></div>`;
 
   drawJournalList();
+  if(side) $('.jside').scrollTop = sideAt;
   const shift = n => { const x = new Date(ui.jDate + 'T00:00:00'); x.setDate(x.getDate() + n); ui.jDate = iso(x); ui.jTab = null; renderJournal(); };
   $('#pd').onclick = () => shift(-1);
   $('#nd').onclick = () => shift(1);

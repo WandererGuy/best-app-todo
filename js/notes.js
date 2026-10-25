@@ -63,6 +63,7 @@ function renderNotes(){
 
   const moveTo = n && nFlat(new Set([n.id])).filter(x => x.n.id !== n.parent);
   const side = S.settings.nSide;
+  const sideAt = $('.nside')?.scrollTop || 0;   // vẽ lại cả cột trái: giữ chỗ đang cuộn, bấm trang ở dưới không bị nhảy lên đầu
   $('#view').innerHTML = `<div class="nwrap">
     ${side ? `<div class="nside">
       <div class="nshead">
@@ -99,6 +100,7 @@ function renderNotes(){
   </div>`;
 
   drawNoteList();
+  if(side) $('.nside').scrollTop = sideAt;
   if(side){
     // dựng sẵn bản bỏ dấu lúc máy rảnh, để phím đầu tiên gõ vào ô tìm không phải bóc html cả kho.
     // Gọi qua window chứ không tách hàm ra biến: requestIdleCallback đòi đúng receiver, tách ra là ném lỗi.
