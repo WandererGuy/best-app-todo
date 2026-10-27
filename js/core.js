@@ -325,7 +325,8 @@ const splitCtlHTML = n => `<div class="scope nsplit">${[1, 2, 3, 4].map(k =>
 const splitPaneHTML = (st, i, head, body) => `<div class="npane${i === st.act ? ' on' : ''}" data-npane="${i}">
   <div class="nphead"><span class="ngrip" draggable="true" title="${tr('note.paneDrag')}">⠿</span>${head || ''}</div>
   ${body || `<div class="empty">${tr('note.paneEmpty')}<button class="btn ghost" data-npnew>${tr('note.new')}</button></div>`}</div>`;
-// o.store(): ghi st; o.redraw(): vẽ lại cả trang; o.pick(i): vừa chọn ô i; o.add(): trang mới vào ô đang chọn
+// o.store(): ghi st; o.redraw(): vẽ lại cả trang; o.pick(i): vừa chọn ô i; o.add(): trang mới vào ô đang chọn;
+// o.ref(id): ô giữ trang id dưới dạng nào (kéo trang từ tab / cây thả lên ô, xem 'text/npage')
 function wireSplit(st, o){
   $$('.npane').forEach(el => {
     const i = +el.dataset.npane;
@@ -341,7 +342,9 @@ function wireSplit(st, o){
     el.querySelector('[data-npnew]')?.addEventListener('click', o.add);
     // kéo tay nắm ⠿ thả lên ô khác: hai ô đổi chỗ, ô đang chọn đi theo trang của nó.
     // Bắt ở pha capture để ProseMirror trong ô không nhận cú thả này như chữ dán vào.
-    const grip = el.querySelector('.ngrip'), mine = e => e.dataTransfer.types.includes('text/npane');
+    // Kéo một trang (tab nhật ký, hàng ở cây ghi chú) thả lên ô: ô mở trang đó; trang đã nằm ở ô khác thì hai ô đổi chỗ.
+    const grip = el.querySelector('.ngrip'), page = e => e.dataTransfer.types.includes('text/npage'),
+      mine = e => e.dataTransfer.types.includes('text/npane') || page(e);
     grip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/npane', String(i)); e.dataTransfer.effectAllowed = 'move'; el.classList.add('drag'); });
     grip.addEventListener('dragend', () => el.classList.remove('drag'));
     el.addEventListener('dragover', e => { if(!mine(e)) return; e.preventDefault(); e.stopPropagation(); el.classList.add('dropin'); }, true);
@@ -349,6 +352,13 @@ function wireSplit(st, o){
     el.addEventListener('drop', e => {
       if(!mine(e)) return;
       e.preventDefault(); e.stopPropagation(); el.classList.remove('dropin');
+      if(page(e)){
+        const r = o.ref(e.dataTransfer.getData('text/npage')), ids = st.ids;
+        const j = ids.findIndex(x => x && (x.id || x) === (r.id || r));
+        if(j >= 0) [ids[i], ids[j]] = [ids[j], ids[i]]; else ids[i] = r;
+        st.act = i; o.store(); o.pick(i);
+        return o.redraw();
+      }
       const j = +e.dataTransfer.getData('text/npane'), ids = st.ids;
       if(j === i) return;
       [ids[i], ids[j]] = [ids[j], ids[i]];

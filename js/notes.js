@@ -264,7 +264,7 @@ function renderNotes(){
 }
 // các ô khi chia màn hình: mỗi ô chỉ có tiêu đề và trang viết. Ghim, chuyển chỗ, tag, bỏ trang thì về một ô (▢)
 function wirePanes(){
-  wireSplit(nSplit, {store: nSaveSplit, redraw: renderNotes, add: () => newNote(),
+  wireSplit(nSplit, {store: nSaveSplit, redraw: renderNotes, add: () => newNote(), ref: id => id,
     pick: i => {
       ui.nOpen = nSplit.ids[i];
       try{ if(ui.nOpen) localStorage.setItem(NPAGE_KEY, ui.nOpen); }catch(e){}
@@ -405,6 +405,8 @@ function wireNoteDnD(){
   const box = $('#ntList'); if(!box || box.dataset.dnd) return;
   box.dataset.dnd = 1;                      // cây vẽ lại nhiều lần, chỉ gắn một lần rồi bắt theo sự kiện nổi lên
   box.addEventListener('dragstart', e => {
+    const row = e.target.closest('.nrow[data-nid]');
+    if(row) e.dataTransfer.setData('text/npage', row.dataset.nid);   // thả lên một ô thì ô đó mở trang này, xem wireSplit
     const fl = e.target.closest('.nrow[data-sec]');
     if(fl){
       nDragId = fl.dataset.nid; nDragSec = fl.dataset.sec; fl.classList.add('drag');

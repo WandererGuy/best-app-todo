@@ -198,7 +198,7 @@ function renderJournal(){
   // ngày trống vừa được viết thì đổi nhãn ở cột trái luôn
   const edit = (d, p) => v => { p.html = v; save(); const sub = $(`#jList [data-jd="${d}"] .nsub`); if(sub) sub.textContent = jSub(d); };
   if(split){
-    wireSplit(jSplit, {store: jSaveSplit, redraw: renderJournal, add: () => $('#jAdd').click(),
+    wireSplit(jSplit, {store: jSaveSplit, redraw: renderJournal, add: () => $('#jAdd').click(), ref: id => ({d: ui.jDate, id}),
       // tab sáng theo trang của ô vừa chọn; không vẽ lại kẻo mất con trỏ
       pick: i => $$('[data-jt]').forEach(b => b.classList.toggle('on', pages[+b.dataset.jt]?.id === jSplit.ids[i]?.id))});
     $$('.npane').forEach(el => {
@@ -260,6 +260,8 @@ function renderJournal(){
 function wireJTabDnD(pages){
   const open = pages[ui.jTab];
   wireRowDnD($$('[data-jt]'), el => +el.dataset.jt, pages, () => { ui.jTab = pages.indexOf(open); save(); renderJournal(); });
+  // kéo tab xuống một ô (khi chia màn hình) thì ô đó mở trang này, xem wireSplit
+  $$('[data-jt]').forEach(el => el.addEventListener('dragstart', e => e.dataTransfer.setData('text/npage', pages[+el.dataset.jt].id)));
 }
 /* ============ tìm kiếm ngày ============ */
 // Như bên ghi chú: mỗi ngày giữ sẵn một bản đã bỏ dấu, câu tìm tách thành từ và ngày phải khớp
