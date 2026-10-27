@@ -1,7 +1,7 @@
 /* Nguồn để build bundle trình soạn thảo (TipTap/ProseMirror).
    Build:  node build/build.js   -> nhúng thẳng vào index.html
    App chỉ gọi qua window.TT, không đụng trực tiếp vào ProseMirror. */
-import { Editor, Node } from '@tiptap/core';
+import { Editor, Node, Extension } from '@tiptap/core';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TaskList, TaskItem } from '@tiptap/extension-list';
 import { Link } from '@tiptap/extension-link';
@@ -907,6 +907,32 @@ const Kanban = Node.create({
   },
 });
 
+/* Tab trong ô bảng: phím Tab của bảng (sang ô kế) chạy trước phím Tab của danh sách, nên trong ô không thụt mục được.
+   Ưu tiên cao hơn bảng: con trỏ đang ở một mục danh sách trong ô thì Tab thụt vào, Shift+Tab đưa ra;
+   mục đầu tiên không thụt được thì đứng yên chứ không nhảy ô, kẻo đang gõ danh sách lại văng sang ô khác.
+   Ngoài danh sách thì để bảng làm như cũ. */
+const LIST_ITEMS = ['listItem', 'taskItem'];
+const CellListTab = Extension.create({
+  name: 'cellListTab',
+  priority: 1000,
+  addKeyboardShortcuts(){
+    const item = () => {
+      const $f = this.editor.state.selection.$from;
+      let li = null, cell = false;
+      for(let d = $f.depth; d > 0; d--){
+        const n = $f.node(d).type.name;
+        if(!li && LIST_ITEMS.includes(n)) li = n;
+        if(n === 'tableCell' || n === 'tableHeader'){ cell = true; break; }
+      }
+      return cell && li;
+    };
+    return {
+      Tab: () => { const li = item(); if(!li) return false; this.editor.commands.sinkListItem(li); return true; },
+      'Shift-Tab': () => { const li = item(); if(!li) return false; this.editor.commands.liftListItem(li); return true; },
+    };
+  },
+});
+
 /* chữ trơn dán vào (Sublime, Notepad, VS Code…) -> các khối của trình soạn thảo, theo đúng những gì gõ tay cũng tự đổi:
    "- " / "* " / "+ " gạch đầu dòng, "1. " danh sách số, "[ ] " / "- [x] " việc cần làm (thụt đầu dòng = mục con),
    "# " tới "### " tiêu đề, "> " trích dẫn, ``` khối code, "---" đường kẻ; trong dòng: **đậm**, *nghiêng*, ~~gạch~~, `code`, link.
@@ -1076,6 +1102,7 @@ window.TT = {
         }),
         Kanban.configure(kanban || {}),
         TableKit.configure({table: {resizable: true, cellMinWidth: 60}}),   // kéo mép cột để giãn; Tab ở ô cuối thêm dòng mới
+        CellListTab,
       ],
       editorProps:{
         attributes:{ class:'ed' },
