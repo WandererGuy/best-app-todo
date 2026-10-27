@@ -94,10 +94,11 @@ const nSaveSplit = () => splitSave(nSplitKey(nSplitBook), nSplit);
 function nSetSplit(k){
   if(k === nSplit.n) return;
   if(k === 1){
-    ui.nOpen = nSplit.ids[nSplit.act] || nSplit.ids.find(Boolean) || null;
-    nSplit = {n:1, ids:[], act:0}; nSaveSplit();
+    const one = nSplit.mem?.[1];                 // trang đang xem trước khi chia ô
+    ui.nOpen = (S.notes.some(x => x.id === one) && one) || nSplit.ids[nSplit.act] || nSplit.ids.find(Boolean) || null;
+    nSplit = splitOne(nSplit); nSaveSplit();
     const o = S.notes.find(x => x.id === ui.nOpen); if(o) ui.nBook = nBook(o);   // ô có thể đang giữ trang của cuốn khác
-    nSplitBook = ui.nBook;                                                       // cuốn đó cũng về một ô
+    if(nSplitBook !== ui.nBook){ nSplitBook = ui.nBook; nSplit = splitOne(splitLoad(nSplitKey(nSplitBook))); }   // cuốn đó cũng về một ô, giữ các ô nó nhớ
   }
   else { nSplit = splitResize(nSplit, k, ui.nOpen); ui.nOpen = nSplit.ids[nSplit.act]; }
   nSaveSplit(); renderNotes();

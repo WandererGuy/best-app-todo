@@ -285,17 +285,37 @@ function wireBookRow(o){
 function splitLoad(key){
   try{
     const v = JSON.parse(localStorage.getItem(key));
-    if([2, 3, 4].includes(v?.n) && Array.isArray(v.ids) && v.ids.length === v.n && v.act >= 0 && v.act < v.n) return v;
+    const mem = v?.mem && typeof v.mem === 'object' ? v.mem : {};
+    if(v?.n === 1) return {n:1, ids:[], act:0, mem};
+    if([2, 3, 4].includes(v?.n) && Array.isArray(v.ids) && v.ids.length === v.n && v.act >= 0 && v.act < v.n) return {...v, mem};
   }catch(e){}
-  return {n:1, ids:[], act:0};
+  return {n:1, ids:[], act:0, mem:{}};
 }
 const splitSave = (key, st) => { try{ localStorage.setItem(key, JSON.stringify(st)); }catch(e){} };
-// đổi sang k ô (k > 1): giữ trang ô đang chọn ở đầu, bớt ô thì bỏ ô cuối, thêm ô thì ô mới trống và được chọn sẵn
+// mem[k] = các ô lần cuối dùng k ô: về 1 ô hay sang cách chia khác rồi quay lại k ô thì thấy lại đúng các ô đó.
+// mem[1] = trang đang xem lúc rời 1 ô, để về 1 ô thì mở lại trang đó chứ không phải trang ô đang chọn.
+const splitMem = st => st.n > 1 ? {...st.mem, [st.n]: {ids: st.ids, act: st.act}} : {...st.mem};
+const splitOne = st => ({n:1, ids:[], act:0, mem: splitMem(st)});
+// đổi sang k ô (k > 1). Từng dùng k ô: lấy lại đúng các ô đó; trang đang xem (cur) nếu chưa có trong đó thì vào ô trống đầu tiên.
+// Chưa từng: giữ trang ô đang chọn ở đầu, bớt ô thì bỏ ô cuối, thêm ô thì ô mới trống và được chọn sẵn.
+// Ô của nhật ký là {d, id}, của ghi chú là mã trang: so theo .id nếu có.
 function splitResize(st, k, cur){
+  const mem = splitMem(st);
+  if(st.n === 1 && cur) mem[1] = cur;
+  const was = mem[k], same = (a, b) => a && b && (a.id || a) === (b.id || b);
+  if(was && Array.isArray(was.ids) && was.ids.length === k){
+    const ids = [...was.ids];
+    let act = was.act >= 0 && was.act < k ? was.act : 0;
+    if(cur){
+      const j = ids.findIndex(x => same(x, cur)), e = ids.indexOf(null);
+      if(j >= 0) act = j; else if(e >= 0){ ids[e] = cur; act = e; }
+    }
+    return {n:k, ids, act, mem};
+  }
   const ids = st.n === 1 ? [cur || null] : [st.ids[st.act], ...st.ids.filter((_, i) => i !== st.act)];
   while(ids.length < k) ids.push(null);
   ids.length = k;
-  return {n:k, ids, act: Math.max(0, ids.indexOf(null))};
+  return {n:k, ids, act: Math.max(0, ids.indexOf(null)), mem};
 }
 // icon nút chia: khung chữ nhật, kẻ thêm đường chia theo số ô
 const SPLIT_LINES = {1: '', 2: 'M8 2v10', 3: 'M1 7h14M8 2v5', 4: 'M8 2v10M1 7h14'};

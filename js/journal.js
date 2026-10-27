@@ -69,11 +69,12 @@ const jSaveSplit = () => splitSave(jSplitKey(jSplitBook), jSplit);
 const jRef = r => r && Array.isArray(S.journal[r.d]) ? S.journal[r.d].find(p => p.id === r.id) : null;
 function jSetSplit(k){
   if(k === jSplit.n) return;
-  if(k === 1){                                 // về một ô: mở đúng trang của ô đang chọn
-    const r = [jSplit.ids[jSplit.act], ...jSplit.ids].find(jRef);
-    jSplit = {n:1, ids:[], act:0}; jSaveSplit();
+  if(k === 1){                                 // về một ô: mở lại trang đang xem trước khi chia, không còn thì trang ô đang chọn
+    const r = [jSplit.mem?.[1], jSplit.ids[jSplit.act], ...jSplit.ids].find(jRef);
+    jSplit = splitOne(jSplit); jSaveSplit();
     if(r){ const pgs = jPages(r.d), p = jRef(r); ui.jDate = r.d; ui.jTab = pgs.indexOf(p); ui.jBook = jCat(p); }
-    jSplitBook = ui.jBook;                     // ô có thể giữ trang của cuốn khác: cuốn đó cũng về một ô
+    // ô có thể giữ trang của cuốn khác: cuốn đó cũng về một ô, giữ các ô nó nhớ
+    if(jSplitBook !== ui.jBook){ jSplitBook = ui.jBook; jSplit = splitOne(splitLoad(jSplitKey(jSplitBook))); }
   }
   else {
     const p = jPages(ui.jDate)[ui.jTab];
