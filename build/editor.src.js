@@ -1060,6 +1060,8 @@ const CMD = {
   tbDelRow: c => c.deleteRow(),
   tbDelCol: c => c.deleteColumn(),
   tbDel: c => c.deleteTable(),
+  tbMerge: c => c.mergeCells(),              // gộp các ô đang chọn (kéo chuột qua nhiều ô)
+  tbSplit: c => c.splitCell(),               // tách ô đã gộp về lại từng ô
 };
 const MARK = {
   bold:   c => c.toggleBold(),
@@ -1236,10 +1238,13 @@ window.TT = {
 
   /* nút + và tay nắm của bảng (xem editor.js): đặt con trỏ vào ô cell (phần tử td / th) rồi chạy lệnh key của CMD */
   tableCmd(editor, cell, key){
-    if(editor.isDestroyed || !cell.isConnected) return;
-    const c = editor.chain().focus().setTextSelection(editor.view.posAtDOM(cell, 0) + 1);
+    if(editor.isDestroyed || (cell && !cell.isConnected)) return;
+    // gộp ô chạy trên vùng ô đang chọn, đặt con trỏ vào một ô là mất vùng chọn đó
+    const c = key === 'tbMerge' || !cell ? editor.chain().focus() : editor.chain().focus().setTextSelection(editor.view.posAtDOM(cell, 0) + 1);
     (CMD[key] || CMD.p)(c).run();
   },
+  // đang chọn nhiều ô liền nhau thì gộp được
+  canMerge(editor){ return !editor.isDestroyed && editor.can().mergeCells(); },
 
   /* đang gõ "/lệnh" ở đâu? trả về vị trí để xoá và chữ đã gõ để lọc menu */
   slash(editor){

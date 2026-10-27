@@ -293,6 +293,7 @@ After updating, press **F5** if the app is still open in a tab.
 - `Esc` closes panels, menus and pickers, and leaves full screen.
 - `Ctrl + \` or the « button at the start of the top bar collapses / shows the sidebar.
 - The split buttons next to the books on the Notes and Journal pages show 1 page, 2 side by side, 3 (two on top, one wide below) or a 2×2 grid of 4. Click a pane to select it, then click a page on the left (notes) or a page tab (journal) to open it there; an empty pane has a **+ New page** button. Drag the ⠿ handle onto another pane to swap them.
+- **Tables in a page:** drag across several cells, then click **Merge** on the toolbar that appears (or pick **Merge selected cells** from the ⋮ / ⋯ handle). Hover a merged cell and pick **Split merged cell** from the same handle to undo it.
 - The **Zen** button in the top bar (or `Shift + F11`) hides everything except the page you are writing. **✕ Leave zen** in the top-right corner (or `Esc`) brings it all back.
 - Drag a card **to the bottom of the screen** to trash it, onto **Later** in the sidebar to set it aside, or onto the **Focus** block to queue it.
 - Mid-session and something else comes to mind: type it into **Save for later** and press Enter. It goes to Later and you carry on with what you were doing.

@@ -294,6 +294,7 @@ Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
 - `Esc`: đóng panel, menu, bảng chọn, thoát toàn màn hình.
 - `Ctrl + \` hoặc nút « đầu thanh trên: thu gọn / mở thanh điều khiển bên trái.
 - Nút chia màn hình cạnh hàng cuốn ở trang Ghi chú và Nhật ký: xem 1 trang, 2 trang cạnh nhau, 3 trang (hai ô trên, một ô rộng dưới) hoặc 4 trang lưới 2×2. Bấm vào một ô để chọn nó, rồi bấm trang ở cột trái (ghi chú) hoặc tab trang (nhật ký) để mở vào ô đó; ô trống có nút **+ Trang mới**. Kéo tay nắm ⠿ thả lên ô khác để đổi chỗ hai ô.
+- **Bảng trong trang:** kéo chuột qua nhiều ô rồi bấm **Gộp ô** trên thanh công cụ hiện ra (hoặc chọn **Gộp các ô đang chọn** ở tay nắm ⋮ / ⋯). Trỏ vào một ô đã gộp rồi chọn **Tách ô đã gộp** ở tay nắm đó để tách lại.
 - Nút **Zen** trên thanh trên (hoặc `Shift + F11`): ẩn hết, chỉ còn trang đang viết. Bấm **✕ Thoát zen** ở góc trên bên phải (hoặc `Esc`) để ra.
 - Kéo card trên bảng thả **xuống đáy màn hình** để bỏ vào thùng rác, thả vào mục **Để sau** ở sidebar để gác lại, thả vào khối **Tập trung** để đưa vào hàng đợi.
 - Đang trong phiên tập trung mà chợt nhớ việc khác: gõ vào ô **Ghi để sau** rồi Enter. Việc đó vào mục Để sau, bạn quay lại việc đang làm.

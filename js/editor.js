@@ -388,7 +388,9 @@ function openTbMenu(h){
   const {ed, cell} = tbHover; if(!cell) return;
   const m = document.createElement('div');
   m.className = 'slash'; m.id = 'tbMenuEl';
-  m.innerHTML = TB_MENU[h.dataset.h].map(([k, ic]) =>
+  // gộp: khi đang kéo chọn nhiều ô; tách: khi ô đang trỏ là ô đã gộp
+  const extra = [...(TT.canMerge(ed) ? [['tbMerge', '⊞']] : []), ...(cell.colSpan > 1 || cell.rowSpan > 1 ? [['tbSplit', '⊟']] : [])];
+  m.innerHTML = [...TB_MENU[h.dataset.h], ...extra].map(([k, ic]) =>
     `<button type="button" data-b="${k}"><span class="ic3">${ic}</span>${tr('blk.' + k)}</button>`).join('');
   m.onmousedown = e => {
     e.preventDefault();
@@ -434,9 +436,12 @@ function showFtb(ed, r){
     document.body.appendChild(el);
   }
   el.innerHTML = MARKS.map(m =>
-    `<button class="${TT.active(ed, m.k) ? 'on' : ''}" data-c="${m.k}" title="${m.t}">${m.l}</button>`).join('');
+    `<button class="${TT.active(ed, m.k) ? 'on' : ''}" data-c="${m.k}" title="${m.t}">${m.l}</button>`).join('')
+    + (TT.canMerge(ed) ? `<span class="sep"></span><button data-merge title="${tr('blk.tbMerge')}">${tr('mark.merge')}</button>` : '');   // kéo chọn nhiều ô bảng
   el.querySelectorAll('[data-c]').forEach(b =>
     b.onmousedown = e => { e.preventDefault(); TT.mark(ed, b.dataset.c); setTimeout(() => syncMenus(ed), 0); });
+  const mg = el.querySelector('[data-merge]');
+  if(mg) mg.onmousedown = e => { e.preventDefault(); TT.tableCmd(ed, null, 'tbMerge'); setTimeout(() => syncMenus(ed), 0); };
   el.style.left = Math.max(8, Math.min(r.left + r.width/2 - 92, innerWidth - 192)) + 'px';
   el.style.top  = Math.max(8, r.top - 42) + 'px';
 }
