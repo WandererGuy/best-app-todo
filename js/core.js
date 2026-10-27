@@ -283,6 +283,62 @@ function wireBookRow(o){
   wireRowDnD([...box.querySelectorAll('.jbook[draggable]')], el => books.findIndex(b => b.id === el.dataset.jb), books,
     () => { save(); o.redraw(); });
 }
+/* ============ chia màn hình (ghi chú, nhật ký) ============ */
+// Như Sublime: 2 trang cạnh nhau hoặc lưới 2×2. st = {n, ids, act}: ids = trang ở từng ô (null = ô trống),
+// act = ô đang chọn — trang mở từ cây / tab / link / trang mới đều vào ô này. Nhớ riêng trong trình duyệt này.
+function splitLoad(key){
+  try{
+    const v = JSON.parse(localStorage.getItem(key));
+    if([2, 4].includes(v?.n) && Array.isArray(v.ids) && v.ids.length === v.n && v.act >= 0 && v.act < v.n) return v;
+  }catch(e){}
+  return {n:1, ids:[], act:0};
+}
+const splitSave = (key, st) => { try{ localStorage.setItem(key, JSON.stringify(st)); }catch(e){} };
+// đổi sang k ô (k > 1): giữ trang ô đang chọn ở đầu, bớt ô thì bỏ ô cuối, thêm ô thì ô mới trống và được chọn sẵn
+function splitResize(st, k, cur){
+  const ids = st.n === 1 ? [cur || null] : [st.ids[st.act], ...st.ids.filter((_, i) => i !== st.act)];
+  while(ids.length < k) ids.push(null);
+  ids.length = k;
+  return {n:k, ids, act: Math.max(0, ids.indexOf(null))};
+}
+const splitCtlHTML = n => `<div class="scope nsplit">${[1, 2, 4].map(k =>
+  `<button data-nsp="${k}" class="${n === k ? 'on' : ''}" title="${tr('note.splitN', {n: k})}">${{1: '▢', 2: '◫', 4: '⊞'}[k]}</button>`).join('')}</div>`;
+// khung một ô: tay nắm kéo đổi chỗ, nhãn / tiêu đề (head), rồi trang viết (body); ô trống thì lời nhắc và nút trang mới
+const splitPaneHTML = (st, i, head, body) => `<div class="npane${i === st.act ? ' on' : ''}" data-npane="${i}">
+  <div class="nphead"><span class="ngrip" draggable="true" title="${tr('note.paneDrag')}">⠿</span>${head || ''}</div>
+  ${body || `<div class="empty">${tr('note.paneEmpty')}<button class="btn ghost" data-npnew>${tr('note.new')}</button></div>`}</div>`;
+// o.store(): ghi st; o.redraw(): vẽ lại cả trang; o.pick(i): vừa chọn ô i; o.add(): trang mới vào ô đang chọn
+function wireSplit(st, o){
+  $$('.npane').forEach(el => {
+    const i = +el.dataset.npane;
+    // bấm vào ô nào thì ô đó được chọn; chỉ đổi khung viền, không vẽ lại kẻo mất con trỏ
+    const pick = () => {
+      if(st.act === i) return;
+      st.act = i; o.store();
+      $$('.npane').forEach(x => x.classList.toggle('on', x === el));
+      o.pick(i);
+    };
+    el.addEventListener('pointerdown', pick);
+    el.addEventListener('focusin', pick);
+    el.querySelector('[data-npnew]')?.addEventListener('click', o.add);
+    // kéo tay nắm ⠿ thả lên ô khác: hai ô đổi chỗ, ô đang chọn đi theo trang của nó.
+    // Bắt ở pha capture để ProseMirror trong ô không nhận cú thả này như chữ dán vào.
+    const grip = el.querySelector('.ngrip'), mine = e => e.dataTransfer.types.includes('text/npane');
+    grip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/npane', String(i)); e.dataTransfer.effectAllowed = 'move'; el.classList.add('drag'); });
+    grip.addEventListener('dragend', () => el.classList.remove('drag'));
+    el.addEventListener('dragover', e => { if(!mine(e)) return; e.preventDefault(); e.stopPropagation(); el.classList.add('dropin'); }, true);
+    el.addEventListener('dragleave', e => { if(!el.contains(e.relatedTarget)) el.classList.remove('dropin'); });
+    el.addEventListener('drop', e => {
+      if(!mine(e)) return;
+      e.preventDefault(); e.stopPropagation(); el.classList.remove('dropin');
+      const j = +e.dataTransfer.getData('text/npane'), ids = st.ids;
+      if(j === i) return;
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+      st.act = st.act === j ? i : st.act === i ? j : st.act;
+      o.store(); o.redraw();
+    }, true);
+  });
+}
 // kéo thả đổi thứ tự trong một hàng nút (tab trang nhật ký, các cuốn). pos(el) = vị trí của nút trong list.
 // Trỏ vào nửa trái một nút thì chèn trước nó, nửa phải thì chèn sau (hiện vạch ở mép đó); thả xong đổi chỗ trong list rồi gọi done().
 function wireRowDnD(tabs, pos, list, done){

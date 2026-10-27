@@ -281,7 +281,7 @@ function openPageLink(href){
   }else if((m = href.match(/^#j\/(\d{4}-\d\d-\d\d)\/(.+)$/))){
     const pgs = Array.isArray(S.journal[m[1]]) ? S.journal[m[1]] : [], i = pgs.findIndex(p => p.id === m[2]);
     if(i < 0) return toast(tr('plink.gone'));
-    ui.jDate = m[1]; ui.jTab = i; ui.jBook = jCat(pgs[i]); jKept = null;   // jKept: trang nhớ từ lần trước, không được giành chỗ trang vừa bấm
+    ui.jDate = m[1]; ui.jTab = i; ui.jBook = jCat(pgs[i]); jKept = null; jPut = true;   // jPut: đang chia màn hình thì mở vào ô đang chọn   // jKept: trang nhớ từ lần trước, không được giành chỗ trang vừa bấm
     if(ui.view === 'journal') renderJournal(); else goView('journal');
   }
 }

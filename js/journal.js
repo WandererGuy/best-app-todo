@@ -58,7 +58,28 @@ let jKept = (() => { try{ return JSON.parse(localStorage.getItem(JPAGE_KEY)); }c
 // Nhớ theo ngày và cuốn, vì mỗi cuốn có dãy trang riêng.
 // ui.jTab là vị trí trang trong cả ngày (S.journal[ngày]), không phải trong cuốn — kéo thả và xoá làm trên dãy đó.
 const jLast = {};
+/* chia màn hình (xem splitLoad ở core.js): mỗi ô giữ {d: ngày, id: mã trang}. Thanh ngày, hàng cuốn và tab ở trên
+   chỉ để duyệt: đổi ngày, đổi cuốn không đổi ô nào; bấm một tab (hoặc + trang mới, link tới trang) mới mở trang đó
+   vào ô đang chọn — jPut đánh dấu lần vẽ đó. Một trang không mở ở hai ô. */
+const JSPLIT_KEY = 'dieukhien.jsplit';
+let jSplit = splitLoad(JSPLIT_KEY), jPut = false;
+const jSaveSplit = () => splitSave(JSPLIT_KEY, jSplit);
+const jRef = r => r && Array.isArray(S.journal[r.d]) ? S.journal[r.d].find(p => p.id === r.id) : null;
+function jSetSplit(k){
+  if(k === jSplit.n) return;
+  if(k === 1){                                 // về một ô: mở đúng trang của ô đang chọn
+    const r = [jSplit.ids[jSplit.act], ...jSplit.ids].find(jRef);
+    if(r){ const pgs = jPages(r.d), p = jRef(r); ui.jDate = r.d; ui.jTab = pgs.indexOf(p); ui.jBook = jCat(p); }
+    jSplit = {n:1, ids:[], act:0};
+  }
+  else {
+    const p = jPages(ui.jDate)[ui.jTab];
+    jSplit = splitResize(jSplit, k, p && {d: ui.jDate, id: p.id});
+  }
+  jSaveSplit(); renderJournal();
+}
 function renderJournal(){
+  const split = jSplit.n > 1;
   if(!ui.jDate) ui.jDate = /^\d{4}-\d\d-\d\d$/.test(jKept?.d) ? jKept.d : today();
   const d = new Date(ui.jDate + 'T00:00:00');
   const pages = jPages(ui.jDate);
@@ -80,6 +101,17 @@ function renderJournal(){
   if(ui.jTab != null && !mine.includes(pages[ui.jTab])) ui.jTab = null;
   if(ui.jTab == null) ui.jTab = pages.indexOf(mine.find(p => p.id === jLast[key]) || mine[0]);
   const page = pages[ui.jTab];
+  if(split){
+    const ids = jSplit.ids;
+    if(jPut){
+      const j = ids.findIndex(r => r?.id === page.id);
+      if(j >= 0) jSplit.act = j; else ids[jSplit.act] = {d: ui.jDate, id: page.id};
+    }
+    ids.forEach((r, i) => { if(!jRef(r)) ids[i] = null; });   // trang đã bỏ vào thùng rác
+    jSaveSplit();
+  }
+  jPut = false;
+  const actId = split ? jSplit.ids[jSplit.act]?.id : page.id;   // tab nào sáng: trang của ô đang chọn
   jLast[key] = page.id;
   try{ localStorage.setItem(JPAGE_KEY, JSON.stringify({d: ui.jDate, id: page.id, b: ui.jBook})); }catch(e){}
   const days = Object.keys(S.journal).filter(k => dayHas(k, ui.jBook)).length;
@@ -90,7 +122,13 @@ function renderJournal(){
   const due = S.tasks.filter(t => t.due === ui.jDate && t.status !== 'backlog');
   const side = S.settings.jSide;
   const sideAt = $('.jside')?.scrollTop || 0;   // như ở ghi chú: vẽ lại cột trái mà vẫn giữ chỗ đang cuộn
-  $('#view').innerHTML = `<div class="jwrap">
+  const pane = (r, i) => {
+    const p = jRef(r), dd = r && new Date(r.d + 'T00:00:00');
+    return splitPaneHTML(jSplit, i, p && `<span class="jplbl">${DOW[dd.getDay()]}, ${dd.getDate()}/${dd.getMonth()+1} · ${esc(p.name)}</span>`,
+      p && `<div class="ned" id="jHost${i}"></div>`);
+  };
+  [...EDS.keys()].filter(k => k.startsWith('jHost')).forEach(closeEd);   // đổi từ 4 ô về 2 thì ô cũ không còn chỗ gắn
+  $('#view').innerHTML = `<div class="jwrap${split ? ' split' : ''}">
     ${side ? `<div class="jside">
       <div class="nshead">
         <button class="btn" id="jTd">${tr('common.today')}</button>
@@ -104,7 +142,7 @@ function renderJournal(){
     </div>`
     : `<button class="nfold nshow" id="jShow" title="${tr('common.showSide')}">»</button>`}
     <div class="jpage">
-      ${bookRowHTML({books, cur: ui.jBook, loose: jLoose()})}
+      <div class="nhead">${bookRowHTML({books, cur: ui.jBook, loose: jLoose()})}${splitCtlHTML(jSplit.n)}</div>
       <div class="jbar">
         <button class="nvb" id="pd">‹</button><button class="nvb" id="nd">›</button>
         <div><h2>${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</h2>
@@ -114,14 +152,14 @@ function renderJournal(){
       </div>
       <div class="jtabs">
         ${mine.map(t => { const i = pages.indexOf(t);
-          return `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`; }).join('')}
+          return `<button class="jtab${t.id === actId ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`; }).join('')}
         <button class="jtab ico" id="jAdd" title="${tr('journal.addPage')}">+</button>
-        <button class="jtab ico" id="jRen" title="${tr('journal.renPage')}">✎</button>
+        ${split ? '' : `<button class="jtab ico" id="jRen" title="${tr('journal.renPage')}">✎</button>
         <button class="jtab ico" id="jLink" title="${tr('plink.copyT')}">🔗</button>
         ${dest.length ? `<button class="jtab ico" id="jMove" title="${tr('book.movePage')}">⇄</button>` : ''}
-        <button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>
+        <button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>`}
       </div>
-      <div class="jed" id="jHost"></div>
+      ${split ? `<div class="npanes n${jSplit.n}">${jSplit.ids.map(pane).join('')}</div>` : `<div class="jed" id="jHost"></div>`}
     </div></div>`;
 
   drawJournalList();
@@ -152,12 +190,22 @@ function renderJournal(){
     const b = e.target.closest('[data-jd]');
     if(b && b.dataset.jd !== ui.jDate){ ui.jDate = b.dataset.jd; ui.jTab = null; renderJournal(); }
   };
-  mountEd('jHost', page.html, tr('journal.ph'), v => {
-    page.html = v; save();
-    const sub = $(`#jList [data-jd="${ui.jDate}"] .nsub`);   // ngày trống vừa được viết thì đổi nhãn ở cột trái luôn
-    if(sub) sub.textContent = jSub(ui.jDate);
-  }, {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
-  keepPageScroll($('#jHost'), page.id);
+  // ngày trống vừa được viết thì đổi nhãn ở cột trái luôn
+  const edit = (d, p) => v => { p.html = v; save(); const sub = $(`#jList [data-jd="${d}"] .nsub`); if(sub) sub.textContent = jSub(d); };
+  if(split){
+    wireSplit(jSplit, {store: jSaveSplit, redraw: renderJournal, add: () => $('#jAdd').click(),
+      // tab sáng theo trang của ô vừa chọn; không vẽ lại kẻo mất con trỏ
+      pick: i => $$('[data-jt]').forEach(b => b.classList.toggle('on', pages[+b.dataset.jt]?.id === jSplit.ids[i]?.id))});
+    $$('.npane').forEach(el => {
+      const i = +el.dataset.npane, r = jSplit.ids[i], p = jRef(r);
+      if(!p) return;
+      mountEd('jHost' + i, p.html, tr('journal.ph'), edit(r.d, p), {kbDay: r.d});
+      keepPageScroll(el, p.id);
+    });
+  }else{
+    mountEd('jHost', page.html, tr('journal.ph'), edit(ui.jDate, page), {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
+    keepPageScroll($('#jHost'), page.id);
+  }
 
   wireBookRow({books, cur: ui.jBook,
     pick: id => { ui.jBook = id; ui.jTab = null; renderJournal(); },
@@ -177,13 +225,15 @@ function renderJournal(){
       ui.jBook = v; ui.jTab = null; save(); renderJournal();
       toast(tr('book.allDone', {n, b: jBookName(v)}));
     }});
-  $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; renderJournal(); });
+  $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; jPut = true; renderJournal(); });
+  $$('[data-nsp]').forEach(b => b.onclick = () => jSetSplit(+b.dataset.nsp));
   wireJTabDnD(pages);
   $('#jAdd').onclick = () => {
     const p = {id:uid(), name:tr('journal.newPage', {n: mine.length + 1}), html:''};
     if(ui.jBook) p.cat = ui.jBook;
-    pages.push(p); ui.jTab = pages.length - 1; save(); renderJournal();
+    pages.push(p); ui.jTab = pages.length - 1; jPut = true; save(); renderJournal();
   };
+  if(split) return;                            // đổi tên, chép link, chuyển cuốn, bỏ trang: về một ô (▢) mới có
   // chuyển xong vẫn ở cuốn đang mở, để sắp lại nhiều trang cũ liền một lúc
   if($('#jMove')) $('#jMove').onclick = e => openPick(dest.map(b => ({v: b.id, t: b.name})), e.currentTarget.getBoundingClientRect(), {
     onPick: v => { page.cat = v; ui.jTab = null; save(); renderJournal(); toast(tr('book.moved', {n: jBookName(v)})); }});

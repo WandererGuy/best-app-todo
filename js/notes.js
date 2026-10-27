@@ -68,7 +68,7 @@ function newNote(parent = null){
   if(parent) S.notes.find(x => x.id === parent).open = true;
   ui.nOpen = n.id; ui.q = ''; $('#q').value = '';   // bỏ ô tìm để trang mới hiện ở cây
   save(); renderNotes();
-  setTimeout(() => $('#ntTitle')?.focus(), 0);
+  setTimeout(() => ($('#ntTitle') || $('.npane.on .nttl'))?.focus(), 0);
 }
 function trashNote(id){
   const n = S.notes.find(x => x.id === id); if(!n) return;
@@ -84,8 +84,34 @@ function trashNote(id){
 // trang đang mở, nhớ riêng trong trình duyệt này như JPAGE_KEY ở nhật ký: tải lại app vẫn ở đúng trang cũ
 const NPAGE_KEY = 'dieukhien.npage';
 const NBOOK_KEY = 'dieukhien.nbook';   // cuốn đang mở, cho lần cuốn đó chưa có trang nào để nhớ theo trang
+/* chia màn hình (xem splitLoad ở core.js): ids là mã trang, ui.nOpen luôn là trang của ô đang chọn.
+   Một trang không mở ở hai ô, vì hai bản cùng sửa sẽ ghi đè nhau. */
+const NSPLIT_KEY = 'dieukhien.nsplit';
+let nSplit = splitLoad(NSPLIT_KEY);
+const nSaveSplit = () => splitSave(NSPLIT_KEY, nSplit);
+function nSetSplit(k){
+  if(k === nSplit.n) return;
+  if(k === 1){
+    ui.nOpen = nSplit.ids[nSplit.act] || nSplit.ids.find(Boolean) || null;
+    const o = S.notes.find(x => x.id === ui.nOpen); if(o) ui.nBook = nBook(o);   // ô có thể đang giữ trang của cuốn khác
+    nSplit = {n:1, ids:[], act:0};
+  }
+  else { nSplit = splitResize(nSplit, k, ui.nOpen); ui.nOpen = nSplit.ids[nSplit.act]; }
+  nSaveSplit(); renderNotes();
+}
 function renderNotes(){
-  if(!ui.nOpen) try{ ui.nOpen = localStorage.getItem(NPAGE_KEY); }catch(e){}
+  const split = nSplit.n > 1;
+  if(!ui.nOpen && !split) try{ ui.nOpen = localStorage.getItem(NPAGE_KEY); }catch(e){}
+  if(split){
+    const ids = nSplit.ids;
+    if(ui.nOpen && ui.nOpen !== ids[nSplit.act]){   // vừa có yêu cầu mở trang (bấm cây, link, trang mới…)
+      const j = ids.indexOf(ui.nOpen);
+      if(j >= 0) nSplit.act = j; else ids[nSplit.act] = ui.nOpen;
+    }
+    ids.forEach((id, i) => { if(!S.notes.some(x => x.id === id)) ids[i] = null; });   // trang đã bỏ vào thùng rác
+    ui.nOpen = ids[nSplit.act];
+    nSaveSplit();
+  }
   if(ui.nBook == null){
     const o = S.notes.find(x => x.id === ui.nOpen);
     if(o) ui.nBook = nBook(o); else try{ ui.nBook = localStorage.getItem(NBOOK_KEY); }catch(e){}
@@ -94,7 +120,8 @@ function renderNotes(){
   if(ui.nBook !== '' && !books.some(b => b.id === ui.nBook)) ui.nBook = books[0]?.id ?? '';
   const inBook = x => nBook(x) === ui.nBook;
   const open = S.notes.find(x => x.id === ui.nOpen);
-  if(!open || !inBook(open)) ui.nOpen = (S.notes.find(x => x.pin && inBook(x)) || S.notes.find(x => !x.parent && inBook(x)) || {}).id || null;
+  // chia màn hình thì không tự chọn trang: ô trống cứ để trống, ô có thể giữ trang của cuốn khác
+  if(!split && (!open || !inBook(open))) ui.nOpen = (S.notes.find(x => x.pin && inBook(x)) || S.notes.find(x => !x.parent && inBook(x)) || {}).id || null;
   try{ if(ui.nOpen) localStorage.setItem(NPAGE_KEY, ui.nOpen); localStorage.setItem(NBOOK_KEY, ui.nBook); }catch(e){}
   const n = S.notes.find(x => x.id === ui.nOpen);
   $('#vSub').textContent = tr('note.sub', {n: S.notes.filter(inBook).length});
@@ -104,7 +131,14 @@ function renderNotes(){
   const dest = books.filter(b => b.id !== ui.nBook);
   const side = S.settings.nSide;
   const sideAt = $('.nside')?.scrollTop || 0;   // vẽ lại cả cột trái: giữ chỗ đang cuộn, bấm trang ở dưới không bị nhảy lên đầu
-  $('#view').innerHTML = `<div class="nwrap">
+  const head = `<div class="nhead">${bookRowHTML({books, cur: ui.nBook, loose: nLoose()})}${splitCtlHTML(nSplit.n)}</div>`;
+  const pane = (id, i) => {
+    const p = S.notes.find(x => x.id === id);
+    return splitPaneHTML(nSplit, i, p && `<input class="nttl" value="${esc(p.title)}" placeholder="${tr('note.untitled')}" autocomplete="off">`,
+      p && `<div class="ned" id="ntHost${i}"></div>`);
+  };
+  [...EDS.keys()].filter(k => k.startsWith('ntHost')).forEach(closeEd);   // đổi từ 4 ô về 2 thì ô cũ không còn chỗ gắn
+  $('#view').innerHTML = `<div class="nwrap${split ? ' split' : ''}">
     ${side ? `<div class="nside">
       <div class="nshead">
         <button class="btn" id="ntNew">${tr('note.new')}</button>
@@ -117,7 +151,8 @@ function renderNotes(){
       <div id="ntList"></div>
     </div>`
     : `<button class="nfold nshow" id="ntShow" title="${tr('common.showSide')}">»</button>`}
-    <div class="npage">${bookRowHTML({books, cur: ui.nBook, loose: nLoose()})}${n ? `
+    ${split ? `<div class="nmain">${head}<div class="npanes n${nSplit.n}">${nSplit.ids.map(pane).join('')}</div></div>`
+    : `<div class="npage">${head}${n ? `
       ${nPath(n).length ? `<div class="ncrumb">${nPath(n).map(p => `<button data-nid="${p.id}">${nName(p)}</button><span>/</span>`).join('')}</div>` : ''}
       <input class="nttl" id="ntTitle" value="${esc(n.title)}" placeholder="${tr('note.untitled')}" autocomplete="off">
       <div class="nmeta">
@@ -138,7 +173,7 @@ function renderNotes(){
       </div>
       <div class="fld">${tagFieldHTML('ntTag', n.tags, tr('note.tagHint'))}</div>
       <div class="ned" id="ntHost"></div>`
-    : `<div class="empty">${tr('note.empty')}</div>`}</div>
+    : `<div class="empty">${tr('note.empty')}</div>`}</div>`}
   </div>`;
 
   drawNoteList();
@@ -186,6 +221,8 @@ function renderNotes(){
       ui.nBook = v; ui.nOpen = null; save(); renderNotes();
       toast(tr('book.allDone', {n: k, b: nBookName(v)}));
     }});
+  $$('[data-nsp]').forEach(b => b.onclick = () => nSetSplit(+b.dataset.nsp));
+  if(split) return wirePanes();
   if(!n) return;
 
   const touch = () => {
@@ -217,6 +254,28 @@ function renderNotes(){
   bindTagField($('.npage'), 'ntTag', n.tags,
     t => { if(!n.tags.includes(t)) n.tags.push(t); touch(); render(); setTimeout(() => $('#ntTag')?.focus(), 0); },
     t => { n.tags = n.tags.filter(x => x !== t); touch(); render(); });
+}
+// các ô khi chia màn hình: mỗi ô chỉ có tiêu đề và trang viết. Ghim, chuyển chỗ, tag, bỏ trang thì về một ô (▢)
+function wirePanes(){
+  wireSplit(nSplit, {store: nSaveSplit, redraw: renderNotes, add: () => newNote(),
+    pick: i => {
+      ui.nOpen = nSplit.ids[i];
+      try{ if(ui.nOpen) localStorage.setItem(NPAGE_KEY, ui.nOpen); }catch(e){}
+      drawNoteList();                              // dòng sáng ở cây theo trang của ô vừa chọn
+    }});
+  $$('.npane').forEach(el => {
+    const i = +el.dataset.npane, p = S.notes.find(x => x.id === nSplit.ids[i]);
+    if(!p) return;
+    const touch = () => { p.mod = new Date().toISOString(); save(); };
+    const ti = el.querySelector('.nttl');
+    ti.oninput = () => {
+      p.title = ti.value; touch();
+      $$(`#ntList [data-nid="${p.id}"] .nname`).forEach(x => x.innerHTML = nTitle(p));
+    };
+    ti.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost' + i)?.commands.focus('start'); } };
+    mountEd('ntHost' + i, p.html, tr('note.ph'), v => { p.html = v; touch(); });
+    keepPageScroll(el, p.id);
+  });
 }
 /* ============ tìm kiếm trang ============ */
 // Mỗi trang giữ sẵn một bản đã bỏ dấu (nIdx), chỉ dựng lại khi trang đổi — gõ thêm một phím thì

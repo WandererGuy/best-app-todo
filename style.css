@@ -41,6 +41,12 @@ body.zen #view{padding:0}
 body.zen .nwrap,body.zen .jwrap{max-width:860px}
 body.zen .jpage{gap:0}
 body.zen .jed,body.zen .npage{border:none;border-radius:0;background:none;padding:56px 48px 0}
+/* chia màn hình trong zen: vẫn rộng hết màn hình, các ô bỏ nền, chỉ ô đang chọn còn viền mờ */
+body.zen .nwrap.split,body.zen .jwrap.split{max-width:none}
+body.zen .nhead{display:none}
+body.zen .nmain,body.zen .jwrap.split .jpage{padding:44px 16px 16px}
+body.zen .npane{background:none;border-color:transparent}
+body.zen .npane.on{border-color:var(--line)}
 /* nút thoát luôn thấy được nhưng nhạt, để không kéo mắt khỏi chữ */
 #zenOut{display:none;position:fixed;top:12px;right:16px;z-index:40;opacity:.6}
 #zenOut:hover{opacity:1}
@@ -352,6 +358,28 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .npage .tagbox{padding:5px 8px}
 .npage .tagsug{display:none}
 .npage .fld:focus-within .tagsug{display:flex}
+.nhead{display:flex;align-items:flex-start;gap:8px}
+.nhead .jbooks{flex:1;min-width:0}
+.nsplit button{padding:3px 9px;font-size:14px;line-height:1.3}
+/* chia màn hình (nút ▢ ◫ ⊞ ở js/notes.js): 2 trang cạnh nhau hoặc lưới 2×2, mỗi ô cuộn riêng, rộng hết màn hình */
+.nwrap.split{max-width:none}
+.nmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
+.npanes{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.npanes.n4{grid-template-rows:repeat(2,minmax(0,1fr))}
+.npane{min-height:0;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+  padding:14px 24px 0;display:flex;flex-direction:column;gap:6px}
+.npane.on{border-color:color-mix(in srgb,var(--acc) 60%,var(--line))}
+.npane .nttl{font-size:20px;flex:1;min-width:0}
+.nphead{display:flex;align-items:center;gap:6px}
+.ngrip{cursor:grab;color:var(--tx3);font-size:16px;line-height:1;padding:3px 4px;border-radius:5px;user-select:none}
+.ngrip:hover{background:var(--panel2);color:var(--tx)}
+.npane.drag{opacity:.5}
+.npane.dropin{border-color:var(--acc);border-style:dashed}
+.npane .ned,.npane .ned .ed{min-height:0}
+.npane .empty{margin:auto;border:none;display:flex;flex-direction:column;align-items:center;gap:10px}
+.jwrap.split{max-width:none}
+.jplbl{font-size:13px;font-weight:600;color:var(--tx2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.npane .ned .ed{font-size:14.5px;line-height:1.8}
 .ned{flex:1 0 auto;min-height:320px;padding-top:4px;display:flex;flex-direction:column}
 /* 1 0 auto: giãn cho kín chỗ trống, nhưng bài dài thì cao theo nội dung chứ không co lại — co lại thì chữ tràn ra ngoài hộp */
 .ned .ed{font-size:14.5px;line-height:1.8;min-height:320px;flex:1 0 auto}

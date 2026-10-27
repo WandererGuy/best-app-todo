@@ -85,6 +85,8 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 | `localStorage` | khoá `dieukhien.view` | trang đang xem, để tải lại trang vẫn ở nguyên chỗ cũ; riêng từng trình duyệt, không lên file |
 | `localStorage` | khoá `dieukhien.side` | `'0'` = thanh điều khiển bên trái đang thu gọn; riêng từng trình duyệt, không lên file |
 | `localStorage` | khoá `dieukhien.zen` | `'1'` = đang ở chế độ zen; riêng từng trình duyệt, không lên file |
+| `localStorage` | khoá `dieukhien.nsplit` | chia màn hình ở trang Ghi chú `{n, ids, act}`: số ô, trang ở từng ô, ô đang chọn; riêng từng trình duyệt, không lên file |
+| `localStorage` | khoá `dieukhien.jsplit` | như `dieukhien.nsplit` nhưng cho Nhật ký, mỗi ô là `{d, id}` (ngày, mã trang) |
 | File trên ổ đĩa | `showSaveFilePicker`, tự ghi sau 1.2 s | tuỳ chọn, chỉ Chrome/Edge |
 | `IndexedDB` | db `dieukhien-fs`, store `h` | chỉ giữ file handle để lần mở sau bấm 1 nút là kết nối lại |
 | `IndexedDB` | db `dieukhien-img`, store `img` | ảnh và file đính kèm trong ghi chú (Blob, khoá = mã; ảnh `i…`, file `f…`); file xuất / file liên kết gói kèm ở trường `images` |
