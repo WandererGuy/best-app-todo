@@ -16,7 +16,7 @@ Every feature of Hearth, described in full. For installing, running and backups,
 
 One place for the work and for the thinking about the work. A task is not just a line of title text — every task carries a note field you write in like a Notion page, so all the scraps attached to it have somewhere to go instead of scattering.
 
-The self-imposed constraint: **it runs offline, the data belongs to the user, and it lives in a file you can hold on to.** That decides every technical choice below. The app began with no backend at all, storing everything in `localStorage`, but that traps the data inside one browser profile: clear the cache and it's gone, switch Chrome accounts and it isn't there. So `serve.py` now keeps the data in a file — still on your machine only, still listening on `localhost` only.
+The self-imposed constraint: **it runs offline, the data belongs to the user, and it lives in a file you can hold on to.** That decides every technical choice below. The app began with no backend at all, storing everything in `localStorage`, but that traps the data inside one browser profile: clear the cache and it's gone, switch Chrome accounts and it isn't there. So `server.py` now keeps the data in a file — still on your machine only, still listening on `localhost` only.
 
 ## Features
 
@@ -96,7 +96,7 @@ Select text to bring up the floating format bar (bold, italic, strikethrough, co
 
 ## How the app saves
 
-Every change is written to **`data/dieukhien.json`** (through `serve.py`, after roughly 0.8 seconds). `localStorage` is now only a buffer, so clearing the cache or opening the app under a different Chrome account still shows all of your data. The sidebar reports **Saved to disk** with the time; when a write fails it turns red and a banner appears.
+Every change is written to **`data/dieukhien.json`** (through `server.py`, after roughly 0.8 seconds). `localStorage` is now only a buffer, so clearing the cache or opening the app under a different Chrome account still shows all of your data. The sidebar reports **Saved to disk** with the time; when a write fails it turns red and a banner appears.
 
 - **Automatic backups** in `data/backups/`: the first version each day (`ngay-*.json`, 30 days kept); the version from just before an import (`truoc-khi-nap-*`); browser-held data that was not used (`trinh-duyet-*`). To restore, use **Import** on one of those files. The names are Vietnamese because that is the language the app was first written in.
 - **Two windows don't overwrite each other.** Every write carries a version tag; if another window or profile wrote first, the server refuses, this window's version is filed into `data/backups`, and the app asks you to reload.

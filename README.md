@@ -10,7 +10,7 @@
 
 - **The data is yours.** Everything lives in a single file, `data/dieukhien.json`, on your disk. Nothing is sent anywhere.
 - **Clearing your browser cache does not lose anything.** The data is written to a file rather than trapped in the browser, and the app keeps a daily backup.
-- **Nothing complicated to install.** Python and a browser is the whole list. On Windows, double-click `run.bat`.
+- **Nothing complicated to install.** Python and a browser is the whole list. On Windows, double-click `start.bat`.
 - **English or Vietnamese.** Switch the interface language with the 🌐 button at the bottom of the sidebar.
 
 ---
@@ -66,14 +66,14 @@ The online copy keeps your data in that browser only. Clearing browser data, or 
 
 Nothing you type leaves your computer. GitHub only serves the page itself (HTML and JavaScript); there is no server behind it.
 
-| | Online | `run.bat` on your machine |
+| | Online | `start.bat` on your machine |
 |---|---|---|
 | Install | nothing | Python |
 | Where the data lives | the browser, plus the linked file | `data/dieukhien.json` |
 | Daily backups in `data/backups` | no | yes |
 | Several tabs and browsers stay in sync | no | yes |
 
-If you end up using it every day, switch to the `run.bat` version below: export from the online copy, then **Import** that file into the local app.
+If you end up using it every day, switch to the `start.bat` version below: export from the online copy, then **Import** that file into the local app.
 
 ## Install and run
 
@@ -89,7 +89,7 @@ To check, open a terminal and run `python --version` (or `python3 --version`).
 
 **Browser:** Chrome or Edge are the two the app is used and tested on daily. The "Link a file on disk" feature only exists in Chrome and Edge.
 
-**Operating system:** the app is built and used on Windows. `serve.py` only uses the Python standard library, so it runs on macOS and Linux too, but those two are not tested as thoroughly.
+**Operating system:** the app is built and used on Windows. `server.py` only uses the Python standard library, so it runs on macOS and Linux too, but those two are not tested as thoroughly.
 
 ### Step 2: Get the app
 
@@ -105,14 +105,14 @@ Either way works:
 
 ### Step 3: Run it
 
-**Windows:** double-click **`run.bat`**.
+**Windows:** double-click **`start.bat`**.
 
 A console window opens, and after a few seconds your browser opens `http://localhost:8000`.
 
 **macOS / Linux:** open a terminal in the app folder and run:
 
 ```bash
-python3 serve.py
+python3 server.py
 ```
 
 Then open **http://localhost:8000**.
@@ -128,9 +128,9 @@ If you stop the server while a tab is still open, the app shows a red warning. Y
 
 - The app creates a few sample tasks, habits and a journal page so there is something to look at. Delete them once you have the hang of it.
 - To get reminders while you are in another window, go to **Focus → ⚙ Settings** and click the button that asks for system notification permission.
-- **Tip:** put a shortcut to `run.bat` on your desktop.
+- **Tip:** put a shortcut to `start.bat` on your desktop.
 
-> **Don't open `index.html` directly.** The app still works, but then the data only lives in the browser and clearing the cache loses it. Always go through `run.bat` or `serve.py`.
+> **Don't open `index.html` directly.** The app still works, but then the data only lives in the browser and clearing the cache loses it. Always go through `start.bat` or `server.py`.
 
 ---
 
@@ -240,7 +240,7 @@ Picking the wrong file is not a disaster: the current data is saved as `truoc-kh
 
 ### What does and doesn't lose data
 
-Running through `run.bat` / `serve.py`, you do **not** lose data by: clearing the browser cache, running CCleaner, switching Chrome accounts, switching browsers, or a sudden shutdown (at worst the last few seconds).
+Running through `start.bat` / `server.py`, you do **not** lose data by: clearing the browser cache, running CCleaner, switching Chrome accounts, switching browsers, or a sudden shutdown (at worst the last few seconds).
 
 You **will** lose data by:
 
@@ -303,19 +303,19 @@ After updating, press **F5** if the app is still open in a tab.
 ## FAQ
 
 <details>
-<summary><b><code>run.bat</code> says "Khong tim thay Python"</b></summary>
+<summary><b><code>start.bat</code> says "Khong tim thay Python"</b></summary>
 
-That message means Python was not found. Either it isn't installed, or it was installed without **Add python.exe to PATH**. Reinstall Python with that box ticked, then run `run.bat` again.
+That message means Python was not found. Either it isn't installed, or it was installed without **Add python.exe to PATH**. Reinstall Python with that box ticked, then run `start.bat` again.
 </details>
 
 <details>
 <summary><b>Port 8000 is already in use</b></summary>
 
-`run.bat` names the program holding the port. Close that program, or move the app to another port in all three places:
+`start.bat` names the program holding the port. Close that program, or move the app to another port in all three places:
 
-- `serve.py`: the line `PORT = 8000`
-- `run.bat`: two occurrences of `http://localhost:8000`
-- `tat-server-cu.ps1`: the line `$Port = 8000`
+- `server.py`: the line `PORT = 8000`
+- `start.bat`: two occurrences of `http://localhost:8000`
+- `dung-server-cu.ps1`: the line `$Port = 8000`
 
 Your data stays in `data/` and is unaffected. Only the small settings kept in the browser — the linked file, for instance — need setting up again.
 </details>
@@ -323,7 +323,7 @@ Your data stays in `data/` and is unaffected. Only the small settings kept in th
 <details>
 <summary><b>The sidebar shows a red "Not saved to disk"</b></summary>
 
-The app cannot reach the server. Check whether the `run.bat` console window is still open and start it again if not. Changes made while it was disconnected are kept in the browser and sent once the server is back.
+The app cannot reach the server. Check whether the `start.bat` console window is still open and start it again if not. Changes made while it was disconnected are kept in the browser and sent once the server is back.
 </details>
 
 <details>
@@ -365,8 +365,8 @@ Close the app, **rename** the `data/` folder — to `data-old/` for instance, ra
 The app is plain HTML, CSS and JavaScript. No framework, and **no build step**: edit a file, press F5, see it. The editor is [TipTap](https://tiptap.dev/), already bundled into `vendor/tiptap.js`. The server is one Python file using only the standard library.
 
 ```
-run.bat, tat-server-cu.ps1   Double-click to run (Windows); clears a leftover server
-serve.py                     Localhost server: static files + the /api/data store
+start.bat, dung-server-cu.ps1   Double-click to run (Windows); clears a leftover server
+server.py                     Localhost server: static files + the /api/data store
 index.html                   The HTML shell
 style.css                    The entire interface
 js/                          App code, one file per area (i18n.js then core.js first, main.js last)

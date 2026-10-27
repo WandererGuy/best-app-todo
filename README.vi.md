@@ -10,7 +10,7 @@
 
 - **Dữ liệu là của bạn.** Mọi thứ nằm trong một file `data/dieukhien.json` trên máy. Không gửi đi đâu, không có máy chủ đám mây.
 - **Không mất dữ liệu vì xoá cache.** Dữ liệu ghi ra file chứ không nhốt trong trình duyệt, và mỗi ngày app tự sao lưu một bản.
-- **Không cần cài gì phức tạp.** Chỉ cần Python và một trình duyệt. Bấm đúp `run.bat` là chạy.
+- **Không cần cài gì phức tạp.** Chỉ cần Python và một trình duyệt. Bấm đúp `start.bat` là chạy.
 - **Tiếng Việt hoặc tiếng Anh.** Đổi ngôn ngữ giao diện bằng nút 🌐 ở cuối sidebar.
 
 ---
@@ -67,14 +67,14 @@ Bản online giữ dữ liệu trong chính trình duyệt đó. Xoá dữ liệ
 
 Không có gì bạn gõ bị gửi ra khỏi máy. GitHub chỉ phát trang web (HTML và JavaScript), phía sau không có máy chủ nào.
 
-| | Bản online | Chạy `run.bat` trên máy |
+| | Bản online | Chạy `start.bat` trên máy |
 |---|---|---|
 | Cài đặt | không | Python |
 | Dữ liệu nằm ở | trình duyệt, và file đã gắn | `data/dieukhien.json` |
 | Tự sao lưu mỗi ngày vào `data/backups` | không | có |
 | Nhiều tab, nhiều trình duyệt thấy cùng dữ liệu | không | có |
 
-Nếu dùng hằng ngày, nên chuyển sang bản chạy `run.bat` ở dưới: xuất file từ bản online, rồi **Nạp file** đó vào app trên máy.
+Nếu dùng hằng ngày, nên chuyển sang bản chạy `start.bat` ở dưới: xuất file từ bản online, rồi **Nạp file** đó vào app trên máy.
 
 ## Cài đặt và chạy
 
@@ -90,7 +90,7 @@ Kiểm tra bằng cách mở Terminal / Command Prompt rồi gõ `python --versi
 
 **Trình duyệt:** nên dùng Chrome hoặc Edge, là hai trình duyệt app được dùng và kiểm tra hằng ngày. Tính năng "Liên kết file trên ổ đĩa" chỉ có trên Chrome và Edge.
 
-**Hệ điều hành:** app được làm và dùng trên Windows. `serve.py` chỉ dùng thư viện chuẩn của Python nên chạy được trên macOS / Linux, nhưng chưa được kiểm kỹ trên hai hệ này.
+**Hệ điều hành:** app được làm và dùng trên Windows. `server.py` chỉ dùng thư viện chuẩn của Python nên chạy được trên macOS / Linux, nhưng chưa được kiểm kỹ trên hai hệ này.
 
 ### Bước 2: Tải app về
 
@@ -106,14 +106,14 @@ Chọn một trong hai cách:
 
 ### Bước 3: Chạy
 
-**Windows:** bấm đúp **`run.bat`**.
+**Windows:** bấm đúp **`start.bat`**.
 
 Một cửa sổ đen hiện ra, và sau vài giây trình duyệt tự mở `http://localhost:8000`.
 
 **macOS / Linux:** mở Terminal trong thư mục app rồi chạy:
 
 ```bash
-python3 serve.py
+python3 server.py
 ```
 
 Sau đó mở trình duyệt vào **http://localhost:8000**.
@@ -129,9 +129,9 @@ Nếu lỡ tắt server khi tab còn mở, app sẽ báo đỏ. Thay đổi vẫ
 
 - App tạo sẵn vài task, thói quen và trang nhật ký mẫu để bạn xem thử. Xoá chúng đi khi đã quen.
 - Muốn nhận nhắc việc khi đang ở cửa sổ khác: vào **Tập trung → ⚙ Cài đặt** và bấm **Cho phép thông báo hệ thống**.
-- **Mẹo:** tạo shortcut của `run.bat` ra Desktop để mở nhanh mỗi ngày.
+- **Mẹo:** tạo shortcut của `start.bat` ra Desktop để mở nhanh mỗi ngày.
 
-> **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `run.bat` hoặc `serve.py`.
+> **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `start.bat` hoặc `server.py`.
 
 ---
 
@@ -241,7 +241,7 @@ Không sợ chọn nhầm: dữ liệu hiện tại được tự cất thành `
 
 ### Những gì làm mất dữ liệu
 
-Khi chạy qua `run.bat` / `serve.py`, bạn **không** mất dữ liệu khi: xoá cache trình duyệt, dùng CCleaner, đổi tài khoản Chrome, đổi trình duyệt, tắt máy đột ngột (cùng lắm mất vài giây cuối).
+Khi chạy qua `start.bat` / `server.py`, bạn **không** mất dữ liệu khi: xoá cache trình duyệt, dùng CCleaner, đổi tài khoản Chrome, đổi trình duyệt, tắt máy đột ngột (cùng lắm mất vài giây cuối).
 
 Bạn **sẽ** mất dữ liệu khi:
 
@@ -304,19 +304,19 @@ Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
 ## Câu hỏi thường gặp
 
 <details>
-<summary><b>Bấm <code>run.bat</code> báo "Khong tim thay Python"</b></summary>
+<summary><b>Bấm <code>start.bat</code> báo "Khong tim thay Python"</b></summary>
 
-Python chưa được cài, hoặc cài mà quên tick **Add python.exe to PATH**. Cài lại Python và tick ô đó, rồi chạy lại `run.bat`.
+Python chưa được cài, hoặc cài mà quên tick **Add python.exe to PATH**. Cài lại Python và tick ô đó, rồi chạy lại `start.bat`.
 </details>
 
 <details>
 <summary><b>Cổng 8000 đang bị chương trình khác dùng</b></summary>
 
-`run.bat` sẽ báo tên chương trình đang chiếm cổng. Tắt chương trình đó, hoặc đổi sang cổng khác ở cả 3 chỗ:
+`start.bat` sẽ báo tên chương trình đang chiếm cổng. Tắt chương trình đó, hoặc đổi sang cổng khác ở cả 3 chỗ:
 
-- `serve.py`: dòng `PORT = 8000`
-- `run.bat`: hai chỗ `http://localhost:8000`
-- `tat-server-cu.ps1`: dòng `$Port = 8000`
+- `server.py`: dòng `PORT = 8000`
+- `start.bat`: hai chỗ `http://localhost:8000`
+- `dung-server-cu.ps1`: dòng `$Port = 8000`
 
 Lưu ý: dữ liệu vẫn nằm trong `data/` nên không bị ảnh hưởng. Chỉ những thiết lập nhỏ lưu trong trình duyệt (ví dụ liên kết file) cần làm lại.
 </details>
@@ -324,7 +324,7 @@ Lưu ý: dữ liệu vẫn nằm trong `data/` nên không bị ảnh hưởng. 
 <details>
 <summary><b>Sidebar báo đỏ "Chưa lưu vào máy"</b></summary>
 
-App không nối được tới server. Kiểm tra cửa sổ đen của `run.bat` còn mở không, rồi chạy lại nếu cần. Thay đổi trong lúc mất kết nối vẫn được giữ trong trình duyệt và tự gửi lên khi server chạy lại.
+App không nối được tới server. Kiểm tra cửa sổ đen của `start.bat` còn mở không, rồi chạy lại nếu cần. Thay đổi trong lúc mất kết nối vẫn được giữ trong trình duyệt và tự gửi lên khi server chạy lại.
 </details>
 
 <details>
@@ -366,8 +366,8 @@ Tắt app, **đổi tên** thư mục `data/` (ví dụ thành `data-cu/`, đừ
 App viết bằng HTML + CSS + JavaScript thuần, không framework và **không có bước build**: sửa file rồi F5 là thấy. Trình soạn thảo dùng [TipTap](https://tiptap.dev/), đã đóng gói sẵn trong `vendor/tiptap.js`. Server là một file Python chỉ dùng thư viện chuẩn.
 
 ```
-run.bat, tat-server-cu.ps1   Bấm đúp để chạy (Windows); tắt server cũ còn sót
-serve.py                     Server localhost: phát file tĩnh + API /api/data giữ dữ liệu
+start.bat, dung-server-cu.ps1   Bấm đúp để chạy (Windows); tắt server cũ còn sót
+server.py                     Server localhost: phát file tĩnh + API /api/data giữ dữ liệu
 index.html                   Khung HTML
 style.css                    Toàn bộ giao diện
 js/                          Code app, mỗi mục một file (i18n.js rồi core.js nạp đầu, main.js nạp cuối)

@@ -583,8 +583,8 @@ const STR = {
   'warn.webLink':  ['Gắn file', 'Link a file'],
   'warn.webNoFs':  ['Dữ liệu đang nằm trong trình duyệt này, xoá cache là mất. Trình duyệt này không ghi ra file được: thỉnh thoảng bấm <b>Xuất file</b> ở cột trái để giữ một bản, hoặc mở bằng Chrome / Edge.',
                     'Your data lives in this browser and clearing the cache loses it. This browser cannot write to a file: use <b>Export</b> in the sidebar now and then, or open the app in Chrome / Edge.'],
-  'warn.noServer': ['⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. Hãy mở app bằng <b>run.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.',
-                    '⚠ Nothing is being written to disk, so the data lives only in this browser — clearing the cache or switching Chrome profile loses it. Start the app with <b>run.bat</b> (the black window must stay open), then reload.'],
+  'warn.noServer': ['⚠ Chưa lưu được vào máy nên dữ liệu chỉ nằm trong trình duyệt này — xoá cache hay đổi profile Chrome là không thấy nữa. Hãy mở app bằng <b>start.bat</b> (cửa sổ đen phải đang mở), rồi tải lại trang.',
+                    '⚠ Nothing is being written to disk, so the data lives only in this browser — clearing the cache or switching Chrome profile loses it. Start the app with <b>start.bat</b> (the black window must stay open), then reload.'],
 
   /* --- lich trinh trong ngay --- */
   'plan.gap':        ['trống {d}', 'free {d}'],
@@ -647,8 +647,8 @@ const STR = {
   'sv.conflict':   ['Đã sửa ở cửa sổ khác — đang lấy bản mới', 'Edited in another window — fetching the new version'],
   'sv.offline':    ['Chưa lưu vào máy — chỉ trong trình duyệt', 'Not saved to disk — browser only'],
   'sv.saved':      ['Đã lưu vào máy {t}', 'Saved to disk at {t}'],
-  'sv.pushFail':   ['Chưa lưu được vào máy — cửa sổ run.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.',
-                    'Could not save to disk — is the run.bat window still open? The changes are kept in the browser.'],
+  'sv.pushFail':   ['Chưa lưu được vào máy — cửa sổ start.bat còn mở không? Thay đổi vẫn giữ trong trình duyệt.',
+                    'Could not save to disk — is the start.bat window still open? The changes are kept in the browser.'],
   'sv.merged':     ['Đã gộp thay đổi từ cửa sổ khác, thay đổi ở đây vẫn giữ nguyên', 'Merged changes from another window; your changes here are kept'],
   'sv.mergedKept': ['Cửa sổ khác cũng sửa đúng chỗ này: giữ bản ở đây, bản kia đã cất vào data/backups',
                     'Another window edited the same thing: kept the version here, the other one went to data/backups'],

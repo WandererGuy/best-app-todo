@@ -35,17 +35,17 @@ function paintSave(){
   b.innerHTML = `<span class="d"></span>${tr('sv.saved', {t: hh})}${fh ? ' · ⇄ file' : ''}`;
 }
 
-/* ---- dữ liệu chính nằm ở server: serve.py ghi ra data/dieukhien.json ----
+/* ---- dữ liệu chính nằm ở server: server.py ghi ra data/dieukhien.json ----
    localStorage chỉ là bản đệm, nên xoá cache hay đổi profile Chrome không mất gì.
    Mỗi lần ghi kèm mã phiên bản (ETag) của bản trên server mà dữ liệu đang dựa vào; cửa sổ khác đã ghi
    trước thì server trả 409 — lúc đó tab này lấy bản mới về và gộp với thay đổi của mình (xem pullSrv, merge3)
    rồi mới gửi lại, không đè lên nhau và không bỏ thứ đang gõ.
    localStorage 'dieukhien.srv' = {tag, dirty, next?}: dirty = còn thay đổi chưa gửi được (tắt tab sớm, server tắt);
-   next = mã phiên bản server sẽ có nếu lượt ghi đang gửi đi lọt (serve.py đặt ETag = sha1 của đúng nội dung nhận được).
+   next = mã phiên bản server sẽ có nếu lượt ghi đang gửi đi lọt (server.py đặt ETag = sha1 của đúng nội dung nhận được).
    Tải lại trang giữa lúc đang gửi thì server đã ghi mà tab không kịp nghe trả lời: nhờ next, lần mở sau
    nhận ra bản trên server là của chính mình, không tưởng nhầm là cửa sổ khác ghi đè rồi cất vào data/backups. */
 const SRV_KEY = 'dieukhien.srv';
-// bản chạy trên web (GitHub Pages…): không có serve.py phía sau, dữ liệu nằm trong trình duyệt, muốn có file thì gắn file.
+// bản chạy trên web (GitHub Pages…): không có server.py phía sau, dữ liệu nằm trong trình duyệt, muốn có file thì gắn file.
 // Chỉ máy này (localhost) mới có server; mở thẳng file:// cũng không có.
 const WEB = location.protocol !== 'file:' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
 const SRV_H = {'X-App':'dieukhien', 'Content-Type':'application/json'};
@@ -56,7 +56,7 @@ let srvBase = null;     // bản server ứng với srvTag (đã qua applyData, 
 function setMeta(dirty){
   if(srvTag) try{ localStorage.setItem(SRV_KEY, JSON.stringify({tag:srvTag, dirty, ...(srvNext ? {next:srvNext} : {})})); }catch(e){}
 }
-// ETag server sẽ trả cho nội dung này: '"' + sha1 hex + '"', như etag() trong serve.py
+// ETag server sẽ trả cho nội dung này: '"' + sha1 hex + '"', như etag() trong server.py
 async function tagOf(body){
   try{
     const h = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(body));

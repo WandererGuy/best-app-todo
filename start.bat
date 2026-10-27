@@ -6,8 +6,8 @@ title Hearth
 where python >nul 2>nul
 if errorlevel 1 goto :nopython
 
-rem tat server cu con sot (cua so run.bat khac, python serve.py chay tay) de chi co mot server
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tat-server-cu.ps1"
+rem tat server cu con sot (cua so start.bat khac, python server.py chay tay) de chi co mot server
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0dung-server-cu.ps1"
 if errorlevel 1 goto :portbusy
 
 echo.
@@ -21,7 +21,7 @@ echo.
 
 rem APP_NO_BROWSER=1 (launcher khoi dong cung may dat): khong tu mo trinh duyet, launcher mo Chrome
 if not defined APP_NO_BROWSER start "" /min cmd /c ping -n 3 127.0.0.1 ^>nul ^&^& start http://localhost:8000
-python serve.py
+python server.py
 echo.
 echo   Server da dung.
 echo.

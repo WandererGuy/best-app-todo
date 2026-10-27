@@ -16,7 +16,7 @@ Mô tả đầy đủ từng tính năng của Hearth. Cách cài đặt, chạy
 
 Một chỗ duy nhất cho việc cần làm và cho suy nghĩ về việc đó. Task không chỉ là một dòng tiêu đề — mỗi task có một ô ghi chú viết được như trang Notion, để mọi thứ vụn vặt liên quan đến nó có nơi để ném vào thay vì tản mác ở chỗ khác.
 
-Ràng buộc tự đặt: **chạy offline, dữ liệu là của người dùng, nằm ở một file cầm nắm được**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới. Ban đầu app không có backend và chỉ lưu trong `localStorage`, nhưng như vậy dữ liệu bị nhốt trong một profile trình duyệt: xoá cache là mất, đổi tài khoản Chrome là không thấy. Nên `serve.py` giờ giữ dữ liệu ra file — vẫn chỉ chạy trên máy, chỉ nghe `localhost`.
+Ràng buộc tự đặt: **chạy offline, dữ liệu là của người dùng, nằm ở một file cầm nắm được**. Điều này quyết định mọi lựa chọn kỹ thuật bên dưới. Ban đầu app không có backend và chỉ lưu trong `localStorage`, nhưng như vậy dữ liệu bị nhốt trong một profile trình duyệt: xoá cache là mất, đổi tài khoản Chrome là không thấy. Nên `server.py` giờ giữ dữ liệu ra file — vẫn chỉ chạy trên máy, chỉ nghe `localhost`.
 
 ## Các tính năng
 
@@ -96,7 +96,7 @@ Bôi đen chữ để hiện thanh định dạng nổi (đậm, nghiêng, gạc
 
 ## Cách app lưu dữ liệu
 
-Mỗi thay đổi được ghi ra **`data/dieukhien.json`** (qua `serve.py`, sau ~0.8 giây). `localStorage` chỉ còn là bản đệm, nên xoá cache hay mở bằng tài khoản Chrome khác vẫn thấy đủ dữ liệu. Sidebar báo **Đã lưu vào máy** kèm giờ; không ghi được thì chuyển đỏ và hiện banner.
+Mỗi thay đổi được ghi ra **`data/dieukhien.json`** (qua `server.py`, sau ~0.8 giây). `localStorage` chỉ còn là bản đệm, nên xoá cache hay mở bằng tài khoản Chrome khác vẫn thấy đủ dữ liệu. Sidebar báo **Đã lưu vào máy** kèm giờ; không ghi được thì chuyển đỏ và hiện banner.
 
 - **Sao lưu tự động** trong `data/backups/`: bản đầu mỗi ngày (`ngay-*.json`, giữ 30 ngày); bản ngay trước khi nạp file (`truoc-khi-nap-*`); dữ liệu trình duyệt không được dùng (`trinh-duyet-*`). Muốn khôi phục thì dùng **Nạp file** với file trong đó.
 - **Hai cửa sổ không đè nhau.** Mỗi lần ghi kèm mã phiên bản; cửa sổ / profile khác đã ghi trước thì server từ chối, bản của cửa sổ này được cất vào `data/backups`, app báo tải lại trang.
