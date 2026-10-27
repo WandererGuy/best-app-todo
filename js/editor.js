@@ -51,23 +51,23 @@ const plain   = h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g,
 const hasText = h => plain(h).length > 0 || /<(hr|img)\b|data-file=|data-kanban=/i.test(h || '');
 
 const BLOCKS = [
-  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:''},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
-  {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:''},
-  {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:''},     // chỉ có ở trang nhật ký (xem kanban.js)
-  {k:'plink', n:tr('blk.plink'), ic:'↗', key:''},
-  {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:''},     // sửa bảng thì dùng nút + và tay nắm trên bảng (showTbAdd)
-  {k:'p',   n:tr('blk.p'),   ic:'¶',  key:''},
-  {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# '},
-  {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## '},
-  {k:'h3',  n:tr('blk.h3'),  ic:'H3', key:'### '},
-  {k:'td',  n:tr('blk.td'),  ic:'✓',  key:'[] '},
-  {k:'ul',  n:tr('blk.ul'),  ic:'•',  key:'- '},
-  {k:'ol',  n:tr('blk.ol'),  ic:'1.', key:'1. '},
-  {k:'q',   n:tr('blk.q'),   ic:'❝',  key:'> '},
-  {k:'pre', n:tr('blk.pre'), ic:'‹›', key:'```'},
-  {k:'hr',  n:tr('blk.hr'),  ic:'—',  key:'---'},
-  {k:'img', n:tr('blk.img'), ic:'▣',  key:'Ctrl+V'},
-  {k:'file', n:tr('blk.file'), ic:'📎', key:tr('blk.fileKey')},
+  {k:'kb',  n:tr('blk.kb'),  ic:'▦',  key:'', w:'kanban board work task'},     // hay dùng nhất nên đứng đầu: gõ / rồi Enter là ra bảng công việc
+  {k:'kbl', n:tr('blk.kbl'), ic:'▦',  key:'', w:'kanban board life personal'},
+  {k:'kbp', n:tr('blk.kbp'), ic:'⇣',  key:'', w:'kanban board previous yesterday'},     // chỉ có ở trang nhật ký (xem kanban.js)
+  {k:'plink', n:tr('blk.plink'), ic:'↗', key:'', w:'link page'},
+  {k:'tbl', n:tr('blk.tbl'), ic:'⊞',  key:'', w:'table grid'},     // sửa bảng thì dùng nút + và tay nắm trên bảng (showTbAdd)
+  {k:'p',   n:tr('blk.p'),   ic:'¶',  key:'', w:'text paragraph'},
+  {k:'h1',  n:tr('blk.h1'),  ic:'H1', key:'# ', w:'heading title'},
+  {k:'h2',  n:tr('blk.h2'),  ic:'H2', key:'## ', w:'heading subtitle'},
+  {k:'h3',  n:tr('blk.h3'),  ic:'H3', key:'### ', w:'heading'},
+  {k:'td',  n:tr('blk.td'),  ic:'✓',  key:'[] ', w:'todo checklist checkbox task'},
+  {k:'ul',  n:tr('blk.ul'),  ic:'•',  key:'- ', w:'bullet list'},
+  {k:'ol',  n:tr('blk.ol'),  ic:'1.', key:'1. ', w:'numbered list ordered'},
+  {k:'q',   n:tr('blk.q'),   ic:'❝',  key:'> ', w:'quote blockquote'},
+  {k:'pre', n:tr('blk.pre'), ic:'‹›', key:'```', w:'code snippet'},
+  {k:'hr',  n:tr('blk.hr'),  ic:'—',  key:'---', w:'divider line separator'},
+  {k:'img', n:tr('blk.img'), ic:'▣',  key:'Ctrl+V', w:'image picture photo'},
+  {k:'file', n:tr('blk.file'), ic:'📎', key:tr('blk.fileKey'), w:'file attachment upload'},
 ];
 
 /* dữ liệu cũ (markdown, hoặc HTML do bản tự viết sinh ra) -> định dạng TipTap hiểu */
@@ -234,8 +234,11 @@ function syncMenus(ed){
 
 /* --- menu lệnh "/" --- */
 let slash = null;
+// gõ gì cũng tìm ra: tên tiếng Việt lẫn tiếng Anh, từ khoá w, không cần dấu, viết liền ("bangcong", "todo")
+const slashHay = b => { const t = fold([...(STR['blk.' + b.k] || []), b.k, b.w].join(' ')); return t + ' ' + t.replace(/\s+/g, ''); };
 function openSlash(ed, info){
-  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!info.q || (b.n + ' ' + b.k).toLowerCase().includes(info.q.toLowerCase())));
+  const q = fold(info.q);
+  const hit = BLOCKS.filter(b => (b.k !== 'kbp' || KB_DAY.has(ed)) && (!q || slashHay(b).includes(q)));
   let el = document.getElementById('slashEl');
   if(!el){
     el = document.createElement('div'); el.className = 'slash'; el.id = 'slashEl';
