@@ -370,20 +370,37 @@ function showTbAdd(ed, wrap, cell){
   tbHover = {ed, wrap, cell: cell || (tbHover && tbHover.wrap === wrap ? tbHover.cell : null)};
   placeTbAdd();
 }
+// vùng nhìn thấy của el: giao của các khung cuộn chứa nó (ô, trang) và cửa sổ.
+// Nút nổi (position:fixed) không bị khung cắt như chữ, nên tự cắt theo vùng này kẻo thò ra ngoài ô
+function clipRect(el){
+  let top = 0, bottom = innerHeight, left = 0, right = innerWidth;
+  for(let p = el.parentElement; p; p = p.parentElement){
+    const s = getComputedStyle(p);
+    if(!/auto|scroll|hidden/.test(s.overflowX + s.overflowY)) continue;
+    const q = p.getBoundingClientRect();
+    top = Math.max(top, q.top); bottom = Math.min(bottom, q.bottom); left = Math.max(left, q.left); right = Math.min(right, q.right);
+  }
+  return {top, bottom, left, right};
+}
 function placeTbAdd(){
   const el = document.getElementById('tbAddEl'), t = tbHover && tbHover.wrap.querySelector('table');
   if(!el || !t || !tbHover.wrap.isConnected) return hideTbAdd();
   const r = t.getBoundingClientRect(), w = tbHover.wrap.getBoundingClientRect();
   const right = Math.min(r.right, w.right);  // bảng rộng hơn khung thì cuộn ngang: nút bám mép khung
-  const [col, row, rh, ch] = el.children, px = v => v + 'px';
-  Object.assign(col.style, {left: px(right + 4), top: px(r.top), width: '18px', height: px(r.height)});
-  Object.assign(row.style, {left: px(r.left), top: px(r.bottom + 4), width: px(right - r.left), height: '18px'});
+  const [col, row, rh, ch] = el.children, px = v => v + 'px', v = clipRect(tbHover.wrap);
+  // đặt nút vào khung (x, y, w, h); phần ra ngoài vùng nhìn thấy của ô / trang thì cắt đi, khuất hẳn thì ẩn
+  const put = (b, x, y, w, h) => {
+    const t = Math.max(y, v.top), bt = Math.min(y + h, v.bottom), l = Math.max(x, v.left), rt = Math.min(x + w, v.right);
+    if(bt <= t || rt <= l) return b.style.display = 'none';
+    Object.assign(b.style, {display: '', left: px(l), top: px(t), width: px(rt - l), height: px(bt - t)});
+  };
+  put(col, right + 4, r.top, 18, r.height);
+  put(row, r.left, r.bottom + 4, right - r.left, 18);
   const c = tbHover.cell && tbHover.cell.isConnected ? tbHover.cell : null;
-  rh.style.display = ch.style.display = c ? '' : 'none';
-  if(!c) return;
+  if(!c){ rh.style.display = ch.style.display = 'none'; return; }
   const rr = c.parentElement.getBoundingClientRect(), cr = c.getBoundingClientRect();
-  Object.assign(rh.style, {left: px(r.left - 18), top: px(rr.top), width: '14px', height: px(rr.height)});
-  Object.assign(ch.style, {left: px(cr.left), top: px(r.top - 16), width: px(cr.width), height: '12px'});
+  put(rh, r.left - 18, rr.top, 14, rr.height);
+  put(ch, cr.left, r.top - 16, cr.width, 12);
 }
 function hideTbAdd(){ closeTbMenu(); document.getElementById('tbAddEl')?.remove(); tbHover = null; }
 function openTbMenu(h){
