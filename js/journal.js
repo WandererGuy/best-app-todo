@@ -60,17 +60,20 @@ let jKept = (() => { try{ return JSON.parse(localStorage.getItem(JPAGE_KEY)); }c
 const jLast = {};
 /* chia màn hình (xem splitLoad ở core.js): mỗi ô giữ {d: ngày, id: mã trang}. Thanh ngày, hàng cuốn và tab ở trên
    chỉ để duyệt: đổi ngày, đổi cuốn không đổi ô nào; bấm một tab (hoặc + trang mới, link tới trang) mới mở trang đó
-   vào ô đang chọn — jPut đánh dấu lần vẽ đó. Một trang không mở ở hai ô. */
+   vào ô đang chọn — jPut đánh dấu lần vẽ đó. Một trang không mở ở hai ô.
+   Mỗi cuốn nhớ cách chia và các ô của riêng nó: sang cuốn khác là thấy lại đúng các ô đã mở ở cuốn đó. */
 const JSPLIT_KEY = 'dieukhien.jsplit';
-let jSplit = splitLoad(JSPLIT_KEY), jPut = false;
-const jSaveSplit = () => splitSave(JSPLIT_KEY, jSplit);
+const jSplitKey = b => JSPLIT_KEY + '.' + (b || '_');   // '' = Chưa phân loại
+let jSplitBook = null, jSplit = {n:1, ids:[], act:0}, jPut = false;   // jSplit là của cuốn jSplitBook, renderJournal() nạp lại khi đổi cuốn
+const jSaveSplit = () => splitSave(jSplitKey(jSplitBook), jSplit);
 const jRef = r => r && Array.isArray(S.journal[r.d]) ? S.journal[r.d].find(p => p.id === r.id) : null;
 function jSetSplit(k){
   if(k === jSplit.n) return;
   if(k === 1){                                 // về một ô: mở đúng trang của ô đang chọn
     const r = [jSplit.ids[jSplit.act], ...jSplit.ids].find(jRef);
+    jSplit = {n:1, ids:[], act:0}; jSaveSplit();
     if(r){ const pgs = jPages(r.d), p = jRef(r); ui.jDate = r.d; ui.jTab = pgs.indexOf(p); ui.jBook = jCat(p); }
-    jSplit = {n:1, ids:[], act:0};
+    jSplitBook = ui.jBook;                     // ô có thể giữ trang của cuốn khác: cuốn đó cũng về một ô
   }
   else {
     const p = jPages(ui.jDate)[ui.jTab];
@@ -79,7 +82,6 @@ function jSetSplit(k){
   jSaveSplit(); renderJournal();
 }
 function renderJournal(){
-  const split = jSplit.n > 1;
   if(!ui.jDate) ui.jDate = /^\d{4}-\d\d-\d\d$/.test(jKept?.d) ? jKept.d : today();
   const d = new Date(ui.jDate + 'T00:00:00');
   const pages = jPages(ui.jDate);
@@ -91,6 +93,8 @@ function renderJournal(){
   }
   const books = S.settings.jBooks;
   if(ui.jBook !== '' && !books.some(b => b.id === ui.jBook)) ui.jBook = books[0]?.id ?? '';
+  if(jSplitBook !== ui.jBook){ jSplitBook = ui.jBook; jSplit = splitLoad(jSplitKey(jSplitBook)); }
+  const split = jSplit.n > 1;
   const key = ui.jDate + '|' + ui.jBook;
   let mine = pages.filter(p => jCat(p) === ui.jBook);
   if(!mine.length){                            // cuốn này chưa có trang nào ở ngày này: mở sẵn một trang trống

@@ -85,21 +85,33 @@ function trashNote(id){
 const NPAGE_KEY = 'dieukhien.npage';
 const NBOOK_KEY = 'dieukhien.nbook';   // cuốn đang mở, cho lần cuốn đó chưa có trang nào để nhớ theo trang
 /* chia màn hình (xem splitLoad ở core.js): ids là mã trang, ui.nOpen luôn là trang của ô đang chọn.
-   Một trang không mở ở hai ô, vì hai bản cùng sửa sẽ ghi đè nhau. */
+   Một trang không mở ở hai ô, vì hai bản cùng sửa sẽ ghi đè nhau.
+   Mỗi cuốn nhớ cách chia và các ô của riêng nó, như nhật ký (jSplitKey ở journal.js). */
 const NSPLIT_KEY = 'dieukhien.nsplit';
-let nSplit = splitLoad(NSPLIT_KEY);
-const nSaveSplit = () => splitSave(NSPLIT_KEY, nSplit);
+const nSplitKey = b => NSPLIT_KEY + '.' + (b || '_');   // '' = Chưa phân loại
+let nSplitBook = null, nSplit = {n:1, ids:[], act:0};    // nSplit là của cuốn nSplitBook, renderNotes() nạp lại khi đổi cuốn
+const nSaveSplit = () => splitSave(nSplitKey(nSplitBook), nSplit);
 function nSetSplit(k){
   if(k === nSplit.n) return;
   if(k === 1){
     ui.nOpen = nSplit.ids[nSplit.act] || nSplit.ids.find(Boolean) || null;
+    nSplit = {n:1, ids:[], act:0}; nSaveSplit();
     const o = S.notes.find(x => x.id === ui.nOpen); if(o) ui.nBook = nBook(o);   // ô có thể đang giữ trang của cuốn khác
-    nSplit = {n:1, ids:[], act:0};
+    nSplitBook = ui.nBook;                                                       // cuốn đó cũng về một ô
   }
   else { nSplit = splitResize(nSplit, k, ui.nOpen); ui.nOpen = nSplit.ids[nSplit.act]; }
   nSaveSplit(); renderNotes();
 }
 function renderNotes(){
+  // cuốn phải biết trước, vì cách chia ô nhớ theo cuốn
+  if(ui.nBook == null){
+    let o = S.notes.find(x => x.id === ui.nOpen);
+    if(!o) try{ o = S.notes.find(x => x.id === localStorage.getItem(NPAGE_KEY)); }catch(e){}
+    if(o) ui.nBook = nBook(o); else try{ ui.nBook = localStorage.getItem(NBOOK_KEY); }catch(e){}
+  }
+  const books = S.settings.nBooks;
+  if(ui.nBook !== '' && !books.some(b => b.id === ui.nBook)) ui.nBook = books[0]?.id ?? '';
+  if(nSplitBook !== ui.nBook){ nSplitBook = ui.nBook; nSplit = splitLoad(nSplitKey(nSplitBook)); }
   const split = nSplit.n > 1;
   if(!ui.nOpen && !split) try{ ui.nOpen = localStorage.getItem(NPAGE_KEY); }catch(e){}
   if(split){
@@ -112,12 +124,6 @@ function renderNotes(){
     ui.nOpen = ids[nSplit.act];
     nSaveSplit();
   }
-  if(ui.nBook == null){
-    const o = S.notes.find(x => x.id === ui.nOpen);
-    if(o) ui.nBook = nBook(o); else try{ ui.nBook = localStorage.getItem(NBOOK_KEY); }catch(e){}
-  }
-  const books = S.settings.nBooks;
-  if(ui.nBook !== '' && !books.some(b => b.id === ui.nBook)) ui.nBook = books[0]?.id ?? '';
   const inBook = x => nBook(x) === ui.nBook;
   const open = S.notes.find(x => x.id === ui.nOpen);
   // chia màn hình thì không tự chọn trang: ô trống cứ để trống, ô có thể giữ trang của cuốn khác
