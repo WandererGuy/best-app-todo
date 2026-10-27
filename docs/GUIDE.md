@@ -1,6 +1,6 @@
 # Feature guide
 
-Every feature of Hearth, described in full. For installing, running and backups, see the [README](../README.md).
+Every feature of Lumos, described in full. For installing, running and backups, see the [README](../README.md).
 
 *English · [Tiếng Việt](HUONG-DAN.md)*
 

@@ -1,4 +1,4 @@
-# Hearth
+# Lumos
 
 **One app for your tasks, habits, focus sessions, calendar, journal and notes. It runs on your own machine — no account, no internet, no cloud.**
 
@@ -129,7 +129,7 @@ If you stop the server while a tab is still open, the app shows a red warning. Y
 - The app creates a few sample tasks, habits and a journal page so there is something to look at. Delete them once you have the hang of it.
 - To get reminders while you are in another window, go to **Focus → ⚙ Settings** and click the button that asks for system notification permission.
 - **Tip:** put a shortcut to `start.bat` on your desktop.
-- **Open it like a desktop app:** in Chrome, at `localhost:8000`, click the **Install** icon at the end of the address bar (or ⋮ → Cast, save and share → Install page as app). Hearth then gets its own window and icon, and shows up in the Start menu and on the desktop. The app only opens the window: the server still has to be running through `start.bat`.
+- **Open it like a desktop app:** in Chrome, at `localhost:8000`, click the **Install** icon at the end of the address bar (or ⋮ → Cast, save and share → Install page as app). Lumos then gets its own window and icon, and shows up in the Start menu and on the desktop. The app only opens the window: the server still has to be running through `start.bat`.
 
 > **Don't open `index.html` directly.** The app still works, but then the data only lives in the browser and clearing the cache loses it. Always go through `start.bat` or `server.py`.
 

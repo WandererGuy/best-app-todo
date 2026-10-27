@@ -23,15 +23,17 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 
 ### Mở như một app Windows (cài từ Chrome)
 
-Chạy `start.bat`, rồi ở tab `http://localhost:8000` bấm biểu tượng **Cài đặt** ở cuối thanh địa chỉ (hoặc ⋮ > Cast, save and share > Install page as app). Chrome tạo app "Hearth" trong Start Menu và trên Desktop: cửa sổ riêng, icon riêng, ghim được lên taskbar. `manifest.json` khai báo tên, icon và nền tối lúc cửa sổ vừa mở. Dữ liệu vẫn là `data/dieukhien.json` như khi mở bằng tab thường.
+Chạy `start.bat`, rồi ở tab `http://localhost:8000` bấm biểu tượng **Cài đặt** ở cuối thanh địa chỉ (hoặc ⋮ > Cast, save and share > Install page as app). Chrome tạo app "Lumos" trong Start Menu và trên Desktop: cửa sổ riêng, icon riêng, ghim được lên taskbar. `manifest.json` khai báo tên, icon và nền tối lúc cửa sổ vừa mở. Dữ liệu vẫn là `data/dieukhien.json` như khi mở bằng tab thường.
 
-App cài chỉ mở cửa sổ, không bật server: server vẫn do `start.bat` (hoặc launcher khởi động cùng máy) chạy. Cố ý không cho shortcut tự bật server qua script: một chuỗi `.vbs` → `.bat` → PowerShell từng bị phần mềm diệt virus coi là mã độc và cách ly cả các file của app.
+App cài chỉ mở cửa sổ, không bật server: server vẫn do `start.bat` (hoặc launcher khởi động cùng máy) chạy. Cố ý không dùng `.vbs`: một chuỗi `.vbs` → `.bat` → PowerShell từng bị phần mềm diệt virus coi là mã độc và cách ly cả các file của app.
+
+Muốn một nút bật cả hai: `mo-lumos.bat` bật `start.bat` ở cửa sổ thu nhỏ (server cũ tự tắt, nên bấm lại = chạy server với code mới), đợi cổng 8000 rồi mở shortcut Lumos mà Chrome tạo trong Start Menu. Shortcut `.lnk` trên Desktop trỏ thẳng vào file `.bat` này, không qua `.vbs`.
 
 Không chạy server thì vẫn cài được bản online (https://wandererguy.github.io/best-app-todo/), nhưng bản đó lưu dữ liệu trong Chrome và không đồng bộ với `data/` (xem [Try it online](README.md#try-it-online)).
 
 App mở lại đúng trang đang xem lần trước (`dieukhien.view`) và đặt con trỏ về chỗ đang gõ (`dieukhien.caret`).
 
-Logo nằm ở `icons/hearth.svg` (sidebar), `icons/hearth.ico` (favicon) và `icons/hearth-192.png`, `icons/hearth-512.png` (app cài từ Chrome), đều sinh từ `build/logo.py` (cần Pillow): sửa logo ở đó rồi chạy lại, đừng sửa tay từng file.
+Logo nằm ở `icons/lumos.svg` (sidebar), `icons/lumos.ico` (favicon) và `icons/lumos-192.png`, `icons/lumos-512.png` (app cài từ Chrome), đều sinh từ `build/logo.py` (`python build/logo.py icons <ảnh-xem-thử.png>`) (cần Pillow): sửa logo ở đó rồi chạy lại, đừng sửa tay từng file.
 
 ### Vì sao qua server chứ không mở thẳng file
 

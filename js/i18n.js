@@ -18,8 +18,8 @@ const setLang = l => {
 
 const STR = {
   /* --- khung ngoài: thanh bên và thanh trên (index.html) --- */
-  'app.title':      ['Hearth', 'Hearth'],
-  'app.brand':      ['Hearth', 'Hearth'],
+  'app.title':      ['Lumos', 'Lumos'],
+  'app.brand':      ['Lumos', 'Lumos'],
   'nav.new':        ['Tạo task', 'New task'],
   'nav.board':      ['Bảng việc', 'Work board'],
   'nav.life':       ['Bảng cuộc sống', 'Life board'],
@@ -664,7 +664,7 @@ const STR = {
   'sv.adopted':    ['Đã đưa dữ liệu vào data/dieukhien.json.', 'The data has been written to data/dieukhien.json.'],
   'sv.stashed':    ['Trình duyệt này có dữ liệu riêng ({c}) — đã cất vào data/backups, đang dùng dữ liệu trên máy.',
                     'This browser had its own data ({c}) — it went to data/backups, and the data on disk is in use.'],
-  'fs.fileDesc':   ['Dữ liệu Hearth', 'Hearth data'],
+  'fs.fileDesc':   ['Dữ liệu Lumos', 'Lumos data'],
   'fs.linked':     ['Đã liên kết. Mọi thay đổi sẽ tự ghi ra file này.',
                     'Linked. Every change is written to this file automatically.'],
   'fs.linkFail':   ['Chưa liên kết được file: {e}', 'Could not link the file: {e}'],
