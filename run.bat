@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title Trung tam dieu khien
+title Hearth
 
 where python >nul 2>nul
 if errorlevel 1 goto :nopython
@@ -11,7 +11,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tat-server-cu.ps1"
 if errorlevel 1 goto :portbusy
 
 echo.
-echo   Trung tam dieu khien dang chay tai  http://localhost:8000
+echo   Hearth dang chay tai  http://localhost:8000
 echo.
 echo   - Trinh duyet se tu mo sau vai giay.
 echo   - DONG CUA SO NAY de tat server khi dung xong.

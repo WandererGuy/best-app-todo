@@ -1,6 +1,6 @@
 # Hướng dẫn chi tiết
 
-Mô tả đầy đủ từng tính năng của Trung tâm điều khiển. Cách cài đặt, chạy và sao lưu: xem [README](../README.vi.md).
+Mô tả đầy đủ từng tính năng của Hearth. Cách cài đặt, chạy và sao lưu: xem [README](../README.vi.md).
 
 *[English](GUIDE.md) · Tiếng Việt*
 

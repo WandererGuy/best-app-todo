@@ -1,4 +1,4 @@
-# Control Center
+# Hearth
 
 **One app for your tasks, habits, focus sessions, calendar, journal and notes. It runs on your own machine — no account, no internet, no cloud.**
 
@@ -290,6 +290,8 @@ After updating, press **F5** if the app is still open in a tab.
 **Everywhere:**
 
 - `Esc` closes panels, menus and pickers, and leaves full screen.
+- `Ctrl + \` or the « button at the start of the top bar collapses / shows the sidebar.
+- The **Zen** button in the top bar (or `Shift + F11`) hides everything except the page you are writing. **✕ Leave zen** in the top-right corner (or `Esc`) brings it all back.
 - Drag a card **to the bottom of the screen** to trash it, onto **Later** in the sidebar to set it aside, or onto the **Focus** block to queue it.
 - Mid-session and something else comes to mind: type it into **Save for later** and press Enter. It goes to Later and you carry on with what you were doing.
 - Click an empty slot on either calendar — the full one or the small one in the sidebar — to create a task at that hour.

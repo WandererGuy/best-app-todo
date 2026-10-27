@@ -230,6 +230,31 @@ document.addEventListener('focusout', () => setTimeout(() => { if(pullWait) pull
 $('#expBtn').onclick = exportJSON;
 $('#impBtn').onclick = () => $('#impFile').click();
 $('#impFile').onchange = e => { if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value = ''; };
+// thu gọn thanh điều khiển bên trái: nhớ riêng trong trình duyệt này như VIEW_KEY, không lên file
+const SIDE_KEY = 'dieukhien.side';
+function sideFold(off){
+  $('#app').classList.toggle('noside', off);
+  $('#sideBtn').textContent = off ? '»' : '«';
+  $('#sideBtn').title = tr(off ? 'top.sideShow' : 'top.sideHide');
+  try{ localStorage.setItem(SIDE_KEY, off ? '0' : '1'); }catch(e){}
+}
+$('#sideBtn').onclick = () => sideFold(!$('#app').classList.contains('noside'));
+sideFold((() => { try{ return localStorage.getItem(SIDE_KEY) === '0'; }catch(e){ return false; } })());
+// chế độ zen: chỉ còn chữ (xem body.zen trong style.css). Nhớ riêng trong trình duyệt này như SIDE_KEY
+const ZEN_KEY = 'dieukhien.zen';
+function zenMode(on){
+  document.body.classList.toggle('zen', on);
+  $('#zenBtn').title = tr('top.zenOn');
+  $('#zenOut').title = tr('top.zenOff');
+  try{ localStorage.setItem(ZEN_KEY, on ? '1' : '0'); }catch(e){}
+}
+$('#zenBtn').onclick = () => zenMode(true);
+$('#zenOut').onclick = () => zenMode(false);
+zenMode((() => { try{ return localStorage.getItem(ZEN_KEY) === '1'; }catch(e){ return false; } })());
+document.addEventListener('keydown', e => {
+  if((e.ctrlKey || e.metaKey) && e.key === '\\'){ e.preventDefault(); $('#sideBtn').click(); }
+  if(e.shiftKey && e.key === 'F11'){ e.preventDefault(); zenMode(!document.body.classList.contains('zen')); }
+});
 document.addEventListener('keydown', e => {
   if(e.key !== 'Escape') return;
   if(ui.fFull) return fFull(false);
@@ -239,7 +264,8 @@ document.addEventListener('keydown', e => {
   if($('#palEl')) return closePal();
   if(!$('#bellP').hidden) return closeBell();
   if(ui.bfOpen) return closeBf();
-  if(ui.open){ hideFtb(); closeDrawer(); }
+  if(ui.open){ hideFtb(); closeDrawer(); return; }
+  if(document.body.classList.contains('zen')) zenMode(false);   // sau cùng: Esc đóng menu trước, hết thứ để đóng mới thoát zen
 });
 
 try{ document.execCommand('defaultParagraphSeparator', false, 'p'); }catch(e){}

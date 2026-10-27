@@ -21,6 +21,20 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 - Máy không có Python thì `run.bat` báo lỗi và dừng — cố ý không mở thẳng `index.html`, vì cách đó dữ liệu chỉ nằm trong trình duyệt.
 - Bấm `run.bat` khi đã có server đang chạy thì server cũ **tự bị tắt** trước (qua `tat-server-cu.ps1`), nên lúc nào cũng chỉ có một server. Script chỉ tắt thứ của app: cửa sổ `run.bat` cũ (cùng đường dẫn, tắt cả cửa sổ) và `python serve.py` đang giữ cổng 8000 (chạy tay trong terminal thì chỉ tắt python, để yên terminal). Chương trình khác chiếm cổng 8000 thì không bị tắt — `run.bat` báo tên nó rồi dừng.
 
+### Mở riêng trang Ghi chú như một app (Ctrl+Alt+N)
+
+`ghi-chu.vbs` mở `http://localhost:8000/?view=notes` bằng `chrome --app`: cửa sổ riêng, không thanh địa chỉ, icon `icons/hearth.ico`. Server chưa chạy thì nó bật `run.bat` thu nhỏ trước. Vẫn là cả app với cùng dữ liệu, chỉ là vào thẳng trang Ghi chú (`?view=` đọc trong `keptView()` ở `js/core.js`, dùng một lần rồi bỏ khỏi URL).
+
+Tạo shortcut một lần (chạy lại nếu chuyển thư mục project):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tao-shortcut-ghi-chu.ps1
+```
+
+Shortcut "Hearth" nằm trong Start Menu, phím tắt **Ctrl+Alt+N**. Muốn ghim lên taskbar: mở Start, tìm "Hearth", chuột phải > Pin to taskbar.
+
+Logo nằm ở `icons/hearth.svg` (sidebar) và `icons/hearth.ico` (favicon, shortcut). Cả hai được sinh từ `build/logo.py` (cần Pillow): sửa logo ở đó rồi chạy lại, đừng sửa tay từng file.
+
 ### Vì sao qua server chứ không mở thẳng file
 
 1. **Dữ liệu nằm ở server.** Mở `file://index.html` thì không có server, app chỉ lưu vào `localStorage` và hiện banner cảnh báo.
@@ -69,6 +83,8 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 | `localStorage` | khoá `dieukhien.v1` | bản đệm, lưu mỗi lần `save()` |
 | `localStorage` | khoá `dieukhien.srv` = `{tag, dirty}` | mã phiên bản của file mà bản đệm dựa vào; `dirty` = còn thay đổi chưa gửi lên |
 | `localStorage` | khoá `dieukhien.view` | trang đang xem, để tải lại trang vẫn ở nguyên chỗ cũ; riêng từng trình duyệt, không lên file |
+| `localStorage` | khoá `dieukhien.side` | `'0'` = thanh điều khiển bên trái đang thu gọn; riêng từng trình duyệt, không lên file |
+| `localStorage` | khoá `dieukhien.zen` | `'1'` = đang ở chế độ zen; riêng từng trình duyệt, không lên file |
 | File trên ổ đĩa | `showSaveFilePicker`, tự ghi sau 1.2 s | tuỳ chọn, chỉ Chrome/Edge |
 | `IndexedDB` | db `dieukhien-fs`, store `h` | chỉ giữ file handle để lần mở sau bấm 1 nút là kết nối lại |
 | `IndexedDB` | db `dieukhien-img`, store `img` | ảnh và file đính kèm trong ghi chú (Blob, khoá = mã; ảnh `i…`, file `f…`); file xuất / file liên kết gói kèm ở trường `images` |

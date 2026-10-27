@@ -1,4 +1,4 @@
-# Trung tâm điều khiển
+# Hearth
 
 **Một app duy nhất để quản lý việc cần làm, thói quen, giờ tập trung, lịch, nhật ký và ghi chú. Chạy ngay trên máy của bạn, không cần tài khoản, không cần internet.**
 
@@ -291,6 +291,8 @@ Sau khi cập nhật, nếu tab app đang mở thì bấm **F5**.
 **Khắp app:**
 
 - `Esc`: đóng panel, menu, bảng chọn, thoát toàn màn hình.
+- `Ctrl + \` hoặc nút « đầu thanh trên: thu gọn / mở thanh điều khiển bên trái.
+- Nút **Zen** trên thanh trên (hoặc `Shift + F11`): ẩn hết, chỉ còn trang đang viết. Bấm **✕ Thoát zen** ở góc trên bên phải (hoặc `Esc`) để ra.
 - Kéo card trên bảng thả **xuống đáy màn hình** để bỏ vào thùng rác, thả vào mục **Để sau** ở sidebar để gác lại, thả vào khối **Tập trung** để đưa vào hàng đợi.
 - Đang trong phiên tập trung mà chợt nhớ việc khác: gõ vào ô **Ghi để sau** rồi Enter. Việc đó vào mục Để sau, bạn quay lại việc đang làm.
 - Bấm khung giờ trống trên lịch (lịch lớn hoặc lịch nhỏ ở sidebar) để tạo task đúng giờ đó.

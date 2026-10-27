@@ -39,6 +39,10 @@ const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'w
 const VIEW_KEY = 'dieukhien.view';
 const KEEP_VIEWS = ['board','life','backlog','habits','focus','plan','cal','journal','notes','dash','trash'];
 const keptView = () => {
+  // ?view=notes (shortcut Ghi chú, xem ghi-chu.vbs): mở thẳng trang đó một lần rồi bỏ khỏi URL,
+  // để tải lại trang vẫn ở trang đang xem như thường
+  const q = new URLSearchParams(location.search).get('view');
+  if(KEEP_VIEWS.includes(q)){ history.replaceState(null, '', location.pathname + location.hash); return q; }
   try{ const v = localStorage.getItem(VIEW_KEY); return KEEP_VIEWS.includes(v) ? v : 'board'; }catch(e){ return 'board'; }
 };
 // khung giờ: bước 30 phút; nhắc trước tính bằng phút, 0 = không nhắc

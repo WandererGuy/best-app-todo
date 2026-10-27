@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title data-i18n="app.title">Trung tâm điều khiển</title>
+<title data-i18n="app.title">Hearth</title>
+<link rel="icon" href="icons/hearth.ico">
 <link rel="stylesheet" href="style.css">
 </head>
 <body spellcheck="false">
 <div id="app">
   <aside id="side">
-    <div class="brand"><span class="dot"></span><span data-i18n="app.brand">Điều khiển</span></div>
+    <div class="brand"><img class="logo" src="icons/hearth.svg" alt=""><span data-i18n="app.brand">Hearth</span></div>
     <button class="nav prim" data-v="new"><span class="ic">＋</span><span data-i18n="nav.new">Tạo task</span></button>
     <button class="nav" data-v="board"><span class="ic">▤</span><span data-i18n="nav.board">Bảng việc</span><span class="ct" id="ctB">0</span></button>
     <button class="nav" data-v="life"><span class="ic">❀</span><span data-i18n="nav.life">Bảng cuộc sống</span><span class="ct" id="ctL">0</span></button>
@@ -55,8 +56,10 @@
 
   <main id="main">
     <div id="top">
+      <button class="nfold" id="sideBtn">«</button>
       <div><h1 id="vTitle"></h1><div class="sub" id="vSub"></div></div>
       <div class="search"><span style="color:#646d80">⌕</span><input id="q" data-i18n-ph="top.search" placeholder="Tìm task, tag, ghi chú…"></div>
+      <button class="btn ghost" id="zenBtn" data-i18n="top.zen">Zen</button>
       <div class="bellw">
         <button class="bell" id="bellBtn" data-i18n-title="top.bell" title="Thông báo">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
@@ -75,6 +78,7 @@
 <div id="fzFull" hidden><div class="fzbg"></div><div class="fzimg"></div><div class="fzdim"></div><div id="fzFullBody"></div><div id="fzFullLeft"></div></div>
 <button id="syncBar" hidden data-i18n="top.syncBar">⟳ Cửa sổ khác vừa sửa — bấm để xem bản mới</button>
 <div id="toast"></div>
+<button id="zenOut" class="btn ghost" data-i18n="top.zenExit">✕ Thoát zen</button>
 <!-- ghi chú nhanh: nút nổi + widget, ở ngoài #view nên đổi trang không mất (xem js/quick.js) -->
 <button id="qnBtn" class="qnbtn" data-i18n-title="qn.btn">✎</button>
 <div id="qn" class="qn">

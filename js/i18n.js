@@ -18,8 +18,8 @@ const setLang = l => {
 
 const STR = {
   /* --- khung ngoài: thanh bên và thanh trên (index.html) --- */
-  'app.title':      ['Trung tâm điều khiển', 'Control Center'],
-  'app.brand':      ['Điều khiển', 'Control'],
+  'app.title':      ['Hearth', 'Hearth'],
+  'app.brand':      ['Hearth', 'Hearth'],
   'nav.new':        ['Tạo task', 'New task'],
   'nav.board':      ['Bảng việc', 'Work board'],
   'nav.life':       ['Bảng cuộc sống', 'Life board'],
@@ -55,6 +55,12 @@ const STR = {
   'top.search':     ['Tìm task, tag, ghi chú…', 'Search tasks, tags, notes…'],
   'top.bell':       ['Thông báo', 'Notifications'],
   'top.newTask':    ['+ Task mới', '+ New task'],
+  'top.sideHide':   ['Thu gọn thanh điều khiển (Ctrl+\\)', 'Collapse the sidebar (Ctrl+\\)'],
+  'top.sideShow':   ['Mở thanh điều khiển (Ctrl+\\)', 'Show the sidebar (Ctrl+\\)'],
+  'top.zen':        ['Zen', 'Zen'],
+  'top.zenExit':    ['✕ Thoát zen', '✕ Leave zen'],
+  'top.zenOn':      ['Chế độ zen: chỉ còn chữ (Shift+F11)', 'Zen mode: just the text (Shift+F11)'],
+  'top.zenOff':     ['Thoát chế độ zen (Shift+F11 hoặc Esc)', 'Leave zen mode (Shift+F11 or Esc)'],
   'top.trashZone':  ['🗑 Thả vào đây để chuyển vào thùng rác', '🗑 Drop here to move to trash'],
   'top.syncBar':    ['⟳ Cửa sổ khác vừa sửa — bấm để xem bản mới', '⟳ Another window made changes — click to load them'],
 
@@ -652,7 +658,7 @@ const STR = {
   'sv.adopted':    ['Đã đưa dữ liệu vào data/dieukhien.json.', 'The data has been written to data/dieukhien.json.'],
   'sv.stashed':    ['Trình duyệt này có dữ liệu riêng ({c}) — đã cất vào data/backups, đang dùng dữ liệu trên máy.',
                     'This browser had its own data ({c}) — it went to data/backups, and the data on disk is in use.'],
-  'fs.fileDesc':   ['Dữ liệu Điều khiển', 'Control Center data'],
+  'fs.fileDesc':   ['Dữ liệu Hearth', 'Hearth data'],
   'fs.linked':     ['Đã liên kết. Mọi thay đổi sẽ tự ghi ra file này.',
                     'Linked. Every change is written to this file automatically.'],
   'fs.linkFail':   ['Chưa liên kết được file: {e}', 'Could not link the file: {e}'],

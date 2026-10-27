@@ -28,8 +28,25 @@ button{background:none;border:none;cursor:pointer}
   display:flex;flex-direction:column;padding:16px 12px;gap:3px;overflow-y:auto
 }
 #main{flex:1;display:flex;flex-direction:column;min-width:0}
+/* thu gọn thanh điều khiển (nút #sideBtn, Ctrl+\): trượt ra ngoài mép trái, phần chính giãn theo */
+#side{transition:margin-left .2s}
+#app.noside #side{margin-left:-232px}
+#top #sideBtn{margin-left:-8px}
+/* chế độ zen (nút Zen trên thanh trên, Shift+F11): chỉ còn chữ, như distraction-free của Sublime.
+   Ẩn sidebar, thanh trên, cột danh sách, hàng cuốn, thanh ngày, tab trang, phần đầu trang ghi chú;
+   trang đang viết ra giữa màn hình, chiều ngang vừa mắt đọc và cao hết màn hình */
+body.zen #side,body.zen #top,body.zen .nside,body.zen .jside,body.zen .nshow,body.zen .jbooks,body.zen .jbar,
+body.zen .jtabs,body.zen .ncrumb,body.zen .nmeta,body.zen .npage>.fld,body.zen .qnbtn{display:none}
+body.zen #view{padding:0}
+body.zen .nwrap,body.zen .jwrap{max-width:860px}
+body.zen .jpage{gap:0}
+body.zen .jed,body.zen .npage{border:none;border-radius:0;background:none;padding:56px 48px 0}
+/* nút thoát luôn thấy được nhưng nhạt, để không kéo mắt khỏi chữ */
+#zenOut{display:none;position:fixed;top:12px;right:16px;z-index:40;opacity:.6}
+#zenOut:hover{opacity:1}
+body.zen #zenOut{display:block}
 .brand{display:flex;align-items:center;gap:9px;padding:4px 8px 16px;font-weight:700;font-size:15px;letter-spacing:-.2px}
-.brand .dot{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--acc),#a855f7);flex:0 0 22px}
+.brand .logo{width:22px;height:22px;flex:0 0 22px}
 .navlbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--tx3);padding:16px 8px 6px;font-weight:600}
 .nav{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--tx2);font-weight:500;width:100%;text-align:left;
   position:relative;isolation:isolate;transition:background-color .15s,color .15s}
