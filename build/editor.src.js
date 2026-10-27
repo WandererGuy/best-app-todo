@@ -179,6 +179,36 @@ const kbToCard = (x, s) => ({id: x.id, t: x.t, s, ...(x.d ? {d: x.d} : {})});
 ['dragover', 'drop'].forEach(t => window.addEventListener(t, e => {
   if(kbDrag && !kbDrag.dom.contains(e.target)) e.stopPropagation();
 }, true));
+// kéo thẻ tới gần mép trên / dưới của khung đang cuộn (ô, trang) thì cuộn theo, càng sát mép càng nhanh (tối đa ~480px/giây),
+// để thả được xuống chỗ chưa thấy. Chrome chỉ tự cuộn khi chuột sát hẳn mép và rất chậm.
+// Cuộn theo từng khung hình chứ không theo dragover: đứng yên một chỗ thì dragover thưa, cuộn sẽ giật.
+const KB_EDGE = 60, KB_SPEED = 8, KB_RAMP = 800;
+let kbScroll = null;                         // {sc, y, since}: khung đang cuộn, vị trí chuột lần cuối, lúc vừa vào vùng mép
+const kbScroller = el => {
+  for(let p = el.parentElement; p; p = p.parentElement){
+    const o = getComputedStyle(p).overflowY;
+    if((o === 'auto' || o === 'scroll') && p.scrollHeight > p.clientHeight) return p;
+  }
+  return document.scrollingElement;
+};
+function kbTick(){
+  if(!kbDrag || !kbScroll){ kbScroll = null; return; }
+  const {sc, y} = kbScroll, r = sc === document.scrollingElement ? {top: 0, bottom: innerHeight} : sc.getBoundingClientRect();
+  const d = y > r.bottom - KB_EDGE ? y - (r.bottom - KB_EDGE) : y < r.top + KB_EDGE ? y - (r.top + KB_EDGE) : 0;
+  // tăng dần theo bình phương: vừa chạm vùng mép thì nhích chậm, sát hẳn mép mới tới KB_SPEED px mỗi khung hình.
+  // Thêm tăng dần theo thời gian (KB_RAMP ms): chuột hay lao thẳng qua vùng mép, không có bước này thì vào là chạy hết tốc
+  const now = performance.now();
+  if(!d){ kbScroll.since = 0; return requestAnimationFrame(kbTick); }
+  if(!kbScroll.since) kbScroll.since = now;
+  const t = Math.max(-1, Math.min(1, d / KB_EDGE)), ramp = Math.min(1, (now - kbScroll.since) / KB_RAMP);
+  sc.scrollTop += Math.sign(t) * Math.max(1, t * t * ramp * KB_SPEED);
+  requestAnimationFrame(kbTick);
+}
+window.addEventListener('dragover', e => {
+  if(!kbDrag) return;
+  if(kbScroll) kbScroll.y = e.clientY;
+  else { kbScroll = {sc: kbScroller(kbDrag.dom), y: e.clientY}; requestAnimationFrame(kbTick); }
+}, true);
 const Kanban = Node.create({
   name: 'kanban',
   group: 'block',
