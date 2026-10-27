@@ -583,8 +583,9 @@ const Kanban = Node.create({
         fitAll();
         if(!dom.isConnected) requestAnimationFrame(fitAll);
         let f = null;
-        // tìm theo .ekbc gần nhất: ô lồng nằm trong cột, chọn theo cột cha sẽ vớ nhầm ô của ô lồng
-        const inCol = (cls, s) => [...dom.querySelectorAll('.' + cls)].filter(x => x.closest('.ekbc').dataset.s === s);
+        // tìm theo .ekbc gần nhất: ô lồng nằm trong cột, chọn theo cột cha sẽ vớ nhầm ô của ô lồng.
+        // Nút ở đầu bảng (ngày, loại bảng) không nằm trong cột nào
+        const inCol = (cls, s) => [...dom.querySelectorAll('.' + cls)].filter(x => x.closest('.ekbc')?.dataset.s === s);
         if(justOpened){ f = dom.querySelector('.ekbk.on .ekbt'); justOpened = false; }
         else if(refocus){ f = inCol('ekba', refocus)[0]; }
         else if(keep) f = inCol(keep.cls, keep.s).find(x => (x.closest('[data-sid]')?.dataset.sid) === keep.sid);
