@@ -7,6 +7,7 @@
 #                           lệch thì trả 409 — tránh cửa sổ cũ ghi đè lên thay đổi ở cửa sổ khác.
 #                           ?keep=1: cất bản cũ vào backups/ trước khi ghi (dùng khi nạp file)
 #   POST /api/backup        cất một bản vào backups/ (dữ liệu trình duyệt không được dùng, bản bị từ chối)
+#   GET  /api/ver           mốc sửa mới nhất của code (index.html, style.css, js/, vendor/): đổi thì app tự tải lại
 #
 # Lần ghi đầu tiên mỗi ngày tự cất bản cũ thành backups/ngay-YYYY-MM-DD.json, giữ 30 ngày gần nhất.
 import hashlib, http.server, json, os, socket, threading, time
@@ -45,8 +46,22 @@ def daily_backup():
     days = sorted(n for n in os.listdir(BACKUPS) if n.startswith('ngay-'))
     for n in days[:-KEEP_DAYS]: os.remove(os.path.join(BACKUPS, n))
 
+CODE = ('index.html', 'style.css', 'js', 'vendor')
+def code_ver():
+    m = 0
+    for c in CODE:
+        p = os.path.join(ROOT, c)
+        files = [os.path.join(p, n) for n in os.listdir(p)] if os.path.isdir(p) else [p]
+        for f in files:
+            try: m = max(m, os.stat(f).st_mtime_ns)
+            except FileNotFoundError: pass
+    return str(m)
+
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw): super().__init__(*a, directory=ROOT, **kw)
+
+    def log_message(self, *a):
+        if not self.path.startswith('/api/ver'): super().log_message(*a)   # app hỏi mỗi giây, khỏi làm đầy cửa sổ đen
 
     def end_headers(self):
         self.send_header('Cache-Control', 'no-cache')
@@ -74,6 +89,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return raw
 
     def do_GET(self):
+        if urlsplit(self.path).path == '/api/ver':
+            if self.local_only(): self.reply(200, code_ver().encode())
+            return
         if urlsplit(self.path).path != '/api/data': return super().do_GET()
         if not self.local_only(): return
         with lock:

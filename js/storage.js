@@ -231,6 +231,18 @@ function paintSync(){
 setInterval(() => { if(!document.hidden) pullSrv(); }, POLL_MS);
 document.addEventListener('visibilitychange', () => { if(!document.hidden) pullSrv(); });
 
+// sửa code xong (server.py báo qua /api/ver) thì mọi cửa sổ localhost tự tải lại; đang gõ thì chờ ngớt tay 2 giây.
+// Không cần ghi gì trước khi tải: mỗi lần gõ save() đã vào localStorage và đánh dấu dirty, boot() gửi nốt lên server.
+// Server cũ chưa có /api/ver thì trả 404 trang lỗi, không phải số: bỏ qua.
+let codeVer = null, lastKey = 0;
+addEventListener('keydown', () => lastKey = Date.now(), true);
+if(location.protocol !== 'file:' && !WEB) setInterval(async () => {
+  let v; try{ v = await (await fetch('/api/ver', {cache:'no-store'})).text(); }catch(e){ return; }
+  if(!/^\d+$/.test(v)) return;
+  if(!codeVer) codeVer = v;
+  else if(v !== codeVer && Date.now() - lastKey > 2000) location.reload();
+}, 1000);
+
 const countData = d => tr('sv.count', {t: (d.tasks || []).length, n: (d.notes || []).length, h: (d.habits || []).length});
 /* khởi động: ưu tiên server, không có server mới dùng dữ liệu trình duyệt. Trả về lời nhắn cần báo (nếu có) */
 async function boot(){
