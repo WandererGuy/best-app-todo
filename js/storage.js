@@ -17,6 +17,7 @@ function applyData(d){
     Object.values(S.journal).forEach(pgs => Array.isArray(pgs) && pgs.forEach(p => { if(['Ghi chép', 'Notes'].includes(p.name)) p.name = tr('journal.firstPage'); }));
     S.settings.jPage1 = true;
   }
+  hColApply();
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); lastSave = new Date(); storageOK = true; }

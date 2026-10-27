@@ -907,6 +907,16 @@ const Kanban = Node.create({
   },
 });
 
+/* màu riêng của một tiêu đề: hc = tên màu trong bảng màu của app (data-hc), không có = theo màu chung của cỡ tiêu đề đó.
+   App lo phần màu thật (CSS), ở đây chỉ giữ tên màu trong nội dung trang. */
+const HeadingColor = Extension.create({
+  name: 'headingColor',
+  addGlobalAttributes(){
+    return [{types: ['heading'], attributes: {hc: {default: null,
+      parseHTML: el => el.getAttribute('data-hc'), renderHTML: a => a.hc ? {'data-hc': a.hc} : {}}}}];
+  },
+});
+
 /* Tab trong ô bảng: phím Tab của bảng (sang ô kế) chạy trước phím Tab của danh sách, nên trong ô không thụt mục được.
    Ưu tiên cao hơn bảng: con trỏ đang ở một mục danh sách trong ô thì Tab thụt vào, Shift+Tab đưa ra;
    mục đầu tiên không thụt được thì đứng yên chứ không nhảy ô, kẻo đang gõ danh sách lại văng sang ô khác.
@@ -1105,6 +1115,7 @@ window.TT = {
         Kanban.configure(kanban || {}),
         TableKit.configure({table: {resizable: true, cellMinWidth: 60}}),   // kéo mép cột để giãn; Tab ở ô cuối thêm dòng mới
         CellListTab,
+        HeadingColor,
       ],
       editorProps:{
         attributes:{ class:'ed' },
@@ -1264,6 +1275,17 @@ window.TT = {
       const c = editor.view.coordsAtPos(editor.state.selection.from);
       return {left:c.left, top:c.top, bottom:c.bottom};
     }catch(e){ return null; }
+  },
+  /* tiêu đề có con trỏ: {level, hc, dom} hoặc null */
+  headingAt(editor){
+    if(editor.isDestroyed) return null;
+    const $f = editor.state.selection.$from, n = $f.parent;
+    if(n.type.name !== 'heading' || !$f.depth) return null;
+    return {level: n.attrs.level, hc: n.attrs.hc, dom: editor.view.nodeDOM($f.before())};
+  },
+  /* đặt màu riêng cho tiêu đề có con trỏ; null = về màu chung */
+  headingColor(editor, hc){
+    if(!editor.isDestroyed) editor.chain().focus().updateAttributes('heading', {hc}).run();
   },
   /* hình chữ nhật bao vùng bôi đen — lấy từ ProseMirror nên không phụ thuộc selection của DOM */
   selRect(editor){

@@ -33,7 +33,8 @@ function books0(){ return [{id:'work', name:tr('book.work')}, {id:'life', name:t
 const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false,
   nSide:true, nPinned:true, nRecent:true, nAll:true, jSide:true,   // cột trái đang hiện: nSide (ghi chú) / jSide (nhật ký); nPinned / nRecent / nAll = ba mục trong cột ghi chú đang mở
   nPinOrd:[], nRecOrd:[],    // thứ tự kéo thả trong mục Đã ghim / Gần đây (mã trang)
-  jBooks:books0(), nBooks:books0()};   // các cuốn của nhật ký / ghi chú, mỗi bên một danh sách riêng (xem bookRowHTML)
+  jBooks:books0(), nBooks:books0(),
+  hCol:{1:'sky', 2:'sky', 3:'sky'}};   // màu chung của tiêu đề H1 / H2 / H3, tên màu trong HPAL (editor.js)   // các cuốn của nhật ký / ghi chú, mỗi bên một danh sách riêng (xem bookRowHTML)
 // trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
 // 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
 const VIEW_KEY = 'dieukhien.view';

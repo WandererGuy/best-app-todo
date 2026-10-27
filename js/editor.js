@@ -230,6 +230,7 @@ function syncMenus(ed){
   if(s) openSlash(ed, s); else closeSlash();
   const r = s ? null : TT.selRect(ed);
   if(r) showFtb(ed, r); else hideFtb();
+  showHDot(ed);
 }
 
 /* --- menu lệnh "/" --- */
@@ -440,6 +441,87 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape' && document.getElementById('tbMenuEl')){ e.preventDefault(); e.stopPropagation(); hideTbAdd(); }
 }, true);
 document.addEventListener('scroll', () => { if(tbHover) hideTbAdd(); }, true);
+
+/* --- màu tiêu đề: con trỏ nằm trong tiêu đề thì hiện chấm màu bên trái, bấm ra bảng màu.
+   Đổi cho mọi tiêu đề cùng cỡ thì ghi vào màu chung (S.settings.hCol), chỉ tiêu đề này thì ghi vào chính nó (data-hc) --- */
+const HPAL = ['sky', 'blue', 'teal', 'green', 'yellow', 'orange', 'red', 'pink', 'purple', 'text'];
+function hColApply(){
+  const c = S.settings.hCol || {};
+  [1, 2, 3].forEach(lv => document.documentElement.style.setProperty(`--h${lv}c`, `var(--hc-${HPAL.includes(c[lv]) ? c[lv] : 'sky'})`));
+}
+let hDot = null;                             // {ed, h}: trình soạn thảo và tiêu đề đang có con trỏ
+function showHDot(ed){
+  if(document.getElementById('hcMenuEl')) return;
+  const h = ed.isFocused && TT.headingAt(ed);
+  if(!h || !h.dom) return hideHDot();
+  let el = document.getElementById('hdotEl');
+  if(!el){
+    el = document.createElement('button'); el.type = 'button'; el.id = 'hdotEl'; el.title = tr('hc.dot');
+    el.onmousedown = e => { e.preventDefault(); openHcMenu(); };   // giữ con trỏ trong tiêu đề
+    document.body.appendChild(el);
+  }
+  hDot = {ed, h};
+  placeHDot();
+}
+function placeHDot(){
+  const el = document.getElementById('hdotEl');
+  if(!el || !hDot || !hDot.h.dom.isConnected) return hideHDot();
+  const r = hDot.h.dom.getBoundingClientRect(), lh = parseFloat(getComputedStyle(hDot.h.dom).lineHeight) || 28;
+  const y = r.top + Math.min(r.height, lh) / 2;
+  // tiêu đề đã cuộn khuất khỏi khung (ô, trang) thì chữ bị khung cắt, chấm cũng phải ẩn theo; cuộn vào lại thì hiện
+  const v = clipRect(hDot.h.dom), shown = y >= v.top && y <= v.bottom;
+  el.style.display = shown ? '' : 'none';
+  if(!shown) return closeHcMenu();
+  el.style.left = (r.left - 20) + 'px';
+  el.style.top = (y - 6) + 'px';
+  el.style.background = `var(--hc-${hDot.h.hc || S.settings.hCol?.[hDot.h.level] || 'sky'})`;
+}
+function hideHDot(){ closeHcMenu(); document.getElementById('hdotEl')?.remove(); hDot = null; }
+// một hàng màu, phía trên chọn đổi cho mọi tiêu đề cùng cỡ (mặc định) hay chỉ tiêu đề này; nhớ lựa chọn lần trước
+let hcScope = 'all';
+function openHcMenu(){
+  closeHcMenu();
+  const {ed, h} = hDot, all = S.settings.hCol?.[h.level] || 'sky', name = tr('blk.h' + h.level).toLowerCase();
+  const m = document.createElement('div');
+  m.className = 'hcm'; m.id = 'hcMenuEl';
+  const draw = () => {
+    const on = hcScope === 'all' ? all : h.hc;
+    m.innerHTML = `<div class="seg">
+        <button type="button" data-sc="all" class="${hcScope === 'all' ? 'on' : ''}">${tr('hc.scAll', {n: name})}</button>
+        <button type="button" data-sc="one" class="${hcScope === 'one' ? 'on' : ''}">${tr('hc.scOne')}</button></div>
+      <div class="row">${HPAL.map(c => `<button type="button" class="dot${c === on ? ' on' : ''}" data-c="${c}" title="${tr('hc.' + c)}" style="background:var(--hc-${c})"></button>`).join('')}</div>
+      ${h.hc ? `<div class="own">${tr('hc.own')}<button type="button" data-reset>${tr('hc.reset')}</button></div>` : ''}`;
+  };
+  draw();
+  m.onmousedown = e => {
+    e.preventDefault();
+    const b = e.target.closest('button'); if(!b) return;
+    if(b.dataset.sc){ hcScope = b.dataset.sc; return draw(); }
+    if('reset' in b.dataset) TT.headingColor(ed, null);
+    // đổi màu chung thì tiêu đề đang chọn cũng bỏ màu riêng, kẻo bấm màu xong mà chính nó không đổi
+    else if(hcScope === 'all'){
+      S.settings.hCol = {...S.settings.hCol, [h.level]: b.dataset.c}; save(); hColApply();
+      if(h.hc) TT.headingColor(ed, null);
+    }
+    else TT.headingColor(ed, b.dataset.c);
+    closeHcMenu(); showHDot(ed);
+  };
+  document.body.appendChild(m);
+  const r = document.getElementById('hdotEl').getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - 300)) + 'px';
+  m.style.top = (r.bottom + 120 > innerHeight ? Math.max(8, r.top - 120) : r.bottom + 6) + 'px';
+  document.getElementById('hdotEl').classList.add('on');
+}
+function closeHcMenu(){ document.getElementById('hcMenuEl')?.remove(); document.getElementById('hdotEl')?.classList.remove('on'); }
+document.addEventListener('mousedown', e => {
+  if(document.getElementById('hcMenuEl') && !(e.target.closest && e.target.closest('#hcMenuEl, #hdotEl'))) closeHcMenu();
+}, true);
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && document.getElementById('hcMenuEl')){ e.preventDefault(); e.stopPropagation(); closeHcMenu(); }
+}, true);
+document.addEventListener('scroll', () => { if(hDot) placeHDot(); }, true);
+// rời trình soạn thảo (bấm ra ngoài, sang ô khác) thì cất chấm màu
+document.addEventListener('focusout', () => setTimeout(() => { if(hDot && !hDot.ed.isFocused) hideHDot(); }, 0));
 
 /* --- thanh công cụ nổi khi bôi đen --- */
 const MARKS = [
