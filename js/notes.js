@@ -2,9 +2,32 @@
 // S.notes: {id, title, html, parent (id trang cha, null = cấp gốc), tags, pin, open (đang mở trang con ở cây), cr, mod}
 // cr / mod = thời điểm tạo / sửa lần cuối (ISO). Thứ tự các trang cùng cha = thứ tự trong mảng.
 // Bỏ một trang thì cả cây con sang S.ntrash; chỉ trang được bấm bỏ có trường trashed.
+// Cuốn (S.settings.nBooks) ghi ở trang gốc qua cat; trang con đi theo cuốn của trang gốc.
 const nKids  = id => S.notes.filter(n => n.parent === id);
 const nTitle = n => n.title.trim() ? esc(n.title) : `<span class="ph">${tr('note.untitled')}</span>`;
 const nName  = n => esc(n.title.trim() || tr('note.untitled'));
+function nRoot(n){
+  let r = n, p;
+  while(r.parent && (p = S.notes.find(x => x.id === r.parent))) r = p;
+  return r;
+}
+const nBook = n => { const c = nRoot(n).cat; return S.settings.nBooks.some(b => b.id === c) ? c : ''; };
+const nBookName = id => S.settings.nBooks.find(b => b.id === id)?.name || tr('book.none');
+// còn trang gốc nào chưa thuộc cuốn nào: còn thì mới hiện nút "Chưa phân loại"
+const nLoose = () => S.notes.some(n => !n.parent && nBook(n) === '');
+// bỏ cuốn = cả cuốn lẫn mọi trang của nó sang S.nbtrash, khôi phục lại thì về nguyên chỗ cũ
+function trashNBook(b){
+  const notes = S.notes.filter(n => nBook(n) === b.id);
+  S.notes = S.notes.filter(n => !notes.includes(n));
+  S.settings.nBooks = S.settings.nBooks.filter(x => x !== b);
+  S.nbtrash.unshift({id: b.id, trashed: today(), book: {...b}, notes});
+}
+function restoreNBook(e){
+  S.nbtrash = S.nbtrash.filter(x => x !== e);
+  if(!S.settings.nBooks.some(b => b.id === e.book.id)) S.settings.nBooks.push(e.book);
+  S.notes.push(...e.notes.filter(n => !S.notes.some(x => x.id === n.id)));
+  syncTags();
+}
 // trang root và mọi trang con cháu của nó trong list (dừng ở trang con đã bị bỏ riêng từ trước)
 function nTree(list, root){
   const out = [root];
@@ -39,6 +62,7 @@ function fmtAgo(s){
 function newNote(parent = null){
   const now = new Date().toISOString();
   const n = {id:uid(), title:'', html:'', parent, tags: ui.tag ? [ui.tag] : [], pin:false, open:false, cr:now, mod:now};
+  if(!parent && ui.nBook) n.cat = ui.nBook;
   const sib = S.notes.find(x => x.parent === parent);   // trang mới lên đầu danh sách cùng cha
   if(sib) S.notes.splice(S.notes.indexOf(sib), 0, n); else S.notes.push(n);
   if(parent) S.notes.find(x => x.id === parent).open = true;
@@ -49,6 +73,7 @@ function newNote(parent = null){
 function trashNote(id){
   const n = S.notes.find(x => x.id === id); if(!n) return;
   const tree = nTree(S.notes, n);
+  const c = nBook(n); if(c) n.cat = c;         // nhớ cuốn: khôi phục mà trang cha đã mất thì về gốc của đúng cuốn này
   S.notes = S.notes.filter(x => !tree.includes(x));
   n.trashed = today(); S.ntrash.unshift(...tree);
   ui.nOpen = n.parent;
@@ -58,14 +83,25 @@ function trashNote(id){
 
 // trang đang mở, nhớ riêng trong trình duyệt này như JPAGE_KEY ở nhật ký: tải lại app vẫn ở đúng trang cũ
 const NPAGE_KEY = 'dieukhien.npage';
+const NBOOK_KEY = 'dieukhien.nbook';   // cuốn đang mở, cho lần cuốn đó chưa có trang nào để nhớ theo trang
 function renderNotes(){
   if(!ui.nOpen) try{ ui.nOpen = localStorage.getItem(NPAGE_KEY); }catch(e){}
-  if(!S.notes.some(n => n.id === ui.nOpen)) ui.nOpen = (S.notes.find(n => n.pin) || S.notes.find(n => !n.parent) || {}).id || null;
-  if(ui.nOpen) try{ localStorage.setItem(NPAGE_KEY, ui.nOpen); }catch(e){}
+  if(ui.nBook == null){
+    const o = S.notes.find(x => x.id === ui.nOpen);
+    if(o) ui.nBook = nBook(o); else try{ ui.nBook = localStorage.getItem(NBOOK_KEY); }catch(e){}
+  }
+  const books = S.settings.nBooks;
+  if(ui.nBook !== '' && !books.some(b => b.id === ui.nBook)) ui.nBook = books[0]?.id ?? '';
+  const inBook = x => nBook(x) === ui.nBook;
+  const open = S.notes.find(x => x.id === ui.nOpen);
+  if(!open || !inBook(open)) ui.nOpen = (S.notes.find(x => x.pin && inBook(x)) || S.notes.find(x => !x.parent && inBook(x)) || {}).id || null;
+  try{ if(ui.nOpen) localStorage.setItem(NPAGE_KEY, ui.nOpen); localStorage.setItem(NBOOK_KEY, ui.nBook); }catch(e){}
   const n = S.notes.find(x => x.id === ui.nOpen);
-  $('#vSub').textContent = tr('note.sub', {n: S.notes.length});
+  $('#vSub').textContent = tr('note.sub', {n: S.notes.filter(inBook).length});
 
-  const moveTo = n && nFlat(new Set([n.id])).filter(x => x.n.id !== n.parent);
+  // chỉ chuyển vào trang cùng cuốn; sang cuốn khác thì dùng nút ⇄
+  const moveTo = n && nFlat(new Set([n.id])).filter(x => x.n.id !== n.parent && inBook(x.n));
+  const dest = books.filter(b => b.id !== ui.nBook);
   const side = S.settings.nSide;
   const sideAt = $('.nside')?.scrollTop || 0;   // vẽ lại cả cột trái: giữ chỗ đang cuộn, bấm trang ở dưới không bị nhảy lên đầu
   $('#view').innerHTML = `<div class="nwrap">
@@ -81,7 +117,7 @@ function renderNotes(){
       <div id="ntList"></div>
     </div>`
     : `<button class="nfold nshow" id="ntShow" title="${tr('common.showSide')}">»</button>`}
-    <div class="npage">${n ? `
+    <div class="npage">${bookRowHTML({books, cur: ui.nBook, loose: nLoose()})}${n ? `
       ${nPath(n).length ? `<div class="ncrumb">${nPath(n).map(p => `<button data-nid="${p.id}">${nName(p)}</button><span>/</span>`).join('')}</div>` : ''}
       <input class="nttl" id="ntTitle" value="${esc(n.title)}" placeholder="${tr('note.untitled')}" autocomplete="off">
       <div class="nmeta">
@@ -96,6 +132,7 @@ function renderNotes(){
             ${n.parent ? `<option value="/">${tr('note.moveRoot')}</option>` : ''}
             ${moveTo.map(x => `<option value="${x.n.id}">${'   '.repeat(x.depth)}${nName(x.n)}</option>`).join('')}
           </select>` : ''}
+          ${dest.length ? `<button class="btn ghost" id="ntBook" title="${tr('book.movePage')}">⇄ ${tr('note.toBook')}</button>` : ''}
           <button class="danger" id="ntDel">${tr('note.toTrash')}</button>
         </div>
       </div>
@@ -137,6 +174,18 @@ function renderNotes(){
     const go = e.target.closest('[data-nid]');
     if(go && go.dataset.nid !== ui.nOpen){ ui.nOpen = go.dataset.nid; renderNotes(); }
   };
+  wireBookRow({books, cur: ui.nBook,
+    pick: id => { ui.nBook = id; ui.nOpen = null; renderNotes(); },
+    redraw: renderNotes,
+    trash: b => { trashNBook(b); ui.nBook = S.settings.nBooks[0].id; ui.nOpen = null; save(); render(); },
+    // trang gốc chưa phân loại sang cuốn v, trang con đi theo
+    moveAll: v => {
+      const k = S.notes.filter(x => nBook(x) === '').length;
+      if(!confirm(tr('book.askAll', {n: k, b: nBookName(v)}))) return;
+      S.notes.filter(x => !x.parent && nBook(x) === '').forEach(x => x.cat = v);
+      ui.nBook = v; ui.nOpen = null; save(); renderNotes();
+      toast(tr('book.allDone', {n: k, b: nBookName(v)}));
+    }});
   if(!n) return;
 
   const touch = () => {
@@ -161,6 +210,9 @@ function renderNotes(){
     nPlace(n, e.target.value === '/' ? null : e.target.value, null);   // xuống cuối danh sách con của cha mới
     save(); renderNotes();
   };
+  // sang cuốn khác thì thành trang gốc ở cuốn đó, trang con đi theo; vẫn ở lại cuốn đang mở để sắp tiếp
+  if($('#ntBook')) $('#ntBook').onclick = e => openPick(dest.map(b => ({v: b.id, t: b.name})), e.currentTarget.getBoundingClientRect(), {
+    onPick: v => { nPlace(n, null, null); n.cat = v; save(); renderNotes(); toast(tr('book.moved', {n: nBookName(v)})); }});
   $('#ntDel').onclick = () => trashNote(n.id);
   bindTagField($('.npage'), 'ntTag', n.tags,
     t => { if(!n.tags.includes(t)) n.tags.push(t); touch(); render(); setTimeout(() => $('#ntTag')?.focus(), 0); },
@@ -213,7 +265,7 @@ function nqScore(e, toks, fq){
 // không có câu tìm (chỉ lọc tag) thì mọi trang đều nhận, xếp theo ngày sửa như cũ
 function nqSearch(q){
   const toks = nqToks(q), fq = fold(q).trim();
-  return S.notes.filter(n => !ui.tag || n.tags.includes(ui.tag))
+  return S.notes.filter(n => (!ui.tag || n.tags.includes(ui.tag)) && nBook(n) === ui.nBook)
     .map(n => { const e = nEntry(n); return {n, e, s: toks.length ? nqScore(e, toks, fq) : 1}; })
     .filter(h => h.s > 0)
     .sort((a, b) => b.s - a.s || b.n.mod.localeCompare(a.n.mod));
@@ -255,8 +307,10 @@ function drawNoteList(){
         ${tree ? `<button class="nadd" data-nkid="${n.id}" title="${tr('note.addKidT')}">+</button>` : ''}</div>
       ${kids.length && n.open ? kids.map(k => row(k, depth + 1, true)).join('') : ''}`;
   };
-  const pins = nOrd(S.notes.filter(n => n.pin), S.settings.nPinOrd), roots = nKids(null);
-  const recent = nOrd([...S.notes].sort((a, b) => b.mod.localeCompare(a.mod)).slice(0, 5), S.settings.nRecOrd);
+  // ba mục đều chỉ lấy trang của cuốn đang mở
+  const mine = S.notes.filter(n => nBook(n) === ui.nBook);
+  const pins = nOrd(mine.filter(n => n.pin), S.settings.nPinOrd), roots = mine.filter(n => !n.parent);
+  const recent = nOrd([...mine].sort((a, b) => b.mod.localeCompare(a.mod)).slice(0, 5), S.settings.nRecOrd);
   // nhãn mục bấm được: thu gọn hay mở nhớ trong settings theo khoá của mục
   const sect = (key, label, body) =>
     `<button class="nlbl" data-nsec="${key}">${tr(label)}<span class="nlcar">${S.settings[key] ? '▾' : '▸'}</span></button>`
@@ -334,9 +388,12 @@ function wireNoteDnD(){
   });
 }
 // bỏ trang khỏi chỗ cũ rồi đặt vào trước trang before (không có before thì xuống cuối danh sách con của cha mới)
+// Thành trang gốc thì ghi cuốn đang theo vào cat, để không rơi sang "Chưa phân loại".
 function nPlace(n, parent, before){
+  const c = nBook(n);
   S.notes = S.notes.filter(x => x !== n);
   n.parent = parent;
+  if(!parent){ if(c) n.cat = c; else delete n.cat; }
   const at = before && S.notes.find(x => x.id === before);
   if(at) S.notes.splice(S.notes.indexOf(at), 0, n); else S.notes.push(n);
   if(parent) S.notes.find(x => x.id === parent).open = true;

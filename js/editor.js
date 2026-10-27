@@ -243,15 +243,19 @@ function pickSlash(k){
 function pageItems(){
   const notes = S.notes.map(n => ({v: '#n/' + n.id, g: tr('nav.notes'), lt: n.title.trim() || tr('note.untitled'),
     t: [...nPath(n), n].map(p => p.title.trim() || tr('note.untitled')).join(' / ')}));
-  const days = Object.keys(S.journal).filter(dayHas).sort().reverse().flatMap(d => {
+  const days = Object.keys(S.journal).filter(k => dayHas(k)).sort().reverse().flatMap(d => {
     const pgs = Array.isArray(S.journal[d]) ? S.journal[d] : [];
-    return pgs.map(p => { const t = jPageName(d, pgs, p);
+    // trang trống bỏ qua: mỗi cuốn mở ra ở một ngày đều tự có sẵn một trang trống
+    return pgs.filter(p => hasText(p.html)).map(p => { const t = jPageName(d, pgs, p);
       return {v: `#j/${d}/${p.id}`, g: tr('nav.journal'), t, lt: tr('nav.journal') + ' ' + t}; });
   });
   return [...notes, ...days];
 }
-// tên trang nhật ký trong link: ngày, thêm tên trang nếu ngày đó có nhiều trang
-const jPageName = (d, pgs, p) => fmtVN(d) + (pgs.length > 1 ? ' · ' + p.name : '');
+// tên trang nhật ký trong link: ngày và cuốn, thêm tên trang nếu cuốn đó có nhiều trang trong ngày
+const jPageName = (d, pgs, p) => {
+  const c = jCat(p);
+  return fmtVN(d) + ' · ' + jBookName(c) + (pgs.filter(x => jCat(x) === c).length > 1 ? ' · ' + p.name : '');
+};
 /* nút 🔗 ở trang ghi chú / nhật ký: chép link của trang đang mở. Chép cả dạng HTML nên dán (Ctrl+V) vào trang khác
    là ra đúng link bấm được như /lệnh; dấu cách sau link để gõ tiếp không bị dính vào link */
 async function copyPageLink(href, text){
@@ -272,12 +276,12 @@ function openPageLink(href){
   let m;
   if((m = href.match(/^#n\/(.+)$/))){
     if(!S.notes.some(n => n.id === m[1])) return toast(tr('plink.gone'));
-    ui.nOpen = m[1];
+    ui.nOpen = m[1]; ui.nBook = nBook(S.notes.find(n => n.id === m[1]));
     if(ui.view === 'notes') renderNotes(); else goView('notes');
   }else if((m = href.match(/^#j\/(\d{4}-\d\d-\d\d)\/(.+)$/))){
     const pgs = Array.isArray(S.journal[m[1]]) ? S.journal[m[1]] : [], i = pgs.findIndex(p => p.id === m[2]);
     if(i < 0) return toast(tr('plink.gone'));
-    ui.jDate = m[1]; ui.jTab = i; jKept = null;   // jKept: trang nhớ từ lần trước, không được giành chỗ trang vừa bấm
+    ui.jDate = m[1]; ui.jTab = i; ui.jBook = jCat(pgs[i]); jKept = null;   // jKept: trang nhớ từ lần trước, không được giành chỗ trang vừa bấm
     if(ui.view === 'journal') renderJournal(); else goView('journal');
   }
 }

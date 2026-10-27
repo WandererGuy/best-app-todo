@@ -11,7 +11,7 @@ const qnPage = (title, parent) => ({id:uid(), title, html:'', parent, tags:[], p
 function qnRoot(){
   let r = S.notes.find(n => n.id === S.settings.qn);
   if(!r){                                         // chưa có, hoặc đã bị bỏ vào thùng rác: dựng trang mới
-    r = {...qnPage('Scratchpad', null), pin:true};
+    r = {...qnPage('Scratchpad', null), pin:true, cat:S.settings.nBooks[0]?.id};   // vào cuốn đầu danh sách
     S.notes.unshift(r); S.settings.qn = r.id; save();
   }
   return r;

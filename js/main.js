@@ -71,7 +71,7 @@ function render(){
   $('#ctB').textContent = onBoard.filter(t => t.area !== 'life').length;
   $('#ctL').textContent = onBoard.filter(t => t.area === 'life').length;
   $('#ctK').textContent = S.tasks.filter(t => t.status === 'backlog').length;
-  $('#ctT').textContent = S.trash.length + S.ntrash.filter(n => n.trashed).length;
+  $('#ctT').textContent = S.trash.length + S.ntrash.filter(n => n.trashed).length + S.nbtrash.length + S.jtrash.length;
   $('#ctH').textContent = hDue().filter(h => !hDone(h, today())).length;
   if(ui.view !== 'habits' && hd){ hd = null; ui.hEdit = null; }
 

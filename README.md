@@ -39,7 +39,7 @@
 | ![Habits](docs/images/en/habits.png) | ![Calendar](docs/images/en/cal.png) |
 | **Notes**<br>Pages nested inside pages like Notion. Drag to reorder or to nest, pin, tag, paste images and attach files. | **Overview**<br>What is due today, what is overdue, focus sessions against the daily goal, habits and the journal streak, plus seven-day charts. |
 | ![Notes](docs/images/en/notes.png) | ![Overview](docs/images/en/dash.png) |
-| **Day plan**<br>The shape of a day — sleep, commute, work, meals, rest — built from a template per weekday. | **Journal**<br>One or more pages per day, written in the same editor as the notes. |
+| **Day plan**<br>The shape of a day — sleep, commute, work, meals, rest — built from a template per weekday. | **Journal**<br>Separate journals for work, life and personal growth (add your own), each with one or more pages per day, written in the same editor as the notes. |
 | ![Day plan](docs/images/en/plan.png) | ![Journal](docs/images/en/journal.png) |
 
 There is also:
@@ -163,9 +163,9 @@ Those three steps cover the core of the app. Everything else can wait for anothe
 
 **Day schedule in the sidebar** — a 24-hour timeline for today. Click an empty slot to open the new-task form with the date and time already filled in; click a block to open that task.
 
-**Journal** — one or more pages per day, written freely. The editor works like Notion's: type `/` to insert a block, and you can paste images and attach files.
+**Journal** — separate journals (Work, Life, Personal growth by default; add, rename, drag to reorder or move to the trash), each with one or more pages per day, written freely. Search and the day list on the left follow the journal you have open; ⇄ moves a page to another journal. The editor works like Notion's: type `/` to insert a block, and you can paste images and attach files.
 
-**Notes** — pages that aren't tied to a date: handbooks, conventions, things you look up again. Pages nest inside pages; drag one onto the edge of another to reorder, or onto the middle of a page to make it a sub-page.
+**Notes** — pages that aren't tied to a date: handbooks, conventions, things you look up again. Pages nest inside pages; drag one onto the edge of another to reorder, or onto the middle of a page to make it a sub-page. Like the journal, notes are split into notebooks (Work, Life, Personal growth by default, separate from the journal ones); a sub-page belongs to the notebook of its top page.
 
 ### The parts you'll open when you need them
 

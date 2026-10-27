@@ -1,10 +1,12 @@
 /* nạp dữ liệu (từ server, localStorage hay file) vào S — thêm trường mới vào S thì sửa ở đây */
 function applyData(d){
-  S = {tasks: d.tasks || [], trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {},
-       notes: d.notes || [], ntrash: d.ntrash || [], habits: d.habits || [],
+  S = {tasks: d.tasks || [], trash: d.trash || [], tags: d.tags || {}, journal: d.journal || {}, jtrash: d.jtrash || [],
+       notes: d.notes || [], ntrash: d.ntrash || [], nbtrash: d.nbtrash || [], habits: d.habits || [],
        settings: Object.assign({...SETTINGS}, d.settings || {}), notis: d.notis || [], focus: fNorm(d.focus),
        plan: pNorm(d.plan)};
   syncTags();
+  S.settings.jBooks = S.settings.jBooks.map(b => ({...b}));   // bản riêng, không sửa lẫn vào mảng mặc định trong SETTINGS
+  S.settings.nBooks = S.settings.nBooks.map(b => ({...b}));
   // nhật ký cũ mỗi ngày một trang -> đổi sang dạng nhiều trang
   Object.keys(S.journal).forEach(k => {
     if(typeof S.journal[k] === 'string') S.journal[k] = [{id:uid(), name:tr('journal.firstPage'), html:S.journal[k]}];
@@ -498,7 +500,7 @@ function seed(){
      cue:tr('seed.h3cue'), swap:tr('seed.h3swap'),
      color:'#fb7185', log:{}, cr:today()}
   ];
-  S.journal[today()] = [{id:uid(), name:tr('journal.firstPage'), html:tr('seed.journal')}];
+  S.journal[today()] = [{id:uid(), name:tr('journal.firstPage'), html:tr('seed.journal'), cat:'life'}];
   syncTags();
   save();
 }

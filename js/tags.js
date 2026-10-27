@@ -17,7 +17,7 @@ function delTag(name){
   const used = [n && tr('tag.useTask', {n}), m && tr('tag.useNote', {n: m})].filter(Boolean).join(tr('tag.useJoin'));
   if(!confirm(used ? tr('tag.askDelUsed', {n: name, u: used}) : tr('tag.askDel', {n: name}))) return;
   delete S.tags[name];
-  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash].forEach(t => { if(t.tags) t.tags = t.tags.filter(x => x !== name); });
+  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash, ...S.nbtrash.flatMap(e => e.notes)].forEach(t => { if(t.tags) t.tags = t.tags.filter(x => x !== name); });
   if(nf) nf.tags = nf.tags.filter(x => x !== name);
   if(ui.tag === name) ui.tag = null;
   save(); render();
@@ -32,7 +32,7 @@ function renameTag(old){
   if(!hit) S.tags[to] = S.tags[old];
   delete S.tags[old];
   const swap = arr => [...new Set(arr.map(x => x === old ? to : x))];
-  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash].forEach(t => { if(t.tags) t.tags = swap(t.tags); });
+  [...S.tasks, ...S.trash, ...S.notes, ...S.ntrash, ...S.nbtrash.flatMap(e => e.notes)].forEach(t => { if(t.tags) t.tags = swap(t.tags); });
   if(nf) nf.tags = swap(nf.tags);
   if(ui.tag === old) ui.tag = to;
   save(); render();

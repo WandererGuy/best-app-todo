@@ -1,20 +1,51 @@
-/* ============ nhật ký: mỗi ngày nhiều trang ============ */
+/* ============ nhật ký: nhiều cuốn (công việc, cuộc sống…), mỗi cuốn mỗi ngày nhiều trang ============ */
+// Mọi cuốn chung một chỗ lưu S.journal[ngày] = [trang]; trang có cat = id cuốn trong S.settings.jBooks.
+// Trang không có cat (viết trước khi có cuốn) hoặc trỏ tới cuốn đã xoá thì thuộc cuốn '' — "Chưa phân loại".
 function jPages(date){
   let v = S.journal[date];
   if(typeof v === 'string') v = [{id:uid(), name:tr('journal.firstPage'), html:v}];
-  if(!Array.isArray(v) || !v.length) v = [{id:uid(), name:tr('journal.firstPage'), html:''}];
+  if(!Array.isArray(v)) v = [];
   S.journal[date] = v;
   return v;
 }
-const dayHas = k => {
+const jCat = p => S.settings.jBooks.some(b => b.id === p.cat) ? p.cat : '';
+const jBookName = id => S.settings.jBooks.find(b => b.id === id)?.name || tr('book.none');
+// b: chỉ xét trang của cuốn đó; bỏ trống thì xét cả ngày, mọi cuốn (lịch, thống kê)
+const dayHas = (k, b) => {
   const v = S.journal[k];
   if(!v) return false;
-  return typeof v === 'string' ? hasText(v) : v.some(t => hasText(t.html));
+  return typeof v === 'string' ? (b == null || b === '') && hasText(v) : v.some(t => (b == null || jCat(t) === b) && hasText(t.html));
 };
-// dòng phụ ở cột trái: chỉ số trang, ngày mở ra mà chưa viết gì thì nói vậy
+// còn trang nào đã viết mà chưa thuộc cuốn nào: còn thì mới hiện nút "Chưa phân loại"
+const jLoose = () => Object.keys(S.journal).some(k => dayHas(k, ''));
+/* ============ thùng rác nhật ký ============ */
+// S.jtrash: mỗi mục là một trang bị bỏ (kind 'page') hoặc một cuốn bị bỏ (kind 'book') kèm mọi trang đã viết của nó.
+// Trang mang theo ngày (d) để khôi phục về đúng chỗ. Cuốn bị bỏ mang trang đi cùng, nên trang không lọt vào "Chưa phân loại".
+function trashJPage(d, p){
+  S.journal[d] = jPages(d).filter(x => x !== p);
+  S.jtrash.unshift({id: p.id, kind: 'page', trashed: today(), pages: [{...p, d}]});
+}
+function trashJBook(b){
+  const pages = [];
+  Object.keys(S.journal).forEach(d => {
+    if(!Array.isArray(S.journal[d])) return;
+    S.journal[d].forEach(p => { if(p.cat === b.id && hasText(p.html)) pages.push({...p, d}); });   // trang trống thì bỏ luôn
+    S.journal[d] = S.journal[d].filter(p => p.cat !== b.id);
+  });
+  S.settings.jBooks = S.settings.jBooks.filter(x => x !== b);
+  S.jtrash.unshift({id: b.id, kind: 'book', trashed: today(), book: {...b}, pages});
+  jIdxSrc = null;                              // trang đổi chỗ ở nhiều ngày, bản tìm kiếm đã dựng không còn đúng
+}
+function restoreJTrash(e){
+  S.jtrash = S.jtrash.filter(x => x !== e);
+  if(e.kind === 'book' && !S.settings.jBooks.some(b => b.id === e.book.id)) S.settings.jBooks.push(e.book);
+  e.pages.forEach(({d, ...p}) => { const pgs = jPages(d); if(!pgs.some(x => x.id === p.id)) pgs.push(p); });
+  jIdxSrc = null;
+}
+// dòng phụ ở cột trái: chỉ số trang của cuốn đang mở, ngày mở ra mà chưa viết gì thì nói vậy
 function jSub(k){
-  const pgs = Array.isArray(S.journal[k]) ? S.journal[k] : [];
-  return dayHas(k) ? tr('journal.pageCount', {n: pgs.length}) : tr('journal.blank');
+  const pgs = Array.isArray(S.journal[k]) ? S.journal[k].filter(p => jCat(p) === ui.jBook) : [];
+  return dayHas(k, ui.jBook) ? tr('journal.pageCount', {n: pgs.length}) : tr('journal.blank');
 }
 
 /* ============ nhật ký ============ */
@@ -24,6 +55,8 @@ const JPAGE_KEY = 'dieukhien.jpage';
 let jKept = (() => { try{ return JSON.parse(localStorage.getItem(JPAGE_KEY)); }catch(e){ return null; } })();
 // trang đang đọc của từng ngày trong phiên này: sang ngày khác rồi quay lại thì mở đúng trang đó.
 // Chỗ chuyển ngày đặt ui.jTab = null để renderJournal() tự chọn theo đây (chưa đọc ngày đó thì trang đầu).
+// Nhớ theo ngày và cuốn, vì mỗi cuốn có dãy trang riêng.
+// ui.jTab là vị trí trang trong cả ngày (S.journal[ngày]), không phải trong cuốn — kéo thả và xoá làm trên dãy đó.
 const jLast = {};
 function renderJournal(){
   if(!ui.jDate) ui.jDate = /^\d{4}-\d\d-\d\d$/.test(jKept?.d) ? jKept.d : today();
@@ -31,16 +64,28 @@ function renderJournal(){
   const pages = jPages(ui.jDate);
   if(jKept){                                   // chỉ dùng ở lần vẽ đầu tiên
     const i = jKept.d === ui.jDate ? pages.findIndex(p => p.id === jKept.id) : -1;
-    if(i >= 0) ui.jTab = i;
+    if(i >= 0){ ui.jTab = i; ui.jBook = jCat(pages[i]); }
+    else if(ui.jBook == null) ui.jBook = jKept.b;
     jKept = null;
   }
-  if(ui.jTab == null){ const i = pages.findIndex(p => p.id === jLast[ui.jDate]); ui.jTab = Math.max(0, i); }
-  if(ui.jTab >= pages.length) ui.jTab = 0;
+  const books = S.settings.jBooks;
+  if(ui.jBook !== '' && !books.some(b => b.id === ui.jBook)) ui.jBook = books[0]?.id ?? '';
+  const key = ui.jDate + '|' + ui.jBook;
+  let mine = pages.filter(p => jCat(p) === ui.jBook);
+  if(!mine.length){                            // cuốn này chưa có trang nào ở ngày này: mở sẵn một trang trống
+    const p = {id:uid(), name:tr('journal.firstPage'), html:''};
+    if(ui.jBook) p.cat = ui.jBook;
+    pages.push(p); mine = [p];
+  }
+  if(ui.jTab != null && !mine.includes(pages[ui.jTab])) ui.jTab = null;
+  if(ui.jTab == null) ui.jTab = pages.indexOf(mine.find(p => p.id === jLast[key]) || mine[0]);
   const page = pages[ui.jTab];
-  jLast[ui.jDate] = page.id;
-  try{ localStorage.setItem(JPAGE_KEY, JSON.stringify({d: ui.jDate, id: page.id})); }catch(e){}
-  const days = Object.keys(S.journal).filter(dayHas).length;
+  jLast[key] = page.id;
+  try{ localStorage.setItem(JPAGE_KEY, JSON.stringify({d: ui.jDate, id: page.id, b: ui.jBook})); }catch(e){}
+  const days = Object.keys(S.journal).filter(k => dayHas(k, ui.jBook)).length;
   $('#vSub').textContent = tr('journal.sub', {n: days});
+  // chuyển trang đi được tới mọi cuốn thật trừ cuốn đang mở
+  const dest = books.filter(b => b.id !== ui.jBook);
 
   const due = S.tasks.filter(t => t.due === ui.jDate && t.status !== 'backlog');
   const side = S.settings.jSide;
@@ -59,6 +104,7 @@ function renderJournal(){
     </div>`
     : `<button class="nfold nshow" id="jShow" title="${tr('common.showSide')}">»</button>`}
     <div class="jpage">
+      ${bookRowHTML({books, cur: ui.jBook, loose: jLoose()})}
       <div class="jbar">
         <button class="nvb" id="pd">‹</button><button class="nvb" id="nd">›</button>
         <div><h2>${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</h2>
@@ -67,11 +113,13 @@ function renderJournal(){
         <span class="hint">${tr('journal.slashHint')}</span>
       </div>
       <div class="jtabs">
-        ${pages.map((t, i) => `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`).join('')}
+        ${mine.map(t => { const i = pages.indexOf(t);
+          return `<button class="jtab${i === ui.jTab ? ' on' : ''}" data-jt="${i}" draggable="true" title="${tr('journal.dragT')}">${esc(t.name)}</button>`; }).join('')}
         <button class="jtab ico" id="jAdd" title="${tr('journal.addPage')}">+</button>
         <button class="jtab ico" id="jRen" title="${tr('journal.renPage')}">✎</button>
         <button class="jtab ico" id="jLink" title="${tr('plink.copyT')}">🔗</button>
-        ${pages.length > 1 ? `<button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>` : ''}
+        ${dest.length ? `<button class="jtab ico" id="jMove" title="${tr('book.movePage')}">⇄</button>` : ''}
+        <button class="jtab ico" id="jDel" title="${tr('journal.delPage')}">✕</button>
       </div>
       <div class="jed" id="jHost"></div>
     </div></div>`;
@@ -111,55 +159,52 @@ function renderJournal(){
   }, {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
   keepPageScroll($('#jHost'), page.id);
 
+  wireBookRow({books, cur: ui.jBook,
+    pick: id => { ui.jBook = id; ui.jTab = null; renderJournal(); },
+    redraw: renderJournal,
+    // bỏ cuốn = đưa cả cuốn lẫn trang của nó vào thùng rác, khôi phục lại được
+    trash: b => { trashJBook(b); ui.jBook = S.settings.jBooks[0].id; ui.jTab = null; save(); renderJournal(); },
+    // dồn mọi trang đã viết ở "Chưa phân loại" sang cuốn v; trang trống thì bỏ, khỏi thành tab thừa ở cuốn đích
+    moveAll: v => {
+      const n = Object.values(S.journal).reduce((s, pgs) => s + (Array.isArray(pgs) ? pgs.filter(p => jCat(p) === '' && hasText(p.html)).length : 0), 0);
+      if(!confirm(tr('book.askAll', {n, b: jBookName(v)}))) return;
+      Object.keys(S.journal).forEach(x => {
+        if(!Array.isArray(S.journal[x])) return;
+        S.journal[x] = S.journal[x].filter(p => jCat(p) !== '' || hasText(p.html));
+        S.journal[x].forEach(p => { if(jCat(p) === '') p.cat = v; });
+      });
+      jIdxSrc = null;
+      ui.jBook = v; ui.jTab = null; save(); renderJournal();
+      toast(tr('book.allDone', {n, b: jBookName(v)}));
+    }});
   $$('[data-jt]').forEach(b => b.onclick = () => { ui.jTab = +b.dataset.jt; renderJournal(); });
   wireJTabDnD(pages);
   $('#jAdd').onclick = () => {
-    pages.push({id:uid(), name:tr('journal.newPage', {n: pages.length + 1}), html:''});
-    ui.jTab = pages.length - 1; save(); renderJournal();
+    const p = {id:uid(), name:tr('journal.newPage', {n: mine.length + 1}), html:''};
+    if(ui.jBook) p.cat = ui.jBook;
+    pages.push(p); ui.jTab = pages.length - 1; save(); renderJournal();
   };
+  // chuyển xong vẫn ở cuốn đang mở, để sắp lại nhiều trang cũ liền một lúc
+  if($('#jMove')) $('#jMove').onclick = e => openPick(dest.map(b => ({v: b.id, t: b.name})), e.currentTarget.getBoundingClientRect(), {
+    onPick: v => { page.cat = v; ui.jTab = null; save(); renderJournal(); toast(tr('book.moved', {n: jBookName(v)})); }});
   $('#jLink').onclick = () => copyPageLink(`#j/${ui.jDate}/${page.id}`, tr('nav.journal') + ' ' + jPageName(ui.jDate, pages, page));
   $('#jRen').onclick = () => {
     const n = prompt(tr('journal.askName'), page.name);
     if(n && n.trim()){ page.name = n.trim(); save(); renderJournal(); }
   };
-  if($('#jDel')) $('#jDel').onclick = () => {
-    if(!confirm(tr('journal.askDel', {n: page.name}))) return;
-    pages.splice(ui.jTab, 1); ui.jTab = 0; save(); renderJournal();
+  // trang đã viết thì vào thùng rác; trang trống thì bỏ thẳng, không có gì để giữ
+  $('#jDel').onclick = () => {
+    const kept = hasText(page.html);
+    if(kept) trashJPage(ui.jDate, page); else pages.splice(ui.jTab, 1);
+    ui.jTab = null; save(); renderJournal();
+    if(kept) toast(tr('trash.movedTask'));
   };
 }
-/* ============ kéo thả tab để đổi thứ tự trang trong ngày ============ */
-// Trỏ vào nửa trái một tab thì chèn trước nó, nửa phải thì chèn sau (hiện vạch ở mép đó).
+/* ============ kéo thả tab để đổi thứ tự trang trong ngày (xem wireRowDnD) ============ */
 // Trang đang mở vẫn là trang đang mở sau khi đổi chỗ, chỉ vị trí của nó thay đổi.
 function wireJTabDnD(pages){
-  const tabs = $$('[data-jt]');
-  let from = -1, drop = null;
-  const mark = d => { tabs.forEach(t => t.classList.remove('dropL', 'dropR')); drop = d; if(d) d.el.classList.add(d.after ? 'dropR' : 'dropL'); };
-  tabs.forEach(el => {
-    el.addEventListener('dragstart', e => {
-      from = +el.dataset.jt; el.classList.add('drag');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', el.textContent);
-    });
-    el.addEventListener('dragend', () => { el.classList.remove('drag'); from = -1; mark(null); });
-    el.addEventListener('dragover', e => {
-      if(from < 0) return;
-      e.preventDefault();
-      const r = el.getBoundingClientRect();
-      mark({el, after: e.clientX > r.left + r.width / 2});
-    });
-    el.addEventListener('drop', e => {
-      e.preventDefault();
-      if(from < 0 || !drop) return;
-      const open = pages[ui.jTab];
-      const [pg] = pages.splice(from, 1);
-      let to = +drop.el.dataset.jt + (drop.after ? 1 : 0);
-      if(to > from) to--;                      // đã rút trang ra phía trước nên chỗ chèn lùi một ô
-      pages.splice(to, 0, pg);
-      ui.jTab = pages.indexOf(open);
-      from = -1; mark(null);
-      save(); renderJournal();
-    });
-  });
+  const open = pages[ui.jTab];
+  wireRowDnD($$('[data-jt]'), el => +el.dataset.jt, pages, () => { ui.jTab = pages.indexOf(open); save(); renderJournal(); });
 }
 /* ============ tìm kiếm ngày ============ */
 // Như bên ghi chú: mỗi ngày giữ sẵn một bản đã bỏ dấu, câu tìm tách thành từ và ngày phải khớp
@@ -170,27 +215,30 @@ const jIdx = new Map();
 let jIdxSrc = null;
 // Ngày đang mở thì dựng lại mỗi lần, vì chỉ nó mới sửa được — khỏi phải gắn cờ ở từng chỗ ghi.
 // applyData() thay nguyên S mỗi lần nạp / đồng bộ, nên so danh tính S.journal là biết cache hết hạn.
+// Mỗi cuốn tìm riêng, nên mỗi (ngày, cuốn) một bản.
 function jEntry(k){
   if(jIdxSrc !== S.journal){ jIdx.clear(); jIdxSrc = S.journal; }
-  let e = jIdx.get(k);
+  const id = k + '|' + ui.jBook;
+  let e = jIdx.get(id);
   if(!e || k === ui.jDate){
     const v = S.journal[k];
-    const pgs = typeof v === 'string' ? [{name:'', html:v}] : (Array.isArray(v) ? v : []);
+    const pgs = typeof v === 'string' ? (ui.jBook ? [] : [{name:'', html:v}])
+      : (Array.isArray(v) ? v.filter(p => jCat(p) === ui.jBook) : []);
     const nm  = pgs.map(p => p.name || '').join(' ').normalize('NFC');
     const raw = pgs.map(p => plain(p.html)).join(' · ').replace(/\s+/g, ' ').trim().normalize('NFC');
     e = {raw, nm, b:fold(raw), n:fold(nm)};
-    jIdx.set(k, e);
+    jIdx.set(id, e);
   }
   return e;
 }
 const jHit = (e, toks) => toks.every(tk => e.b.includes(tk) || e.n.includes(tk));
 
-// cột trái: các ngày đã viết, mới nhất lên đầu, gom theo tháng; đang tìm thì lọc theo nội dung cả ngày
+// cột trái: các ngày đã viết trong cuốn đang mở, mới nhất lên đầu, gom theo tháng; đang tìm thì lọc theo nội dung cả ngày
 let jHits = [];
 function drawJournalList(){
   const box = $('#jList'); if(!box) return;
   const toks = nqToks(ui.q.trim());
-  let days = Object.keys(S.journal).filter(dayHas);
+  let days = Object.keys(S.journal).filter(k => dayHas(k, ui.jBook));
   if(toks.length) days = days.filter(k => jHit(jEntry(k), toks));
   else if(!days.includes(ui.jDate)) days.push(ui.jDate);   // ngày đang mở luôn có mặt, dù chưa viết gì
   days.sort((a, b) => b.localeCompare(a));

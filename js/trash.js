@@ -8,8 +8,11 @@ function trashTask(id){
 }
 function renderTrash(){
   const fmt = d => d ? d.split('-').reverse().join('/') : '';
-  const nroots = S.ntrash.filter(n => n.trashed);
-  $('#vSub').textContent = tr('trash.sub', {t: S.trash.length, n: nroots.length});
+  const nroots = S.ntrash.filter(n => n.trashed), nAny = nroots.length + S.nbtrash.length;
+  $('#vSub').textContent = tr('trash.sub', {t: S.trash.length, n: nAny, j: S.jtrash.length});
+  // mục nhật ký: một trang thì ghi ngày · cuốn · tên trang, một cuốn thì ghi tên cuốn và số trang đi kèm
+  const jName = e => e.kind === 'book' ? tr('trash.book', {n: e.book.name})
+    : `${fmtVN(e.pages[0].d)} · ${jBookName(jCat(e.pages[0]))} · ${e.pages[0].name}`;
   $('#view').innerHTML = `<div class="fwrap"><div class="fcard">
     <div class="fld"><label style="display:flex;align-items:center">${tr('trash.tasks')}
       ${S.trash.length ? `<button class="danger" id="trClr" style="margin-left:auto">${tr('trash.purgeAll')}</button>` : ''}</label>
@@ -22,13 +25,26 @@ function renderTrash(){
         : `<div class="empty">${tr('trash.emptyTasks')}</div>`}</div>
   </div><div class="fcard">
     <div class="fld"><label style="display:flex;align-items:center">${tr('trash.notes')}
-      ${nroots.length ? `<button class="danger" id="ntrClr" style="margin-left:auto">${tr('trash.purgeAll')}</button>` : ''}</label>
-      ${nroots.length ? `<div>${nroots.map(n => { const k = nTree(S.ntrash, n).length - 1; return `<div class="tgrow">
+      ${nAny ? `<button class="danger" id="ntrClr" style="margin-left:auto">${tr('trash.purgeAll')}</button>` : ''}</label>
+      ${nAny ? `<div>${S.nbtrash.map(e => `<div class="tgrow">
+          <span style="word-break:break-word">${esc(tr('trash.book', {n: e.book.name}))}</span>
+          <span class="meta" style="white-space:nowrap">${tr('trash.metaBook', {k: e.notes.length, d: fmt(e.trashed)})}</span>
+          <button class="btn ghost" data-nbrestore="${e.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">${tr('trash.restore')}</button>
+          <button class="danger" data-nbpurge="${e.id}" style="white-space:nowrap">${tr('trash.purge')}</button></div>`).join('')}${nroots.map(n => { const k = nTree(S.ntrash, n).length - 1; return `<div class="tgrow">
           <span style="word-break:break-word">${nTitle(n)}</span>
           <span class="meta" style="white-space:nowrap">${k ? tr('trash.withKids', {k}) : ''}${tr('trash.metaNote', {d: fmt(n.trashed)})}</span>
           <button class="btn ghost" data-nrestore="${n.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">${tr('trash.restore')}</button>
           <button class="danger" data-npurge="${n.id}" style="white-space:nowrap">${tr('trash.purge')}</button></div>`; }).join('')}</div>`
         : `<div class="empty">${tr('trash.emptyNotes')}</div>`}</div>
+  </div><div class="fcard">
+    <div class="fld"><label style="display:flex;align-items:center">${tr('trash.journal')}
+      ${S.jtrash.length ? `<button class="danger" id="jtrClr" style="margin-left:auto">${tr('trash.purgeAll')}</button>` : ''}</label>
+      ${S.jtrash.length ? `<div>${S.jtrash.map(e => `<div class="tgrow">
+          <span style="word-break:break-word">${esc(jName(e))}</span>
+          <span class="meta" style="white-space:nowrap">${e.kind === 'book' ? tr('trash.metaBook', {k: e.pages.length, d: fmt(e.trashed)}) : tr('trash.metaNote', {d: fmt(e.trashed)})}</span>
+          <button class="btn ghost" data-jrestore="${e.id}" style="margin-left:auto;padding:5px 10px;font-size:12px;font-weight:500">${tr('trash.restore')}</button>
+          <button class="danger" data-jpurge="${e.id}" style="white-space:nowrap">${tr('trash.purge')}</button></div>`).join('')}</div>`
+        : `<div class="empty">${tr('trash.emptyJournal')}</div>`}</div>
   </div></div>`;
 
   $$('[data-restore]').forEach(b => b.onclick = () => {
@@ -62,8 +78,32 @@ function renderTrash(){
         k: tree.length > 1 ? tr('trash.askNoteKids', {k: tree.length - 1}) : ''}))) return;
     S.ntrash = S.ntrash.filter(x => !tree.includes(x)); save(); render();
   });
-  if(nroots.length) $('#ntrClr').onclick = () => {
-    if(!confirm(tr('trash.askAllNotes', {n: nroots.length}))) return;
-    S.ntrash = []; save(); render();
+  $$('[data-nbrestore]').forEach(b => b.onclick = () => {
+    restoreNBook(S.nbtrash.find(x => x.id === b.dataset.nbrestore));
+    save(); render(); toast(tr('trash.backNote'));
+  });
+  $$('[data-nbpurge]').forEach(b => b.onclick = () => {
+    const e = S.nbtrash.find(x => x.id === b.dataset.nbpurge);
+    if(!confirm(tr('trash.askOne', {n: tr('trash.book', {n: e.book.name})}))) return;
+    S.nbtrash = S.nbtrash.filter(x => x !== e); save(); render();
+  });
+  if(nAny) $('#ntrClr').onclick = () => {
+    if(!confirm(tr('trash.askAllNotes', {n: nAny}))) return;
+    S.ntrash = []; S.nbtrash = []; save(); render();
+  };
+
+  // khôi phục một cuốn là khôi phục cả cuốn lẫn các trang bị bỏ cùng nó (xem restoreJTrash ở journal.js)
+  $$('[data-jrestore]').forEach(b => b.onclick = () => {
+    restoreJTrash(S.jtrash.find(x => x.id === b.dataset.jrestore));
+    save(); render(); toast(tr('trash.backJournal'));
+  });
+  $$('[data-jpurge]').forEach(b => b.onclick = () => {
+    const e = S.jtrash.find(x => x.id === b.dataset.jpurge);
+    if(!confirm(tr('trash.askOne', {n: jName(e)}))) return;
+    S.jtrash = S.jtrash.filter(x => x !== e); save(); render();
+  });
+  if(S.jtrash.length) $('#jtrClr').onclick = () => {
+    if(!confirm(tr('trash.askAllJournal', {n: S.jtrash.length}))) return;
+    S.jtrash = []; save(); render();
   };
 }

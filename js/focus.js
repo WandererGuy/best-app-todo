@@ -554,11 +554,12 @@ function fSend(){
   if(!list.length) return toast(tr('fj.nothingNew'));
   const k = today(), pages = jPages(k);
   let page = pages.find(p => p.name === FJPAGE);
-  if(!page){ page = {id:uid(), name:FJPAGE, html:''}; pages.push(page); }
+  // trang "Tập trung" mới nằm ở cuốn đầu danh sách (mặc định Công việc); đã có rồi thì giữ ở cuốn của nó
+  if(!page){ page = {id:uid(), name:FJPAGE, html:'', cat:S.settings.jBooks[0]?.id}; pages.push(page); }
   page.html = (hasText(page.html) ? page.html : '') + fSendHTML(list, hasText(page.html));
   list.forEach(e => e.sent = true);
   save();
-  ui.jDate = k; ui.jTab = pages.indexOf(page);
+  ui.jDate = k; ui.jTab = pages.indexOf(page); ui.jBook = jCat(page);
   goView('journal');
   toast(tr('fj.sentToast', {n: list.length}));
 }

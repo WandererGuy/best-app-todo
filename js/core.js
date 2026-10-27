@@ -26,11 +26,14 @@ const FCFG = {work:40, short:10, long:15, every:3, buffer:20, auto:false,
         long:{c:'#a3e635', img:null, op:70, dim:35}},
   sound:true, vol:60, notify:true, tabTitle:true};
 const KEY   = 'dieukhien.v1';
+// cuốn mặc định; hàm chứ không phải hằng để nhật ký và ghi chú mỗi bên có một mảng riêng, sửa bên này không lây bên kia
+function books0(){ return [{id:'work', name:tr('book.work')}, {id:'life', name:tr('book.life')}, {id:'grow', name:tr('book.grow')}]; }
 // cài đặt mặc định cho người mới mở app lần đầu. Sửa ở đây là đổi mặc định cho mọi bản clone;
 // người đã dùng rồi thì giá trị trong file dữ liệu vẫn được giữ, không bị đè.
 const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'week', doneToday:false,
   nSide:true, nPinned:true, nRecent:true, nAll:true, jSide:true,   // cột trái đang hiện: nSide (ghi chú) / jSide (nhật ký); nPinned / nRecent / nAll = ba mục trong cột ghi chú đang mở
-  nPinOrd:[], nRecOrd:[]};   // thứ tự kéo thả trong mục Đã ghim / Gần đây (mã trang)
+  nPinOrd:[], nRecOrd:[],    // thứ tự kéo thả trong mục Đã ghim / Gần đây (mã trang)
+  jBooks:books0(), nBooks:books0()};   // các cuốn của nhật ký / ghi chú, mỗi bên một danh sách riêng (xem bookRowHTML)
 // trang đang xem, nhớ riêng trong trình duyệt này để tải lại trang vẫn ở nguyên chỗ cũ.
 // 'new' (form tạo task) và 'tags' là trang tạm nên không nhớ.
 const VIEW_KEY = 'dieukhien.view';
@@ -101,10 +104,10 @@ function fNorm(f = {}){
 }
 
 /* ============ trạng thái ============ */
-let S = {tasks:[], trash:[], tags:{}, journal:{}, notes:[], ntrash:[], habits:[], settings:{...SETTINGS}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; focus: xem mục tập trung
+let S = {tasks:[], trash:[], tags:{}, journal:{}, jtrash:[], notes:[], ntrash:[], nbtrash:[], habits:[], settings:{...SETTINGS}, notis:[], focus:fNorm(), plan:pNorm()};   // tags: {tên: màu}; notis: nhắc việc đã bắn; trash: task đã bỏ (có thêm trường trashed); notes / ntrash: ghi chú và ghi chú đã bỏ; nbtrash: cuốn ghi chú đã bỏ (kèm trang); jtrash: trang / cuốn nhật ký đã bỏ; focus: xem mục tập trung
 // bf: bộ lọc của bảng việc / bảng cuộc sống — prio: các mức ưu tiên đang chọn, due: mốc hạn, area: mảng (chỉ bảng việc); bfOpen: đang mở bảng lọc
 let ui = {view: keptView(), bf:{prio:[], due:null, area:null}, bfOpen:false, tag:null, q:'', scope:'today',
-          open:null, calD:null, calMode:'month', jDate:null, jTab:0, sDate:null, doneAll:false, nOpen:null,
+          open:null, calD:null, calMode:'month', jDate:null, jTab:0, jBook:null, sDate:null, doneAll:false, nOpen:null, nBook:null,
           hEdit:null, hPop:null,
           // lịch trình: pDate = ngày đang xem, pOpen = id khối đang mở panel sửa
           pDate:null, pOpen:null,
@@ -232,6 +235,79 @@ function openPick(items, r, {q = '', onPick, onEsc = () => {}, width = 260} = {}
 }
 function closeFind(){
   const el = $('#sfindEl'); if(el) el.remove();
+}
+
+/* ============ cuốn: nhật ký và ghi chú chia trang theo cuốn (công việc, cuộc sống…) ============ */
+// Trang trỏ tới cuốn qua trường cat; cat trống hoặc trỏ tới cuốn không còn thì thuộc cuốn '' — "Chưa phân loại".
+// Hàng chọn cuốn đứng đầu cột phải, nên ẩn cột trái vẫn đổi cuốn được.
+// o = {books (mảng cuốn trong settings), cur (id cuốn đang mở), loose (còn trang chưa phân loại không)}
+function bookRowHTML(o){
+  const {books, cur} = o;
+  return `<div class="jbooks">
+    ${books.map(b => `<button class="jbook${b.id === cur ? ' on' : ''}" data-jb="${esc(b.id)}" draggable="true" title="${tr('book.dragT')}">${esc(b.name)}</button>`).join('')}
+    ${cur === '' || o.loose ? `<button class="jbook none${cur === '' ? ' on' : ''}" data-jb="" title="${tr('book.noneT')}">${tr('book.none')}</button>` : ''}
+    <button class="jtab ico" data-bk="add" title="${tr('book.add')}">+</button>
+    ${cur ? `<button class="jtab ico" data-bk="ren" title="${tr('book.ren')}">✎</button>` : ''}
+    ${cur && books.length > 1 ? `<button class="jtab ico" data-bk="del" title="${tr('book.del')}">✕</button>` : ''}
+    ${cur === '' && books.length ? `<button class="jtab ico" data-bk="all" title="${tr('book.allT')}">⇄ ${tr('book.all')}</button>` : ''}
+  </div>`;
+}
+// o thêm: pick(id) mở cuốn khác, redraw() vẽ lại tại chỗ, trash(b) bỏ cuốn vào thùng rác,
+// moveAll(id) dồn trang chưa phân loại sang cuốn id. Thêm / đổi tên / kéo đổi chỗ thì làm ở đây luôn.
+function wireBookRow(o){
+  const box = $('.jbooks'), {books} = o;
+  const act = k => box.querySelector(`[data-bk="${k}"]`);
+  const cur = () => books.find(b => b.id === o.cur);
+  box.querySelectorAll('[data-jb]').forEach(b => b.onclick = () => { if(b.dataset.jb !== o.cur) o.pick(b.dataset.jb); });
+  act('add').onclick = () => {
+    const n = prompt(tr('book.askNew'));
+    if(!n || !n.trim()) return;
+    const b = {id:uid(), name:n.trim()};
+    books.push(b); save(); o.pick(b.id);
+  };
+  if(act('ren')) act('ren').onclick = () => {
+    const b = cur(), n = prompt(tr('book.askName'), b.name);
+    if(n && n.trim()){ b.name = n.trim(); save(); o.redraw(); }
+  };
+  if(act('del')) act('del').onclick = () => {
+    const b = cur();
+    if(!confirm(tr('book.askDel', {n: b.name}))) return;
+    o.trash(b); toast(tr('trash.movedTask'));
+  };
+  if(act('all')) act('all').onclick = e => openPick(books.map(b => ({v: b.id, t: b.name})), e.currentTarget.getBoundingClientRect(),
+    {onPick: v => o.moveAll(v)});
+  wireRowDnD([...box.querySelectorAll('.jbook[draggable]')], el => books.findIndex(b => b.id === el.dataset.jb), books,
+    () => { save(); o.redraw(); });
+}
+// kéo thả đổi thứ tự trong một hàng nút (tab trang nhật ký, các cuốn). pos(el) = vị trí của nút trong list.
+// Trỏ vào nửa trái một nút thì chèn trước nó, nửa phải thì chèn sau (hiện vạch ở mép đó); thả xong đổi chỗ trong list rồi gọi done().
+function wireRowDnD(tabs, pos, list, done){
+  let from = -1, drop = null;
+  const mark = d => { tabs.forEach(t => t.classList.remove('dropL', 'dropR')); drop = d; if(d) d.el.classList.add(d.after ? 'dropR' : 'dropL'); };
+  tabs.forEach(el => {
+    el.addEventListener('dragstart', e => {
+      from = pos(el); el.classList.add('drag');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', el.textContent);
+    });
+    el.addEventListener('dragend', () => { el.classList.remove('drag'); from = -1; mark(null); });
+    el.addEventListener('dragover', e => {
+      if(from < 0) return;
+      e.preventDefault();
+      const r = el.getBoundingClientRect();
+      mark({el, after: e.clientX > r.left + r.width / 2});
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      if(from < 0 || !drop) return;
+      let to = pos(drop.el) + (drop.after ? 1 : 0);   // tính trước khi rút ra: pos có thể tìm theo vị trí trong list
+      const [x] = list.splice(from, 1);
+      if(to > from) to--;                     // đã rút ra phía trước nên chỗ chèn lùi một ô
+      list.splice(to, 0, x);
+      from = -1; mark(null);
+      done();
+    });
+  });
 }
 document.addEventListener('mousedown', e => {
   const sel = e.target.closest && e.target.closest('select[data-find]');

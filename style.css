@@ -256,6 +256,17 @@ textarea.inp{resize:vertical;min-height:130px;font-size:13.5px;line-height:1.75;
 .jbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}   /* cột phải hẹp hơn trước, để thanh ngày xuống dòng thay vì tràn */
 .jbar h2{font-size:18px;font-weight:650}
 .jbar .sub{font-size:12px;color:var(--tx3)}
+/* các cuốn nhật ký: hàng trên cùng cột phải, nên ẩn cột trái vẫn đổi cuốn được */
+.jbooks{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.jbook{padding:5px 13px;border-radius:999px;font-size:12.5px;color:var(--tx2);
+  background:var(--panel);border:1px solid var(--line);font-weight:540}
+.jbook:hover{color:var(--tx)}
+.jbook.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:620}
+.jbook.none{border-style:dashed}
+.jbook.drag{opacity:.35}
+.jbook.dropL{box-shadow:-4px 0 0 -1px var(--acc)}
+.jbook.dropR{box-shadow:4px 0 0 -1px var(--acc)}
+.jbooks .jtab.ico{border-radius:999px}
 .jtabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .jtab{padding:6px 13px;border-radius:8px 8px 0 0;font-size:12.5px;color:var(--tx2);
   background:var(--panel);border:1px solid var(--line);border-bottom:none;font-weight:540}

@@ -39,7 +39,7 @@
 | ![Thói quen](docs/images/vi/habits.png) | ![Lịch](docs/images/vi/cal.png) |
 | **Ghi chú**<br>Trang lồng nhau như Notion, kéo thả để đổi thứ tự hoặc lồng vào trang khác, ghim, gắn tag, chèn ảnh và file đính kèm. | **Tổng quan**<br>Việc đến hạn hôm nay, việc trễ hạn, phiên tập trung so với mục tiêu ngày, thói quen và chuỗi nhật ký, kèm biểu đồ 7 ngày. |
 | ![Ghi chú](docs/images/vi/notes.png) | ![Tổng quan](docs/images/vi/dash.png) |
-| **Lịch trình**<br>Khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ — dựng sẵn thành mẫu cho từng thứ trong tuần. | **Nhật ký**<br>Mỗi ngày một hoặc nhiều trang, viết bằng cùng trình soạn thảo với ghi chú. |
+| **Lịch trình**<br>Khung của một ngày — ngủ, di chuyển, làm việc, ăn, nghỉ — dựng sẵn thành mẫu cho từng thứ trong tuần. | **Nhật ký**<br>Các cuốn riêng cho công việc, cuộc sống, phát triển bản thân (tự thêm được cuốn khác), mỗi cuốn mỗi ngày một hoặc nhiều trang, viết bằng cùng trình soạn thảo với ghi chú. |
 | ![Lịch trình](docs/images/vi/plan.png) | ![Nhật ký](docs/images/vi/journal.png) |
 
 Ngoài ra còn có:
@@ -164,9 +164,9 @@ Làm xong ba bước này là bạn đã đi qua phần lõi của app. Những 
 
 **Lịch ngày ở sidebar** — dòng thời gian 24 giờ của hôm nay. Bấm một ô giờ trống là mở form tạo task với ngày giờ điền sẵn; bấm vào một block là mở đúng task đó.
 
-**Nhật ký** — mỗi ngày một hoặc nhiều trang, viết tự do. Trình soạn thảo giống Notion: gõ `/` để chèn khối, dán được ảnh và file.
+**Nhật ký** — các cuốn riêng (mặc định Công việc, Cuộc sống, Phát triển bản thân; tự thêm, đổi tên, kéo đổi thứ tự, bỏ vào thùng rác được), mỗi cuốn mỗi ngày một hoặc nhiều trang, viết tự do. Ô tìm kiếm và danh sách ngày ở cột trái theo cuốn đang mở; nút ⇄ chuyển một trang sang cuốn khác. Trình soạn thảo giống Notion: gõ `/` để chèn khối, dán được ảnh và file.
 
-**Ghi chú** — những trang không gắn với ngày nào: sổ tay, quy ước, việc cần tra lại. Trang lồng trong trang, kéo thả để đổi thứ tự hoặc thả vào giữa một trang khác để biến nó thành trang con.
+**Ghi chú** — những trang không gắn với ngày nào: sổ tay, quy ước, việc cần tra lại. Trang lồng trong trang, kéo thả để đổi thứ tự hoặc thả vào giữa một trang khác để biến nó thành trang con. Như nhật ký, ghi chú chia thành các cuốn (mặc định Công việc, Cuộc sống, Phát triển bản thân, tách riêng với cuốn của nhật ký); trang con thuộc cuốn của trang gốc chứa nó.
 
 ### Những mục khi cần mới mở
 

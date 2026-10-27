@@ -24,7 +24,7 @@ function renderDash(){
   const fwk = days.map(k => ({l:DOW[dowOf(k)], v:Math.round((fMin[k] || 0) / 6e4)}));
   const fmx = Math.max(1, ...fwk.map(d => d.v));
 
-  const jDays = Object.keys(S.journal).filter(dayHas);
+  const jDays = Object.keys(S.journal).filter(k => dayHas(k));
   let streak = 0;
   for(let i = 0; ; i++){ const d = new Date(); d.setDate(d.getDate() - i);
     if(jDays.includes(iso(d))) streak++; else if(i > 0 || !jDays.includes(k0)) break; }
