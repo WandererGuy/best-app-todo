@@ -160,7 +160,21 @@ const KB_LINK = {
   open(id){ openTask(id); },
 };
 const kbFmtDay = k => { const d = new Date(k + 'T00:00:00'); return `${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
-function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
+/* chỗ con trỏ ở trang gõ gần nhất {k: mã trang, from, to}, nhớ riêng trong trình duyệt này như VIEW_KEY:
+   mở lại app (restoreCaret lúc boot) thì con trỏ về đúng chỗ đang gõ dở. Chỉ trang có caret mới được nhớ. */
+const CARET_KEY = 'dieukhien.caret';
+let lastCaret = (() => { try{ return JSON.parse(localStorage.getItem(CARET_KEY)); }catch(e){ return null; } })();
+let caretT = null;
+const flushCaret = () => { clearTimeout(caretT); try{ localStorage.setItem(CARET_KEY, JSON.stringify(lastCaret)); }catch(e){} };
+addEventListener('pagehide', flushCaret);
+const CARET_OF = new WeakMap();   // editor -> mã trang
+function restoreCaret(){
+  const ed = lastCaret && [...EDS.values()].find(e => CARET_OF.get(e) === lastCaret.k);
+  if(!ed) return;
+  const max = ed.state.doc.content.size;          // trang có thể đã ngắn đi (cửa sổ khác sửa)
+  ed.chain().focus(null, {scrollIntoView: false}).setTextSelection({from: Math.min(lastCaret.from, max), to: Math.min(lastCaret.to, max)}).run();
+}
+function mountEd(hostId, content, ph, onChange, {kbDay = '', caret = ''} = {}){
   closeEd(hostId);
   const host = document.getElementById(hostId); if(!host) return null;
   const ed = window.TT.create(host, {content: toRich(content), placeholder: ph, onChange,
@@ -184,6 +198,17 @@ function mountEd(hostId, content, ph, onChange, {kbDay = ''} = {}){
              link: KB_LINK, linkT: tr('kb.linkT'), linkWork: tr('nav.board'), linkLife: tr('nav.life'), linkedT: tr('kb.linkedT')}});
   EDS.set(hostId, ed);
   if(kbDay) KB_DAY.set(ed, kbDay);
+  if(caret){
+    CARET_OF.set(ed, caret);
+    const keep = () => {
+      if(!ed.isFocused) return;
+      const {from, to} = ed.state.selection;
+      lastCaret = {k: caret, from, to};
+      clearTimeout(caretT); caretT = setTimeout(flushCaret, 300);
+    };
+    ed.on('selectionUpdate', keep);
+    ed.on('focus', keep);
+  }
   kbSync(ed);                                                        // bảng ở trang khác có thể vừa sửa: lấy bản mới nhất
   ed.on('update', () => kbSync(ed));                                 // sửa bảng ở đây thì ghi sang các bản chép của nó
   const dom = ed.view.dom;

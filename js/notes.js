@@ -234,7 +234,7 @@ function renderNotes(){
     $$(`#ntList [data-nid="${n.id}"] .nname`).forEach(el => el.innerHTML = nTitle(n));
   };
   $('#ntTitle').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost')?.commands.focus('start'); } };
-  mountEd('ntHost', n.html, tr('note.ph'), v => { n.html = v; touch(); });
+  mountEd('ntHost', n.html, tr('note.ph'), v => { n.html = v; touch(); }, {caret: n.id});
   keepPageScroll($('.npage'), n.id);
   $('#ntPin').onclick = () => {
     n.pin = !n.pin;
@@ -273,7 +273,7 @@ function wirePanes(){
       $$(`#ntList [data-nid="${p.id}"] .nname`).forEach(x => x.innerHTML = nTitle(p));
     };
     ti.onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); EDS.get('ntHost' + i)?.commands.focus('start'); } };
-    mountEd('ntHost' + i, p.html, tr('note.ph'), v => { p.html = v; touch(); });
+    mountEd('ntHost' + i, p.html, tr('note.ph'), v => { p.html = v; touch(); }, {caret: p.id});
     keepPageScroll(el, p.id);
   });
 }

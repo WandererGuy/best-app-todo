@@ -21,19 +21,15 @@ File này là bản ghi đầy đủ để tôi hoặc Claude mở lại dự á
 - Máy không có Python thì `run.bat` báo lỗi và dừng — cố ý không mở thẳng `index.html`, vì cách đó dữ liệu chỉ nằm trong trình duyệt.
 - Bấm `run.bat` khi đã có server đang chạy thì server cũ **tự bị tắt** trước (qua `tat-server-cu.ps1`), nên lúc nào cũng chỉ có một server. Script chỉ tắt thứ của app: cửa sổ `run.bat` cũ (cùng đường dẫn, tắt cả cửa sổ) và `python serve.py` đang giữ cổng 8000 (chạy tay trong terminal thì chỉ tắt python, để yên terminal). Chương trình khác chiếm cổng 8000 thì không bị tắt — `run.bat` báo tên nó rồi dừng.
 
-### Mở riêng trang Ghi chú như một app (Ctrl+Alt+N)
+### Mở như một app Windows (cài từ Chrome)
 
-`ghi-chu.vbs` mở `http://localhost:8000/?view=notes` bằng `chrome --app`: cửa sổ riêng, không thanh địa chỉ, icon `icons/hearth.ico`. Server chưa chạy thì nó bật `run.bat` thu nhỏ trước. Vẫn là cả app với cùng dữ liệu, chỉ là vào thẳng trang Ghi chú (`?view=` đọc trong `keptView()` ở `js/core.js`, dùng một lần rồi bỏ khỏi URL).
+Không cần script nào: cài bản online thành app Chrome. Mở https://wandererguy.github.io/best-app-todo/ trong Chrome, bấm biểu tượng **Cài đặt** ở cuối thanh địa chỉ (hoặc ⋮ > Cast, save and share > Install page as app). Chrome tạo app "Hearth" trong Start Menu: cửa sổ riêng, icon riêng, ghim được lên taskbar. `manifest.json` khai báo tên, icon và nền tối lúc cửa sổ vừa mở.
 
-Tạo shortcut một lần (chạy lại nếu chuyển thư mục project):
+Bản cài này lưu dữ liệu trong Chrome (xem [Try it online](README.md#try-it-online)): bấm **Liên kết file trên ổ đĩa** một lần để mọi thay đổi cũng ghi ra một file trên máy. Chuyển dữ liệu từ bản `run.bat` sang: **Xuất file** ở bản cũ (hoặc lấy thẳng `data/dieukhien.json`), rồi **Nạp file** ở bản cài.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\tao-shortcut-ghi-chu.ps1
-```
+App mở lại đúng trang đang xem lần trước (`dieukhien.view`) và đặt con trỏ về chỗ đang gõ (`dieukhien.caret`).
 
-Shortcut "Hearth" nằm trong Start Menu, phím tắt **Ctrl+Alt+N**. Muốn ghim lên taskbar: mở Start, tìm "Hearth", chuột phải > Pin to taskbar.
-
-Logo nằm ở `icons/hearth.svg` (sidebar) và `icons/hearth.ico` (favicon, shortcut). Cả hai được sinh từ `build/logo.py` (cần Pillow): sửa logo ở đó rồi chạy lại, đừng sửa tay từng file.
+Logo nằm ở `icons/hearth.svg` (sidebar), `icons/hearth.ico` (favicon) và `icons/hearth-192.png`, `icons/hearth-512.png` (app cài từ Chrome), đều sinh từ `build/logo.py` (cần Pillow): sửa logo ở đó rồi chạy lại, đừng sửa tay từng file.
 
 ### Vì sao qua server chứ không mở thẳng file
 
@@ -86,6 +82,7 @@ Môi trường đã kiểm: Node v24.19.0, esbuild 0.28.2, Python 3.12.10, Windo
 | `localStorage` | khoá `dieukhien.side` | `'0'` = thanh điều khiển bên trái đang thu gọn; riêng từng trình duyệt, không lên file |
 | `localStorage` | khoá `dieukhien.zen` | `'1'` = đang ở chế độ zen; riêng từng trình duyệt, không lên file |
 | `localStorage` | khoá `dieukhien.nsplit` | chia màn hình ở trang Ghi chú `{n, ids, act}`: số ô, trang ở từng ô, ô đang chọn; riêng từng trình duyệt, không lên file |
+| `localStorage` | khoá `dieukhien.caret` | `{k, from, to}`: trang gõ gần nhất (mã trang) và chỗ con trỏ trong đó; mở lại app thì con trỏ về đúng chỗ |
 | `localStorage` | khoá `dieukhien.jsplit` | như `dieukhien.nsplit` nhưng cho Nhật ký, mỗi ô là `{d, id}` (ngày, mã trang) |
 | File trên ổ đĩa | `showSaveFilePicker`, tự ghi sau 1.2 s | tuỳ chọn, chỉ Chrome/Edge |
 | `IndexedDB` | db `dieukhien-fs`, store `h` | chỉ giữ file handle để lần mở sau bấm 1 nút là kết nối lại |

@@ -3,11 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- nền tối ngay từ khung hình đầu: chưa có dòng này thì cửa sổ mới mở chớp trắng trong lúc chờ style.css -->
+<meta name="color-scheme" content="dark">
+<style>html{background:#0e1014}</style>
 <title data-i18n="app.title">Hearth</title>
 <link rel="icon" href="icons/hearth.ico">
+<!-- cài thành app Chrome (Install / Cài đặt Hearth): tên, icon, nền tối lúc cửa sổ vừa mở -->
+<link rel="manifest" href="manifest.json">
 <link rel="stylesheet" href="style.css">
 </head>
 <body spellcheck="false">
+<script>
+/* thu gọn thanh điều khiển và chế độ zen (xem sideFold / zenMode ở main.js) áp ngay trước lần vẽ đầu tiên.
+   Để tới main.js thì trình duyệt đã vẽ màn mặc định trong lúc nạp các script phía dưới, rồi thanh bên trái mới trượt đi */
+try{
+  if(localStorage.getItem('dieukhien.side') === '0') document.body.classList.add('noside');
+  if(localStorage.getItem('dieukhien.zen') === '1') document.body.classList.add('zen');
+}catch(e){}
+</script>
 <div id="app">
   <aside id="side">
     <div class="brand"><img class="logo" src="icons/hearth.svg" alt=""><span data-i18n="app.brand">Hearth</span></div>

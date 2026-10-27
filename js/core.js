@@ -39,10 +39,6 @@ const SETTINGS = {sort:'group', scope:'week', zen:false, calMode:'month', fcM:'w
 const VIEW_KEY = 'dieukhien.view';
 const KEEP_VIEWS = ['board','life','backlog','habits','focus','plan','cal','journal','notes','dash','trash'];
 const keptView = () => {
-  // ?view=notes (shortcut Ghi chú, xem ghi-chu.vbs): mở thẳng trang đó một lần rồi bỏ khỏi URL,
-  // để tải lại trang vẫn ở trang đang xem như thường
-  const q = new URLSearchParams(location.search).get('view');
-  if(KEEP_VIEWS.includes(q)){ history.replaceState(null, '', location.pathname + location.hash); return q; }
   try{ const v = localStorage.getItem(VIEW_KEY); return KEEP_VIEWS.includes(v) ? v : 'board'; }catch(e){ return 'board'; }
 };
 // khung giờ: bước 30 phút; nhắc trước tính bằng phút, 0 = không nhắc
@@ -284,12 +280,12 @@ function wireBookRow(o){
     () => { save(); o.redraw(); });
 }
 /* ============ chia màn hình (ghi chú, nhật ký) ============ */
-// Như Sublime: 2 trang cạnh nhau hoặc lưới 2×2. st = {n, ids, act}: ids = trang ở từng ô (null = ô trống),
+// Như Sublime: 2 trang cạnh nhau, 3 trang (hai ô trên, một ô rộng dưới) hoặc lưới 2×2. st = {n, ids, act}: ids = trang ở từng ô (null = ô trống),
 // act = ô đang chọn — trang mở từ cây / tab / link / trang mới đều vào ô này. Nhớ riêng trong trình duyệt này.
 function splitLoad(key){
   try{
     const v = JSON.parse(localStorage.getItem(key));
-    if([2, 4].includes(v?.n) && Array.isArray(v.ids) && v.ids.length === v.n && v.act >= 0 && v.act < v.n) return v;
+    if([2, 3, 4].includes(v?.n) && Array.isArray(v.ids) && v.ids.length === v.n && v.act >= 0 && v.act < v.n) return v;
   }catch(e){}
   return {n:1, ids:[], act:0};
 }
@@ -301,8 +297,10 @@ function splitResize(st, k, cur){
   ids.length = k;
   return {n:k, ids, act: Math.max(0, ids.indexOf(null))};
 }
-const splitCtlHTML = n => `<div class="scope nsplit">${[1, 2, 4].map(k =>
-  `<button data-nsp="${k}" class="${n === k ? 'on' : ''}" title="${tr('note.splitN', {n: k})}">${{1: '▢', 2: '◫', 4: '⊞'}[k]}</button>`).join('')}</div>`;
+// icon nút chia: khung chữ nhật, kẻ thêm đường chia theo số ô
+const SPLIT_LINES = {1: '', 2: 'M8 2v10', 3: 'M1 7h14M8 2v5', 4: 'M8 2v10M1 7h14'};
+const splitCtlHTML = n => `<div class="scope nsplit">${[1, 2, 3, 4].map(k =>
+  `<button data-nsp="${k}" class="${n === k ? 'on' : ''}" title="${tr('note.splitN', {n: k})}"><svg width="16" height="14" viewBox="0 0 16 14" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2" width="14" height="10" rx="1.5"/><path d="${SPLIT_LINES[k]}"/></svg></button>`).join('')}</div>`;
 // khung một ô: tay nắm kéo đổi chỗ, nhãn / tiêu đề (head), rồi trang viết (body); ô trống thì lời nhắc và nút trang mới
 const splitPaneHTML = (st, i, head, body) => `<div class="npane${i === st.act ? ' on' : ''}" data-npane="${i}">
   <div class="nphead"><span class="ngrip" draggable="true" title="${tr('note.paneDrag')}">⠿</span>${head || ''}</div>

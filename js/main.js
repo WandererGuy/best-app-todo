@@ -233,13 +233,13 @@ $('#impFile').onchange = e => { if(e.target.files[0]) importJSON(e.target.files[
 // thu gọn thanh điều khiển bên trái: nhớ riêng trong trình duyệt này như VIEW_KEY, không lên file
 const SIDE_KEY = 'dieukhien.side';
 function sideFold(off){
-  $('#app').classList.toggle('noside', off);
+  document.body.classList.toggle('noside', off);
   $('#sideBtn').textContent = off ? '»' : '«';
   $('#sideBtn').title = tr(off ? 'top.sideShow' : 'top.sideHide');
   try{ localStorage.setItem(SIDE_KEY, off ? '0' : '1'); }catch(e){}
 }
-$('#sideBtn').onclick = () => sideFold(!$('#app').classList.contains('noside'));
-sideFold((() => { try{ return localStorage.getItem(SIDE_KEY) === '0'; }catch(e){ return false; } })());
+$('#sideBtn').onclick = () => sideFold(!document.body.classList.contains('noside'));
+sideFold(document.body.classList.contains('noside'));   // script đầu <body> trong index.html đã đọc sẵn, trước lần vẽ đầu
 // chế độ zen: chỉ còn chữ (xem body.zen trong style.css). Nhớ riêng trong trình duyệt này như SIDE_KEY
 const ZEN_KEY = 'dieukhien.zen';
 function zenMode(on){
@@ -250,7 +250,7 @@ function zenMode(on){
 }
 $('#zenBtn').onclick = () => zenMode(true);
 $('#zenOut').onclick = () => zenMode(false);
-zenMode((() => { try{ return localStorage.getItem(ZEN_KEY) === '1'; }catch(e){ return false; } })());
+zenMode(document.body.classList.contains('zen'));
 document.addEventListener('keydown', e => {
   if((e.ctrlKey || e.metaKey) && e.key === '\\'){ e.preventDefault(); $('#sideBtn').click(); }
   if(e.shiftKey && e.key === 'F11'){ e.preventDefault(); zenMode(!document.body.classList.contains('zen')); }
@@ -282,6 +282,7 @@ boot().then(msg => {
   if(CAL_MODES[S.settings.calMode]) ui.calMode = S.settings.calMode;
   loadFil();
   render(); restoreFile(); fBoot();
+  restoreCaret();                // trang ghi chú / nhật ký đang mở: con trỏ về chỗ gõ dở lần trước
   if(msg) toast(msg);
   checkReminders();
 });

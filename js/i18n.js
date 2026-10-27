@@ -261,7 +261,6 @@ const STR = {
   'journal.blank':     ['Chưa viết gì', 'Nothing written'],
   'journal.sub':       ['{n} ngày đã viết', '{n} {n#day#days} written'],
   'journal.dueN':      ['{n} task đến hạn hôm nay', '{n} {n#task#tasks} due today'],
-  'journal.dueNone':   ['Không có task nào đến hạn', 'Nothing due'],
   'journal.slashHint': ['Gõ <b>/</b> để chèn khối', 'Type <b>/</b> to insert a block'],
   'journal.addPage':   ['Thêm trang mới cho ngày này', 'Add another page to this day'],
   'journal.renPage':   ['Đổi tên trang', 'Rename this page'],

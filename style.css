@@ -30,7 +30,7 @@ button{background:none;border:none;cursor:pointer}
 #main{flex:1;display:flex;flex-direction:column;min-width:0}
 /* thu gọn thanh điều khiển (nút #sideBtn, Ctrl+\): trượt ra ngoài mép trái, phần chính giãn theo */
 #side{transition:margin-left .2s}
-#app.noside #side{margin-left:-232px}
+body.noside #side{margin-left:-232px}
 #top #sideBtn{margin-left:-8px}
 /* chế độ zen (nút Zen trên thanh trên, Shift+F11): chỉ còn chữ, như distraction-free của Sublime.
    Ẩn sidebar, thanh trên, cột danh sách, hàng cuốn, thanh ngày, tab trang, phần đầu trang ghi chú;
@@ -360,12 +360,14 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .npage .fld:focus-within .tagsug{display:flex}
 .nhead{display:flex;align-items:flex-start;gap:8px}
 .nhead .jbooks{flex:1;min-width:0}
-.nsplit button{padding:3px 9px;font-size:14px;line-height:1.3}
-/* chia màn hình (nút ▢ ◫ ⊞ ở js/notes.js): 2 trang cạnh nhau hoặc lưới 2×2, mỗi ô cuộn riêng, rộng hết màn hình */
+.nsplit button{padding:5px 9px}
+.nsplit svg{display:block}
+/* chia màn hình (splitCtlHTML ở js/core.js): 2 trang cạnh nhau, 3 trang (hai trên một dưới) hoặc lưới 2×2, mỗi ô cuộn riêng, rộng hết màn hình */
 .nwrap.split{max-width:none}
 .nmain{flex:1;min-width:0;display:flex;flex-direction:column;gap:10px}
 .npanes{flex:1;min-height:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.npanes.n4{grid-template-rows:repeat(2,minmax(0,1fr))}
+.npanes.n3,.npanes.n4{grid-template-rows:repeat(2,minmax(0,1fr))}
+.npanes.n3 .npane:nth-child(3){grid-column:1 / -1}   /* 3 ô: hai ô trên, một ô rộng ở dưới */
 .npane{min-height:0;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;
   padding:14px 24px 0;display:flex;flex-direction:column;gap:6px}
 .npane.on{border-color:color-mix(in srgb,var(--acc) 60%,var(--line))}

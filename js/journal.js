@@ -146,7 +146,7 @@ function renderJournal(){
       <div class="jbar">
         <button class="nvb" id="pd">‹</button><button class="nvb" id="nd">›</button>
         <div><h2>${DOW[d.getDay()]}, ${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}</h2>
-        <div class="sub">${due.length ? tr('journal.dueN', {n: due.length}) : tr('journal.dueNone')}</div></div>
+        ${due.length ? `<div class="sub">${tr('journal.dueN', {n: due.length})}</div>` : ''}</div>
         ${dateBtn('jDp', ui.jDate, tr('common.pickDate'), 'width:auto')}
         <span class="hint">${tr('journal.slashHint')}</span>
       </div>
@@ -199,11 +199,11 @@ function renderJournal(){
     $$('.npane').forEach(el => {
       const i = +el.dataset.npane, r = jSplit.ids[i], p = jRef(r);
       if(!p) return;
-      mountEd('jHost' + i, p.html, tr('journal.ph'), edit(r.d, p), {kbDay: r.d});
+      mountEd('jHost' + i, p.html, tr('journal.ph'), edit(r.d, p), {kbDay: r.d, caret: p.id});
       keepPageScroll(el, p.id);
     });
   }else{
-    mountEd('jHost', page.html, tr('journal.ph'), edit(ui.jDate, page), {kbDay: ui.jDate});   // bảng việc trong trang ghi rõ thuộc ngày nào
+    mountEd('jHost', page.html, tr('journal.ph'), edit(ui.jDate, page), {kbDay: ui.jDate, caret: page.id});   // bảng việc trong trang ghi rõ thuộc ngày nào
     keepPageScroll($('#jHost'), page.id);
   }
 
