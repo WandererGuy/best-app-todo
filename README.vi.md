@@ -130,6 +130,7 @@ Nếu lỡ tắt server khi tab còn mở, app sẽ báo đỏ. Thay đổi vẫ
 - App tạo sẵn vài task, thói quen và trang nhật ký mẫu để bạn xem thử. Xoá chúng đi khi đã quen.
 - Muốn nhận nhắc việc khi đang ở cửa sổ khác: vào **Tập trung → ⚙ Cài đặt** và bấm **Cho phép thông báo hệ thống**.
 - **Mẹo:** tạo shortcut của `start.bat` ra Desktop để mở nhanh mỗi ngày.
+- **Mở như app trên máy:** trong Chrome, ở `localhost:8000`, bấm biểu tượng **Cài đặt** ở cuối thanh địa chỉ (hoặc ⋮ → Cast, save and share → Install page as app). Hearth có cửa sổ và icon riêng, hiện trong Start và trên Desktop. App chỉ mở cửa sổ: server vẫn phải đang chạy qua `start.bat`.
 
 > **Đừng mở thẳng file `index.html`.** App vẫn chạy, nhưng khi đó dữ liệu chỉ nằm trong trình duyệt và xoá cache là mất. Luôn chạy qua `start.bat` hoặc `server.py`.
 
