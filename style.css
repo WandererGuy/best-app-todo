@@ -595,6 +595,8 @@ button.ncar:hover{background:var(--line);color:var(--tx)}
 .ed .ekbbar button:hover{border-color:var(--acc);color:var(--acc2)}
 .ed .ekbhd{display:flex;align-items:center;gap:8px;min-height:20px;margin-bottom:-2px}   /* ngày + nút chép, nằm riêng trên các cột */
 .ed .ekbdate{color:var(--tx2);font-size:12px;font-weight:620;white-space:nowrap}
+.ed button.ekbdate{padding:2px 6px;margin:-2px -6px;border-radius:6px}
+.ed button.ekbdate:hover{background:var(--panel2);color:var(--acc2)}
 /* loại bảng: viền trái và nhãn đầu bảng theo màu mảng (công việc / cuộc sống) */
 .ed .ekb.ar{padding-left:10px;border-left:3px solid var(--kba)}
 .ed .ekbarea{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:620;

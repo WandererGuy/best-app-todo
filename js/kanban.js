@@ -71,21 +71,26 @@ function kbSpread(list, src){
   if(dirty) save();
 }
 
-// bảng của ngày k: nằm trong trang nhật ký của ngày k và mang đúng ngày k (bảng ngày 14 dán sang ngày 15 không tính
-// cho ngày 15), theo thứ tự các trang rồi thứ tự trong trang. Bảng chưa đóng dấu ngày thì tính cho trang chứa nó.
+// bảng của ngày k: bảng trong nhật ký mang ngày k, dù nằm ở trang ngày nào (bảng ngày 14 dán sang ngày 15 vẫn tính
+// cho ngày 14; bảng được chuyển sang ngày khác thì tính cho ngày mới). Trang của ngày k trước, rồi tới các trang khác;
+// trong trang theo thứ tự. Bảng chưa đóng dấu ngày thì tính cho trang chứa nó. Các bản cùng mã chỉ tính một lần.
 // stamp = true: bảng chưa có mã thì đóng mã luôn vào trang gốc, để bản sắp dán ra đồng bộ được với nó.
 function kbOfDay(k, stamp = false){
-  const out = [];
-  (Array.isArray(S.journal[k]) ? S.journal[k] : []).forEach(p => {
-    if(!p.html || !p.html.includes('data-kanban')) return;
+  const out = [], seen = new Set();
+  const days = [k, ...Object.keys(S.journal).filter(d => d !== k)];
+  days.forEach(d => (Array.isArray(S.journal[d]) ? S.journal[d] : []).forEach(p => {
+    if(!p.html || !p.html.includes('data-kanban') || (d !== k && !p.html.includes(`data-kbday="${k}"`))) return;
     const t = kbParse(p.html); let ch = false;
     t.content.querySelectorAll('div[data-kanban]').forEach(el => {
-      if((el.getAttribute('data-kbday') || k) !== k) return;
+      if((el.getAttribute('data-kbday') || d) !== k) return;
       if(stamp && !el.getAttribute('data-kbid')){ el.setAttribute('data-kbid', uid()); ch = true; }
-      out.push({bid: el.getAttribute('data-kbid') || '', day: k, cards: kbCardsOf(el), area: el.getAttribute('data-kbarea') || ''});
+      const bid = el.getAttribute('data-kbid') || '';
+      if(bid && seen.has(bid)) return;
+      if(bid) seen.add(bid);
+      out.push({bid, day: k, cards: kbCardsOf(el), area: el.getAttribute('data-kbarea') || ''});
     });
     if(ch) p.html = t.innerHTML;
-  });
+  }));
   return out;
 }
 const kbLeft = list => list.reduce((n, b) => n + b.cards.filter(c => KB_OPEN.includes(c.s)).length, 0);

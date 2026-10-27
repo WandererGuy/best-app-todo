@@ -375,6 +375,7 @@ const STR = {
   'kb.startL':    ['Bắt đầu', 'Started'],
   'kb.doneL':     ['Xong', 'Done'],
   'kb.clearDay':  ['Bỏ ngày', 'Clear date'],
+  'kb.dayT':      ['Bấm để chuyển bảng sang ngày khác', 'Click to move this board to another day'],
   'kb.areaNone':  ['Chưa phân loại', 'Unsorted'],
   'kb.areaT':     ['Bấm để đổi giữa bảng công việc và bảng cuộc sống', 'Click to switch between work and life board'],
   'kb.add':       ['+ Thêm', '+ Add'],

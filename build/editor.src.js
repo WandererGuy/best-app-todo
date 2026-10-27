@@ -227,7 +227,7 @@ const Kanban = Node.create({
             pickDate: null,                  // (nút, 'YYYY-MM-DD' | '', onPick(ngày | '')) mở lịch chọn ngày của app
             areas: {work: {n: 'Work', c: '#3b82f6'}, life: {n: 'Life', c: '#a855f7'}}, areaNone: 'Unsorted', areaT: 'Switch between work and life board',
             prefN: {key: 'Show Important boxes'}, setT: 'Board settings',
-            day: '', fmtDay: d => d};
+            day: '', fmtDay: d => d, dayT: 'Click to move this board to another day'};
   },
   addAttributes(){
     return {cards: {default: [],
@@ -422,9 +422,10 @@ const Kanban = Node.create({
             ab.querySelector('span').textContent = ar ? ar.n : o.areaNone;
             hd.appendChild(ab);
           }
-          if(label){
-            const lb = document.createElement('span');
+          if(label){                         // bấm ngày để chuyển bảng sang ngày khác (cần lịch của app)
+            const lb = document.createElement(o.pickDate ? 'button' : 'span');
             lb.className = 'ekbdate'; lb.textContent = label;
+            if(o.pickDate){ lb.type = 'button'; lb.dataset.dt = '1'; lb.title = o.dayT; }
             hd.appendChild(lb);
           }
           if(canCopy){
@@ -711,6 +712,11 @@ const Kanban = Node.create({
         }
         if(e.target.closest('.ekbsetm')) return;
         if(e.target.closest('.ekbarea')) return write({area: node.attrs.area === 'work' ? 'life' : 'work'});
+        const dy = o.pickDate && e.target.closest('.ekbdate');
+        if(dy) return o.pickDate(dy, node.attrs.day || o.day, v => {   // xoá ngày: về lại ngày của trang chứa bảng
+          if(v && !/^\d{4}-\d\d-\d\d$/.test(v)) return;
+          if((v || o.day) !== node.attrs.day) write({day: v || o.day});
+        });
         const di = e.target.closest('.ekbdi, .ekbdl');
         if(di){                              // ô ngày trong thẻ đang mở / nút hạn trên thẻ gập: chọn ngày mới, hoặc xoá để bỏ ngày đó
           const id = di.closest('.ekbk').dataset.id, f = di.dataset.f;

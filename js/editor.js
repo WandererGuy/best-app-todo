@@ -189,6 +189,7 @@ function mountEd(hostId, content, ph, onChange, {kbDay = '', caret = ''} = {}){
              areas: {work: {n: AREAS.work.n, c: '#93c5fd'}, life: {n: AREAS.life.n, c: '#86efac'}},
              areaNone: tr('kb.areaNone'), areaT: tr('kb.areaT'), startT: tr('kb.startT'), doneT: tr('kb.doneT'), startL: tr('kb.startL'), doneL: tr('kb.doneL'),
              pickPh: tr('common.pickDate'), pickDate: (el, cur, cb) => openDP(el, cur, cb, tr('kb.clearDay')),
+             dayT: tr('kb.dayT'),
              addPh: tr('kb.add'), addT: tr('kb.addT'), pastePh: tr('kb.paste'), delT: tr('kb.del'), copyT: tr('kb.copy'), copied: '✓',
              editT: tr('kb.edit'), descPh: tr('kb.desc'), subPh: tr('kb.subPh'), subT: tr('kb.subT'),
              selN: tr('kb.selN'), copySel: tr('kb.copySel'), copiedSel: tr('kb.copiedSel'), clearSel: tr('kb.clearSel'),
